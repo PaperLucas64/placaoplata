@@ -251,3 +251,16 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .gps-other.me{border-color:var(--sodium)!important;box-shadow:0 0 0 3px rgba(0,0,0,.5),0 0 12px var(--sodium)}
 @keyframes chase{from{box-shadow:0 0 0 2px rgba(0,0,0,.6)}to{box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 14px #e0524f}}
 .gps-card button{display:block;width:100%;text-align:left;font-size:.8rem}
+
+/* el mapa de la ciudad, siempre arriba */
+.city{display:grid;gap:0}
+.city .gps{margin:0;border-radius:6px 6px 0 0}
+.city .gps.city-map{height:440px}
+.city .gps-status{margin:0;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;font-size:.88rem}
+@media (max-width:820px){.city .gps.city-map{height:320px}}
+/* el mapa es el protagonista: en compu arriba a la derecha (la ficha a la izquierda); en el teléfono, antes que todo */
+.game{grid-template-areas:"sheet city" "sheet board";grid-template-rows:auto 1fr}
+.game > .sheet{grid-area:sheet}
+.game > .city{grid-area:city;min-width:0}
+.game > .board{grid-area:board}
+@media (max-width:820px){.game{grid-template-areas:"city" "sheet" "board";grid-template-rows:auto}}

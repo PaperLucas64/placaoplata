@@ -27,6 +27,43 @@ function useTravelers() {
   }, []);
   return people;
 }
+/* El mapa de Maires, arriba de todo: los barrios con el color de su dueño, tu personaje (si está en la calle),
+   los demás que andan por ahí y, al tocarlos, salir a buscarlos. */
+export function CityMap({ s, now, act }: Ui) {
+  const people = useTravelers();
+  const [owned, setOwned] = useState<BarrioView[] | null>(null);
+  useEffect(() => {
+    const load = () => api.territory().then(r => setOwned(r.map)).catch(() => {});
+    load();
+    const t = setInterval(load, 120_000);
+    return () => clearInterval(t);
+  }, []);
+  const key = owned?.map(b => `${b.barrio}:${b.owner}`).join("|") ?? "";
+  const owners = useMemo(() => owned ? Object.fromEntries(owned.map(b => [b.barrio, b.owner ? GANGS[b.owner].color : null])) : undefined, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const b = s.busy;
+  const trip = b?.kind === "mision" ? b.trip ?? null : null;
+  const ph = b?.kind === "mision" && trip ? tripPhase(b, now) : null;
+  const others: Traveler[] = b?.kind === "caza"
+    ? [...people, { id: -1, name: "Vos", lvl: s.lvl, gang: gangOf(s), avatar: s.avatar ?? 1, since: b.since, until: b.until,
+        chase: { meet: b.meet, from: b.from, at: b.at, targetName: b.targetName } }]
+    : people;
+  const status = trip && ph ? tripLine(trip, ph, tripKm(trip.place, trip.mode))
+    : b?.kind === "caza" ? (now < b.meet
+      ? <>Vas {CHASE_NAMES[b.mode].toLowerCase()} a cruzar a <b>{b.targetName}</b> cerca de {b.place} · faltan {minTxt(b.meet - now)}</>
+      : <>Volviendo a la pensión · {minTxt(b.until - now)}</>)
+    : people.length ? <>{people.length} {people.length === 1 ? "persona anda" : "personas andan"} por la calle. Tocalos para ver a dónde van{s.tutDone ? " y salir a buscarlos" : ""}.</>
+    : <>La ciudad está tranquila. Vos estás en la pensión de San Telmón.</>;
+  return <section className="city" aria-label="Mapa de Maires">
+    <Suspense fallback={<div className="gps city-map" />}>
+      <GpsMap className="city-map" owners={owners} place={trip?.place} mode={trip?.mode}
+        at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} avatar={b?.kind === "caza" ? undefined : avatarImg(s.avatar)}
+        others={others} now={now} avatarOf={avatarImg}
+        attack={s.tutDone ? { s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) } : undefined} />
+    </Suspense>
+    <p className="gps-status num">{status}</p>
+  </section>;
+}
+
 /* por qué no podés asaltar a alguien (o null si podés); el servidor lo vuelve a chequear */
 function ambushWhy(s: Ui["s"], t: Traveler): string | null {
   if (s.busy) return "Estás ocupado: para salir a buscar a alguien tenés que estar libre.";
@@ -186,12 +223,17 @@ const STAT_SHORT: Record<StatKey, string> = { fue: "Fuerza", dur: "Dureza", ref:
 const DIFF_CLASS = ["r1", "r1", "r2", "r3"];
 
 /* La misión en curso: etapas resueltas (✓ / ✗), la que viene y cuánto falta */
+/* una línea con dónde va tu personaje */
+function tripLine(t: { mode: TravelMode; place: string; back: number }, ph: NonNullable<ReturnType<typeof tripPhase>>, km: number) {
+  return ph.phase === "ida" ? <>{TRAVEL[t.mode].name} a <b>{t.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</>
+    : ph.phase === "alla" ? <>En <b>{t.place}</b>, trabajando · después, {minTxt(t.back)} de vuelta</>
+    : <>Volviendo a la pensión · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(ph.left)}</>;
+}
 const kmTxt = (km: number) => (km >= 10 ? `${Math.round(km)} km` : `${km.toFixed(1).replace(".", ",")} km`);
 const minTxt = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))} min`;
 
 /* La misión en curso: el GPS con tu personaje y las etapas. Lo que todavía no pasó no se cuenta. */
 function MissionProgress({ s, now }: Ui) {
-  const others = useTravelers();
   const b = s.busy;
   if (b?.kind !== "mision") return null;
   const m = findMission(s, b.id);
@@ -202,16 +244,7 @@ function MissionProgress({ s, now }: Ui) {
   const km = t ? tripKm(t.place, t.mode) : 0;
   return <div className="mission thread" style={{ borderColor: clientOf(m).color }}>
     <h3>En curso: {m.title}</h3>
-    {t && ph && <>
-      <Suspense fallback={mapFallback}>
-        <GpsMap place={t.place} mode={t.mode} at={{ back: ph.phase === "vuelta", f: ph.frac }} avatar={avatarImg(s.avatar)}
-          others={others} now={now} avatarOf={avatarImg} />
-      </Suspense>
-      <p className="gps-status num">{
-        ph.phase === "ida" ? <>{TRAVEL[t.mode].name} a <b>{t.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</> :
-        ph.phase === "alla" ? <>En <b>{t.place}</b>, trabajando · después, {minTxt(t.back)} de vuelta</> :
-        <>Volviendo a la pensión · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(ph.left)}</>}</p>
-    </>}
+    {t && ph && <p className="gps-status num">{tripLine(t, ph, km)} · lo ves en el mapa de arriba</p>}
     <ol className="steps">{m.steps.map((st, i) => {
       const past = i < b.done, current = i === b.done && arrived;
       return <li key={i} className={past ? (res[i] ? "ok" : "ko") : current ? "now" : "later"}>
@@ -353,13 +386,7 @@ function Street({ s, act, busy }: Ui) {
   </>;
 }
 
-function Ranking({ s, now, act }: Ui) {
-  const people = useTravelers();
-  const b = s.busy;
-  const others: Traveler[] = b?.kind === "caza"
-    ? [...people, { id: -1, name: "Vos", lvl: s.lvl, gang: gangOf(s), avatar: s.avatar ?? 1, since: b.since, until: b.until,
-        chase: { meet: b.meet, from: b.from, at: b.at, targetName: b.targetName } }]
-    : people;
+function Ranking({ s }: Ui) {
   const [rows, setRows] = useState<RankRow[] | null>(null);
   const [map, setMap] = useState<{ map: BarrioView[]; owned: Record<Gang, number> } | null>(null);
   useEffect(() => {
@@ -367,21 +394,12 @@ function Ranking({ s, now, act }: Ui) {
     api.territory().then(setMap).catch(() => {});
   }, [s.respect]);
   const mine = gangOf(s);
-  const owners = useMemo(() => map && Object.fromEntries(map.map.map(b => [b.barrio, b.owner ? GANGS[b.owner].color : null])), [map]);
   return <>
     <h2>Maires</h2>
     <p>Cada barrio es de la pandilla con más influencia. La influencia la ganás trabajando para una pandilla (misiones, encargos, golpes y peleas) y se va gastando: pierde la mitad por semana. Cada barrio de tu pandilla te da +{Math.round(TURF_BONUS * 100)}% de plata.</p>
     {mine && map && <p className="result good">{GANGS[mine].name} controla {map.owned[mine]} {map.owned[mine] === 1 ? "barrio" : "barrios"}: +{map.owned[mine] * Math.round(TURF_BONUS * 100)}% de plata para vos.</p>}
-    {owners && <Suspense fallback={mapFallback}>
-      <GpsMap owners={owners} height={400} others={others} now={now} avatarOf={avatarImg}
-        attack={{ s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) }} />
-    </Suspense>}
-    {s.busy?.kind === "caza" && <p className="result">{now < s.busy.meet
-      ? `Vas ${CHASE_NAMES[s.busy.mode].toLowerCase()} a cruzar a ${s.busy.targetName} cerca de ${s.busy.place}: faltan ${Math.max(1, Math.ceil((s.busy.meet - now) / 60000))} min.`
-      : `Volviendo a la pensión: ${Math.max(1, Math.ceil((s.busy.until - now) / 60000))} min.`}</p>}
-    <p className="tag">{others.length ? `Ahora hay ${others.length} ${others.length === 1 ? "persona" : "personas"} en la calle. Tocalos para ver a dónde van. Si no son de tu pandilla, podés salir a buscarlos (${DUEL_COST} de energía): si los alcanzás, pelean donde se crucen; si no llegás, no salís. Y si en una misión tu camino se cruza con el de un rival, se arma solo.`
-      : "Ahora no hay nadie más en la calle. Cuando haya, los vas a ver moverse por el mapa y vas a poder salir a buscarlos."}</p>
-    {!map ? <p className="tag">Cargando el mapa…</p> :
+    <p className="tag">En el mapa de arriba los barrios tienen el color de su dueño.</p>
+    {!map ? <p className="tag">Cargando los barrios…</p> :
       <div className="barrios">{map.map.map(b => {
         const total = GANG_KEYS.reduce((a, g) => a + b.points[g], 0) || 1;
         const c = b.owner ? GANGS[b.owner].color : "var(--line)";

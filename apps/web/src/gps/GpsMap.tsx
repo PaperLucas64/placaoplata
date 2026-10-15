@@ -60,8 +60,9 @@ interface Props {
   /* salir a buscar a alguien: quién sos, por qué no podés (o null) y qué hacer al elegir cómo ir */
   attack?: { s: PlayerState; why: (t: Traveler) => string | null; go: (t: Traveler, mode: ChaseMode) => void };
   height?: number;
+  className?: string;
 }
-export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now(), avatarOf, attack, height = 260 }: Props) {
+export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now(), avatarOf, attack, height, className = "" }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const me = useRef<maplibregl.Marker | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -193,7 +194,8 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
     me.current.setLngLat(ll(pos));
   }, [data, place, mode, at?.back, at?.f]);
 
-  if (failed) return <div className="gps off" style={{ height }}><span className="tag">El mapa no cargó. El viaje sigue igual.</span></div>;
-  return <div className="gps" ref={box} style={{ height }} />;
+  const style = height ? { height } : undefined;
+  if (failed) return <div className={`gps off ${className}`} style={style}><span className="tag">El mapa no cargó. El juego sigue igual.</span></div>;
+  return <div className={`gps ${className}`} ref={box} style={style} />;
 }
 export default GpsMap;

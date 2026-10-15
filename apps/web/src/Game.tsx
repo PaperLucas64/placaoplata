@@ -3,7 +3,7 @@ import { gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Sheet } from "./parts";
-import { Pane } from "./panes";
+import { CityMap, Pane } from "./panes";
 import { sceneFor } from "./art";
 
 export type Act = (a: Action) => Promise<void>;
@@ -106,8 +106,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         <Sheet s={s} now={now} disabled={busy} onCancel={() => s.coop && s.busy?.kind === "mision"
           ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
           : act({ type: "cancel" })} />
+        <CityMap {...ui} />
         <main className="board">
-          {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <nav className="tabs" role="tablist">
             {tabs.map(k => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
@@ -115,6 +115,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
               </button>
             ))}
           </nav>
+          {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <section className="pane">
             <div className="scene" style={{ backgroundImage: `url(${sceneFor(tab, gangOf(s))})` }} aria-hidden="true" />
             <Pane tab={tab} {...ui} />
