@@ -5,5 +5,5 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "exports": { ".": "./src/index.ts", "./rutas.json": "./data/rutas.json", "./barrios.json": "./data/barrios.json" }
+  "exports": { ".": "./src/index.ts", "./rutas.json": "./data/rutas.json", "./barrios.json": "./data/barrios.json", "./subte.json": "./data/subte.json" }
 }

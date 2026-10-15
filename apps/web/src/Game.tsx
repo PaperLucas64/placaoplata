@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
+import { energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
-import { CityMap, Pane, PlacePanel } from "./panes";
+import { CityMap, Pane, PlacePanel, SearchPanel } from "./panes";
+import { GangRing } from "./art";
 import { sceneFor } from "./art";
 
 export type Act = (a: Action) => Promise<void>;
@@ -95,6 +96,9 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [lugar, setLugar] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel>(initial.state.tutDone ? null : "me"); // en el tutorial, Marga a la vista
+  const [filter, setFilter] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState(false);
   /* actividad rápida: una misión o un trabajo al azar, de los que podés hacer ahora */
   const quick = () => {
@@ -113,7 +117,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
     : act({ type: "cancel" }));
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }), lugar,
-    setLugar: id => { setLugar(id); setSheet(false); setFight(null); setLiveFight(null); } };
+    setLugar: id => { setLugar(id); setPanel(null); setFight(null); setLiveFight(null); } };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
   const tabs: TabKey[] = withEquipo(s.tutDone ? withNewTabs(s.tabs) : s.tabs);
   /* cinco pestañas grandes; adentro, sus secciones (solo las que ya destrabaste) */
@@ -122,64 +126,95 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const unseen = (k: TabKey) => !s.seenTab[k] && tab !== k;
   const showFight = fight && (tab === "ring" || tab === "misiones" || tab === "calle" || tab === "ranking");
 
+  /* abrir un menú del costado: la sección que usaste la última vez en ese grupo, o la primera */
+  const openGroup = (g: { id: string; tabs: TabKey[] }) => {
+    setLugar(null);
+    if (panel === g.id) { setPanel(null); return; }
+    setPanel(g.id);
+    open(g.tabs.includes(lastIn.current[g.id] as TabKey) ? lastIn.current[g.id] as TabKey : g.tabs[0]);
+  };
+  const openPanel = (k: Panel) => { setLugar(null); setPanel(panel === k ? null : k); };
+  const shown = lugar ? "lugar" : panel;
+
+  /* Como Google Maps: el mapa ocupa todo; a la izquierda los menús, arriba buscar y los filtros, arriba a la derecha vos */
   return (
-    <>
-      {/* el fondo de la página es el lugar donde estás (cambia con la pestaña) */}
-      <div className="backdrop" aria-hidden="true">
-        {BACKDROPS.map(src => <div key={src} className={src === sceneFor(tab, gangOf(s)) ? "on" : ""} style={{ backgroundImage: `url(${src})` }} />)}
-      </div>
-      <header className="top">
-        <div><div className="tag">Maires · de noche</div><h1>Mai<span className="o">res</span></h1></div>
-        <div className="tag num">
-          <span className={`live ${live ? "on" : ""}`}>{live ? "en línea" : "sin conexión"}</span>
-          {s.tabs.includes("ring") && <> · Peleas ganadas {s.wins + s.c.duelW} · perdidas {s.losses + s.c.duelL}</>}
+    <div className="gm">
+      <CityMap {...ui} filter={filter} />
+
+      <nav className="rail" aria-label="Menú">
+        <div className="rail-logo">Mai<span className="o">res</span></div>
+        {groups.map(g => (
+          <button key={g.id} className={shown === g.id ? "on" : ""} onClick={() => openGroup(g)}>
+            <span className="ri" aria-hidden="true">{GROUP_ICON[g.id]}</span><span>{g.name}</span>
+            {g.tabs.some(unseen) && <span className="dot" aria-label="nuevo" />}
+          </button>
+        ))}
+        <button className={shown === "cronica" ? "on" : ""} onClick={() => openPanel("cronica")}>
+          <span className="ri" aria-hidden="true">📜</span><span>Crónica</span></button>
+      </nav>
+
+      <div className="topbar">
+        <form className="search" onSubmit={e => { e.preventDefault(); setLugar(null); setPanel("buscar"); }}>
+          <input value={query} placeholder="Buscar amigo o lugar" aria-label="Buscar amigo o lugar"
+            onChange={e => { setQuery(e.target.value); setLugar(null); setPanel(e.target.value ? "buscar" : panel === "buscar" ? null : panel); }}
+            onFocus={() => { if (query) { setLugar(null); setPanel("buscar"); } }} />
+          <button type="submit" className="search-go" aria-label="Buscar">🔍</button>
+        </form>
+        <div className="chips">
+          <button className="chip do" disabled={busy} onClick={quick}>🎯 Cosas que hacer</button>
+          {CHIPS.map(c => <button key={c.id} className={`chip ${filter === c.id ? "on" : ""}`} onClick={() => setFilter(filter === c.id ? null : c.id)}>{c.icon} {c.name}</button>)}
         </div>
-      </header>
-      {/* el mapa es el juego: ocupa la pantalla; arriba, tu barra; al tocar un lugar, se abre encima */}
-      <div className="world">
-        <CityMap {...ui} />
-        <Hud s={s} now={now} disabled={busy} onSheet={() => setSheet(v => !v)} onQuick={quick} onCancel={cancel} />
-        {(lugar || sheet) && <aside className="drawer" aria-label={sheet ? "Tu ficha" : "Lugar"}>
-          {sheet ? <>
-            <div className="drawer-head"><h2>Tu ficha</h2><button className="link" onClick={() => setSheet(false)}>Cerrar</button></div>
-            <Sheet s={s} now={now} disabled={busy} onCancel={cancel} />
-          </> : <>
-            {fight && <Fight f={fight} s={s} />}
-            {liveFight && <Fight f={liveFight} s={s} />}
-            <PlacePanel {...ui} />
-          </>}
-        </aside>}
       </div>
-      <div className="game">
-        <main className="board">
-          <nav className="tabs" role="tablist">
-            {groups.map(g => (
-              <button key={g.id} role="tab" aria-selected={current?.id === g.id}
-                onClick={() => open(g.tabs.includes(lastIn.current[g.id] as TabKey) ? lastIn.current[g.id] as TabKey : g.tabs[0])}>
-                {g.name}{g.tabs.some(unseen) && <span className="dot" aria-label="nuevo" />}
-              </button>
-            ))}
-          </nav>
-          {current && current.tabs.length > 1 && <nav className="subtabs" role="tablist">
-            {current.tabs.map(k => (
-              <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
-                {SUB_NAMES[k] ?? tabName(s, k)}{unseen(k) && <span className="dot" aria-label="nuevo" />}
-              </button>
-            ))}
-          </nav>}
+
+      <button className={`me ${shown === "me" ? "on" : ""}`} onClick={() => openPanel("me")} aria-label="Tu personaje">
+        <GangRing s={s} size={42} />
+        <span className="me-bars">
+          <span className="me-bar hp" style={{ width: `${Math.min(100, s.hp / maxHp(s) * 100)}%` }} />
+          <span className="me-bar en" style={{ width: `${Math.min(100, s.energy / energyMax(s) * 100)}%` }} />
+        </span>
+      </button>
+
+      {shown && <aside className="panel" aria-label="Panel">
+        <div className="panel-head">
+          <b>{shown === "me" ? s.name : shown === "lugar" ? "" : shown === "cronica" ? "Crónica" : shown === "buscar" ? "Buscar" : groups.find(g => g.id === shown)?.name}</b>
+          <button className="link" onClick={() => { setLugar(null); setPanel(null); }}>Cerrar</button>
+        </div>
+        {fight && <Fight f={fight} s={s} />}
+        {liveFight && <Fight f={liveFight} s={s} />}
+        {shown === "lugar" && <PlacePanel {...ui} />}
+        {shown === "me" && <>
           {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
-          <section className="pane">
-            <Pane tab={tab} {...ui} />
-          </section>
-          {!lugar && showFight && <Fight f={fight} s={s} />}
-          {!lugar && liveFight && !showFight && <Fight f={liveFight} s={s} />}
-        </main>
-      </div>
-      <Chronicle s={s} onOut={onOut} />
+          <Sheet s={s} now={now} disabled={busy} onCancel={cancel} />
+          <p className="tag num"><span className={`live ${live ? "on" : ""}`}>{live ? "en línea" : "sin conexión"}</span>
+            {s.tabs.includes("ring") && <> · peleas ganadas {s.wins + s.c.duelW} · perdidas {s.losses + s.c.duelL}</>}</p>
+        </>}
+        {shown === "cronica" && <Chronicle s={s} onOut={onOut} />}
+        {shown === "buscar" && <SearchPanel {...ui} query={query} />}
+        {groups.some(g => g.id === shown) && (() => {
+          const g = groups.find(x => x.id === shown)!;
+          return <>
+            {g.tabs.length > 1 && <nav className="subtabs" role="tablist">
+              {g.tabs.map(k => <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
+                {SUB_NAMES[k] ?? tabName(s, k)}{unseen(k) && <span className="dot" aria-label="nuevo" />}</button>)}
+            </nav>}
+            <section className="pane"><Pane tab={g.tabs.includes(tab) ? tab : g.tabs[0]} {...ui} /></section>
+          </>;
+        })()}
+      </aside>}
+
       {toast && <div className={`toast ${toast.good ? "good" : ""}`} role="status">{toast.text}</div>}
-    </>
+    </div>
   );
 }
+
+/* íconos de los menús del costado y filtros del mapa (como «Restaurantes», «Hoteles» en Google Maps) */
+const GROUP_ICON: Record<string, string> = { calle: "🚩", gym: "🥊", mercado: "🛒", casa: "🏠", ciudad: "🏙️" };
+export const CHIPS: { id: string; name: string; icon: string }[] = [
+  { id: "misiones", name: "Misiones", icon: "🚩" }, { id: "robar", name: "Para robar", icon: "💰" }, { id: "trabajos", name: "Trabajos", icon: "🧰" },
+  { id: "salud", name: "Salud", icon: "🏥" }, { id: "casas", name: "Casas", icon: "🏘️" }, { id: "subte", name: "Subte", icon: "🚇" },
+  { id: "kioscos", name: "Kioscos y mercado", icon: "🏪" }, { id: "negocios", name: "Negocios", icon: "💼" }, { id: "servicios", name: "Gimnasio y ciudad", icon: "🏋️" }
+];
+type Panel = string | null;
 
 /* Las pestañas grandes y qué secciones tiene cada una */
 const GROUPS: { id: string; name: string; tabs: TabKey[] }[] = [

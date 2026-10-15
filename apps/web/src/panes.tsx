@@ -5,10 +5,13 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
-  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, HOUSES, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
+  tripPhase, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
+  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
+import SUBTE from "@pop/shared/subte.json";
+const PIN_URLS = import.meta.glob("./assets/lugares/*.svg", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
+const pinIconUrl = (k: string) => PIN_URLS[`./assets/lugares/${k}.svg`] ?? PIN_URLS["./assets/lugares/mision.svg"];
 import { api, type BarrioView, type FriendsView, type RankRow, type RingView, type Traveler } from "./api";
 import type { Ui } from "./Game";
 import { Boss } from "./cards";
@@ -32,10 +35,10 @@ function useTravelers() {
 }
 /* El mapa de Maires, arriba de todo: los barrios con el color de su dueño, tu personaje (si está en la calle),
    los demás que andan por ahí y, al tocarlos, salir a buscarlos. */
-export function CityMap(ui: Ui) {
-  const { s, now, act } = ui;
+export function CityMap(ui: Ui & { filter?: string | null }) {
+  const { s, now, act, filter } = ui;
   const { people, online } = useTravelers();
-  const pins = useMemo(() => mapPins(s, now), [s.tutDone, s.tabs.length, s.lvl, s.home.house, s.board, s.props, Math.floor(now / 60_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pins = useMemo(() => mapPins(s, now, filter), [s.tutDone, s.tabs.length, s.lvl, s.home.house, s.board, s.props, filter, Math.floor(now / 60_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const [owned, setOwned] = useState<BarrioView[] | null>(null);
   useEffect(() => {
     const load = () => api.territory().then(r => setOwned(r.map)).catch(() => {});
@@ -74,6 +77,7 @@ export function CityMap(ui: Ui) {
       <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
         at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} sprite={b?.kind === "caza" ? undefined : playerSprite(s.avatar)}
         others={others} now={now} spriteOf={travelerSprite} pins={pins} onPin={id => ui.setLugar(id === ui.lugar ? null : id)} selected={ui.lugar}
+        onBarrio={b => ui.setLugar(`barrio:${b}`)} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
         attack={s.tutDone ? { s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) } : undefined} />
     </Suspense>
     <p className="gps-status num">{status}{crowd}</p>
@@ -97,18 +101,37 @@ function allLugares(s: Ui["s"]): Lugar[] {
   const home = GEO_PLACES[homePlace(s)];
   const casa: Lugar = { id: "casa", name: `Tu casa: ${houseOf(s).name}`, kind: "casa", icon: "casa", barrio: homePlace(s), lat: home.lat, lng: home.lng,
     help: "Tu guarida: de acá salen y acá vuelven tus viajes. Mejoras, equipo y mudanzas." };
+  /* lo que tiene cada barrio: inmobiliaria, kiosco y estaciones de subte (se ven de muy cerca) */
+  const local: Lugar[] = BARRIOS.flatMap(b => {
+    const [la1, ln1] = near(b, `inmo-${b}`), [la2, ln2] = near(b, `kiosco-${b}`);
+    return [
+      { id: `inmo-${b}`, name: `Inmobiliaria de ${b}`, kind: "inmobiliaria" as const, icon: "inmobiliaria", barrio: b, lat: la1, lng: ln1, deep: true, tutDone: true,
+        help: `Casas en venta en ${b}. ${TIER_NAME[tierOf(b)]}.` },
+      { id: `kiosco-${b}`, name: `Kiosco de ${b}`, kind: "kiosco" as const, icon: "kiosco", barrio: b, lat: la2, lng: ln2, deep: true,
+        help: "Botiquines, cigarrillos y chismes del barrio." }
+    ];
+  });
+  const subte: Lugar[] = SUBTE.map(x => ({ id: `subte-${x.name}`, name: `Estación ${x.name}`, kind: "subte" as const, icon: "subte", barrio: x.barrio,
+    lat: x.lat, lng: x.lng, deep: true, help: "Subte. Pronto vas a poder viajar en subte entre barrios." }));
   const props: Lugar[] = PROPS.map(p => { const [lat, lng] = near(p.place, p.id);
     return { id: `negocio-${p.id}`, name: p.name, kind: "negocio" as const, icon: p.id === "kiosco24" ? "kiosco" : p.id, prop: p.id, barrio: p.place, lat, lng, help: p.help, tutDone: true }; });
-  return [casa, ...LUGARES, ...care, ...props];
+  return [casa, ...LUGARES, ...care.map(c => ({ ...c, deep: true })), ...props, ...local, ...subte];
 }
-function mapPins(s: Ui["s"], now: number): Pin[] {
-  const pins: Pin[] = allLugares(s).filter(l => l.id === "casa" || lugarOpen(s, l, now))
+/* los filtros de arriba del mapa: qué clases de lugar muestra cada uno */
+const FILTER_KINDS: Record<string, string[]> = {
+  misiones: ["contacto", "policia", "bar", "evento", "mision"], robar: ["golpe"], trabajos: ["laburo"], salud: ["salud"],
+  casas: ["inmobiliaria", "casa"], subte: ["subte"], kioscos: ["kiosco", "mercado"], negocios: ["negocio", "concesionaria"],
+  servicios: ["gym", "estadio", "municipio"]
+};
+function mapPins(s: Ui["s"], now: number, filter?: string | null): Pin[] {
+  const kinds = filter ? FILTER_KINDS[filter] : null;
+  const pins: Pin[] = allLugares(s).filter(l => (l.id === "casa" || lugarOpen(s, l, now)) && (!kinds || kinds.includes(l.kind)))
     .filter(l => l.kind !== "negocio" || s.lvl >= (propOf(l.prop!)?.lvl ?? 99) - 2 || s.props?.[l.prop!] !== undefined)
     .map(l => ({ id: l.id, name: l.name, icon: l.icon, color: l.gang ? GANGS[l.gang].color : KIND_COLOR[l.kind], lat: l.lat, lng: l.lng,
       badge: l.kind === "contacto" && l.gang ? String(MISSIONS[l.gang].filter(m => doable(s, m)).length || "") || undefined : undefined,
-      near: ["golpe", "laburo", "salud", "negocio", "municipio", "concesionaria", "estadio"].includes(l.kind) }));
+      near: !kinds && ["golpe", "laburo", "salud", "negocio", "municipio", "concesionaria", "estadio"].includes(l.kind), deep: !kinds && !!l.deep }));
   /* las misiones del tablón: banderitas en su barrio, del color de quien las da */
-  for (const m of s.board ?? []) {
+  for (const m of kinds && !kinds.includes("mision") ? [] : s.board ?? []) {
     const c = GEO_PLACES[m.place ?? ""]; if (!c || !doable(s, m)) continue;
     const [lat, lng] = near(m.place!, m.id);
     pins.push({ id: `mision:${m.id}`, name: m.title, icon: "mision", color: clientOf(m).color, lat, lng });
@@ -121,6 +144,7 @@ export function PlacePanel(ui: Ui) {
   const { s, act, busy, now, lugar, setLugar } = ui;
   const pane = { ...ui, busy: busy || (!!s.busy && s.busy.kind !== "vuelta") };
   if (!lugar) return null;
+  if (lugar.startsWith("barrio:")) return <BarrioPanel {...ui} b={lugar.slice(7)} />;
   if (lugar.startsWith("mision:")) {
     const m = s.board.find(x => x.id === lugar.slice(7));
     return <section className="lugar" style={{ ["--lugar" as string]: m ? clientOf(m).color : undefined }}>
@@ -151,6 +175,11 @@ export function PlacePanel(ui: Ui) {
     {l.kind === "salud" && <Hospital {...ui} />}
     {(l.kind === "negocio" || l.kind === "concesionaria") && <Business {...ui} />}
     {l.kind === "municipio" && <Ranking {...ui} />}
+    {l.kind === "inmobiliaria" && <HouseList {...ui} b={l.barrio} />}
+    {l.kind === "kiosco" && <div className="list"><div className="item">
+      <div className="with-art"><ItemIcon id="botiquin" /><div><h3>Botiquín</h3><div className="meta num">+50% de vida, cuando lo uses · {money(20)} · tenés {s.potions}</div></div></div>
+      <div className="act"><button disabled={busy || s.gold < 20} onClick={() => act({ type: "buy", id: "botiquin" })}>Comprar</button></div>
+    </div></div>}
     {l.kind === "contacto" && l.gang && <GangContact g={l.gang} {...pane} />}
     {l.kind === "policia" && <>
       <h3>Trabajos sucios</h3>
@@ -171,6 +200,70 @@ export function PlacePanel(ui: Ui) {
       <div className="list">{EVENT_MISSIONS.filter(m => m.event === l.event && doable(s, m)).map(m => <MissionCard key={m.id} m={m} {...pane} />)}</div>
       {EVENT_MISSIONS.filter(m => m.event === l.event).every(m => s.done[m.id]) && <p className="tag">Ya terminaste las misiones de este evento.</p>}
     </>}
+  </section>;
+}
+
+/* Buscar: barrios, lugares y gente (para agregar de amigo) */
+export function SearchPanel(ui: Ui & { query: string }) {
+  const { s, now, setLugar, toast, query } = ui;
+  const [people, setPeople] = useState<RankRow[]>([]);
+  useEffect(() => { api.ranking().then(r => setPeople(r.filter(x => !x.npc && !x.me))).catch(() => {}); }, []);
+  const q = query.trim().toLowerCase();
+  if (!q) return <p className="tag">Escribí el nombre de un amigo, un barrio o un lugar.</p>;
+  const has = (x: string) => x.toLowerCase().includes(q);
+  const barrios = BARRIOS.filter(has).slice(0, 6);
+  const places = allLugares(s).filter(l => has(l.name) && (lugarOpen(s, l, now) || l.deep)).slice(0, 8);
+  const who = people.filter(p => has(p.name)).slice(0, 8);
+  const add = (name: string) => api.addFriend(name).then(r => toast(r.accepted ? `Ahora sos amigo de ${name}.` : `Le mandaste una solicitud a ${name}.`, true)).catch(e => toast(e.message));
+  return <>
+    {who.length > 0 && <><h3>Gente</h3><div className="places">{who.map(p => <div key={p.name} className="place-row">
+      <span><b>{p.name}</b><span className="tag">nivel {p.lvl}{p.bot ? " · vecino" : ""}</span></span>
+      <button className="primary" style={{ marginLeft: "auto" }} onClick={() => add(p.name)}>Agregar</button></div>)}</div></>}
+    {barrios.length > 0 && <><h3>Barrios</h3><div className="places">{barrios.map(b => <button key={b} className="place-row" onClick={() => setLugar(`barrio:${b}`)}>
+      <span><b>{b}</b><span className="tag">{TIER_NAME[tierOf(b)]}</span></span></button>)}</div></>}
+    {places.length > 0 && <><h3>Lugares</h3><div className="places">{places.map(l => <button key={l.id} className="place-row" onClick={() => setLugar(l.id)}>
+      <span className="pin" style={{ ["--pin" as string]: l.gang ? GANGS[l.gang].color : KIND_COLOR[l.kind] }}><img alt="" src={pinIconUrl(l.icon)} /></span>
+      <span><b>{l.name}</b><span className="tag">{KIND_NAME[l.kind]} · {l.barrio}</span></span></button>)}</div></>}
+    {!who.length && !barrios.length && !places.length && <p className="tag">No encontré nada con «{query}».</p>}
+  </>;
+}
+
+/* las casas que se venden en un barrio */
+function HouseList({ s, act, busy, b }: Ui & { b: string }) {
+  const mine = houseOf(s);
+  return <div className="list">{housesIn(b).map(h => {
+    const here = mine.id === h.id, locked = s.lvl < h.lvl;
+    return <div className="item" key={h.id}>
+      <div><h3>{h.name}{here && <span className="kind">vivís acá</span>}</h3>
+        <div className="meta">{h.help}</div>
+        <div className="meta num">mejoras hasta el nivel {h.cap} · {money(h.price)}</div>
+        {!here && locked && <div className="lock">Pide nivel {h.lvl}</div>}</div>
+      <div className="act">{!here && <button disabled={busy || locked || !!s.busy || !!s.home.obra || s.gold < h.price} onClick={() => act({ type: "move", id: h.id })}>Mudarme</button>}</div>
+    </div>;
+  })}</div>;
+}
+
+/* Al tocar un barrio: quién manda, qué hay para hacer, qué misiones pasan ahí y qué casas se venden */
+function BarrioPanel(ui: Ui & { b: string }) {
+  const { s, now, b, setLugar } = ui;
+  const pane = { ...ui, busy: ui.busy || (!!s.busy && s.busy.kind !== "vuelta") };
+  const [view, setView] = useState<BarrioView | null>(null);
+  useEffect(() => { api.territory().then(r => setView(r.map.find(x => x.barrio === b) ?? null)).catch(() => {}); }, [b]);
+  const owner = view?.owner ?? null, total = view ? GANG_KEYS.reduce((a, g) => a + view.points[g], 0) || 1 : 1;
+  const places = allLugares(s).filter(l => l.barrio === b && l.id !== "casa" && (lugarOpen(s, l, now) || l.kind === "subte" || l.kind === "inmobiliaria" || l.kind === "kiosco"));
+  const missions = [...s.board, ...allStory()].filter(m => missionPlace(m) === b && doable(s, m));
+  return <section className="lugar" style={{ ["--lugar" as string]: owner ? GANGS[owner].color : "#8a8070" }}>
+    <div className="lugar-head"><div><span className="tag">{TIER_NAME[tierOf(b)]}{homePlace(s) === b ? " · vivís acá" : ""}</span><h2>{b}</h2></div>
+      <button className="link lugar-close" onClick={() => setLugar(null)}>Cerrar</button></div>
+    <p>{owner ? <>Lo controla <b style={{ color: GANGS[owner].color }}>{GANGS[owner].name}</b>.</> : "En disputa: ninguna pandilla manda."}</p>
+    {view && <div className="barrio"><div className="stack">{GANG_KEYS.map(g => <span key={g} title={`${GANGS[g].name}: ${view.points[g]}`} style={{ width: `${view.points[g] / total * 100}%`, background: GANGS[g].color }} />)}</div></div>}
+    {missions.length > 0 && <><h3>Misiones acá</h3><div className="list">{missions.map(m => <MissionCard key={m.id} m={m} {...pane} />)}</div></>}
+    <h3>Qué hay en {b}</h3>
+    <div className="places">{places.map(l => <button key={l.id} className="place-row" onClick={() => setLugar(l.id)}>
+      <span className="pin" style={{ ["--pin" as string]: l.gang ? GANGS[l.gang].color : KIND_COLOR[l.kind] }}><img alt="" src={pinIconUrl(l.icon)} /></span>
+      <span><b>{l.name}</b><span className="tag">{KIND_NAME[l.kind]}</span></span></button>)}</div>
+    <h3>Casas en venta</h3>
+    <HouseList {...pane} b={b} />
   </section>;
 }
 
@@ -640,16 +733,8 @@ function House({ s, act, busy, now }: Ui) {
 
     <h3>Mudarte</h3>
     <p>Más cerca de donde trabajás, viajes más cortos. Las casas más grandes dejan mejorar más.</p>
-    <div className="list">{HOUSES.map(h => {
-      const mine = houseOf(s).id === h.id, locked = s.lvl < h.lvl;
-      return <div className="item" key={h.id}>
-        <div><h3>{h.name}{mine && <span className="kind">vivís acá</span>}</h3>
-          <div className="meta">{h.place} · {h.help}</div>
-          <div className="meta num">mejoras hasta el nivel {h.cap}{h.price ? ` · ${money(h.price)}` : " · gratis"}</div>
-          {!mine && locked && <div className="lock">Pide nivel {h.lvl}</div>}</div>
-        <div className="act">{!mine && <button disabled={busy || locked || !!s.busy || !!o || s.gold < h.price} onClick={() => act({ type: "move", id: h.id })}>Mudarme</button>}</div>
-      </div>;
-    })}</div>
+    <HouseList {...{ s, act, busy } as Ui} b={homePlace(s)} />
+    <p className="tag">Para ver las casas de otro barrio, tocalo en el mapa.</p>
 
     {safeCap(s) > 0 && <>
       <h3>Caja fuerte</h3>

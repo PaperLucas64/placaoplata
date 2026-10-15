@@ -199,18 +199,16 @@ describe("tiempo humano", () => {
     expect(s.stats.ref).toBe(5);
     expect(s.gold).toBe(500 - trainCost(5));
   });
-  it("la guardia es gratis: vas caminando, te curan y volvés a casa; mientras tanto nadie te toca", () => {
+  it("la guardia es gratis: la salita de tu barrio te cura; mientras tanto nadie te toca", () => {
     const s = veteran("Ana"); s.hp = 10;
     const gold = s.gold;
     applyAction(s, { type: "guardia" }, ctx());
     expect(s.gold).toBe(gold);
     const b = s.busy!;
-    expect(b.kind === "guardia" && b.trip?.mode).toBe("pie");                   // de San Telmón a la guardia más cercana
+    expect(b.kind).toBe("guardia");                                            // cada barrio tiene su salita: no hay viaje
     expect(onStreet(s, T0 + 1000)).toBe(false);                                // curándote no te emboscan
-    missionCatchUp(s, ctx(b.until + 1));
+    regen(s, b.until + 1);
     expect(s.hp).toBe(maxHp(s));
-    expect(s.busy?.kind).toBe("vuelta");                                       // y volvés caminando
-    expect(onStreet(s, b.until + 2000)).toBe(true);
   });
   it("irse antes de la guardia cura en proporción", () => {
     const s = veteran("Ana"); s.hp = 10;

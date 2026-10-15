@@ -17,7 +17,7 @@ CABA = "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-educ
 GAME = {
     "Agronomia": "Agromanía", "Almagro": "Almagrito", "Balvanera": "Once y Medio", "Belgrano": "Belgranito",
     "Caballito": "Caballote", "Chacarita": "Chacarota", "Coghlan": "Coglán", "Colegiales": "Colegas",
-    "Flores": "Floreros", "Floresta": "Florestita", "Liniers": "Liniers Sur", "Monserrat": "Monsefrat",
+    "Flores": "Floreros", "Floresta": "Florestita", "Liniers": "Liniers Sur", "Monserrat": "Mosecraft",
     "Monte Castro": "Monte Castrito", "Nuñez": "Ñuñez", "Palermo": "Palermo Soja", "Parque Chas": "Parque Chau",
     "Paternal": "La Paterna", "Puerto Madero": "Puerto Mareo", "Recoleta": "Reloquita", "Retiro": "Salida",
     "Saavedra": "Saavedrita", "San Nicolas": "San Nicolasito", "Velez Sarsfield": "Vélez Sarsfeel",

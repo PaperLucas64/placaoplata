@@ -114,13 +114,17 @@ interface Props {
   path?: Pt[];               // si saliste desde la calle: el camino por las cuadras
   pins?: Pin[];              // lugares del mapa (contactos, servicios, golpes, misiones…)
   onPin?: (id: string) => void;
+  onBarrio?: (name: string) => void; // tocar un barrio (como el mapa de Helldivers)
+  focus?: string | null;     // barrio al que acercarse
   selected?: string | null;
 }
 /* un lugar del mapa, como los íconos de GTA */
-export interface Pin { id: string; name: string; icon: string; color: string; lat: number; lng: number; badge?: string; near?: boolean } // near: solo de cerca
+export interface Pin { id: string; name: string; icon: string; color: string; lat: number; lng: number; badge?: string; near?: boolean; deep?: boolean } // near: de cerca; deep: de muy cerca
 const PIN_ICONS = import.meta.glob("../assets/lugares/*.svg", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 const pinIcon = (k: string) => PIN_ICONS[`../assets/lugares/${k}.svg`] ?? PIN_ICONS["../assets/lugares/mision.svg"];
-export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected }: Props) {
+export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus }: Props) {
+  const onBarrioRef = useRef(onBarrio);
+  onBarrioRef.current = onBarrio;
   const pinMarks = useRef(new Map<string, maplibregl.Marker>());
   const onPinRef = useRef(onPin);
   onPinRef.current = onPin;
@@ -157,7 +161,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.on("dragstart", () => setFollow(false)); // si lo movés a mano, deja de seguirte
     /* de lejos se ven solo los lugares importantes; acercándote, todos */
-    const zoomClass = () => box.current?.parentElement?.classList.toggle("far", map.getZoom() < 13.2);
+    const zoomClass = () => { const c = box.current?.parentElement?.classList, z = map.getZoom(); c?.toggle("far", z < 13.2); c?.toggle("mid", z < 14.2); };
     map.on("zoom", zoomClass); map.once("load", zoomClass);
     mapRef.current = map;
     const bounds = new maplibregl.LngLatBounds([home.lng, home.lat], [home.lng, home.lat]);
@@ -179,6 +183,12 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
       map.addSource("barrios", { type: "geojson", data: paintBarrios(data.barrios, owners) as never });
       map.addLayer({ id: "barrios-fill", type: "fill", source: "barrios", filter: ["==", ["get", "game"], true],
         paint: { "fill-color": ["get", "color"], "fill-opacity": 0.13 } });
+      map.on("click", "barrios-fill", e => {
+        const name = e.features?.[0]?.properties?.name as string | undefined;
+        if (name && !(e.originalEvent.target as HTMLElement).closest(".pin, .spr")) onBarrioRef.current?.(name);
+      });
+      map.on("mouseenter", "barrios-fill", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "barrios-fill", () => { map.getCanvas().style.cursor = ""; });
       map.addLayer({ id: "barrios-line", type: "line", source: "barrios",
         paint: { "line-color": ["get", "color"], "line-width": ["case", ["get", "game"], 2.2, 0.7], "line-opacity": ["case", ["get", "game"], 0.9, 0.6] } });
       legs.forEach((l, i) => {
@@ -208,7 +218,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     pinMarks.current.clear();
     for (const p of pins ?? []) {
       const el = document.createElement("button");
-      el.className = `pin${p.near ? " near" : ""}`;
+      el.className = `pin${p.near ? " near" : ""}${p.deep ? " deep" : ""}`;
       el.style.setProperty("--pin", p.color);
       el.title = p.name;
       el.setAttribute("aria-label", p.name);
@@ -223,6 +233,19 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   useEffect(() => {
     for (const [id, mk] of pinMarks.current) mk.getElement().classList.toggle("on", id === selected);
   }, [selected, pinKey]);
+
+  /* acercarse a un barrio (al tocarlo, o al abrirlo desde otro lado) */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !data || !focus) return;
+    const f = data.barrios.features.find(x => x.properties.name === focus);
+    if (!f) return;
+    const b = new maplibregl.LngLatBounds();
+    for (const poly of f.geometry.coordinates) for (const [lng, lat] of poly[0]) b.extend([lng, lat]);
+    setFollow(false);
+    const wide = map.getContainer().clientWidth > 820, tall = map.getContainer().clientHeight;
+    map.fitBounds(b, { padding: wide ? { top: 70, bottom: 30, left: 560, right: 40 } : { top: 120, bottom: Math.round(tall * 0.6), left: 20, right: 20 }, maxZoom: 15.5, duration: 700 });
+  }, [focus, data]);
 
   /* el camino por las cuadras cuando salís a buscar a alguien */
   const chasePath = self?.chase?.path ? JSON.stringify(self.chase.path) : "";

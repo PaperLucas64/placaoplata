@@ -3,7 +3,7 @@
    cada uno tiene su horario (se despierta y se acuesta a una hora de Argentina) y su forma de jugar.
    De noche salen a un trabajo largo. Se apagan con BOTS=0. */
 import {
-  ARC_MISSIONS, itemOf, itemPower, canStart, HOUSES, houseOf, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
+  ARC_MISSIONS, itemOf, itemPower, canStart, housesIn, houseOf, homePlace, BARRIOS, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
   lawyerCost, maxHp, meetsReq, MISSIONS, missionEnergy, missionPlace, needsTrip, newPlayer, nextLevel, pick, planChase, PROPS,
   propIncome, SHOP, trainCost, travelModes, type Action, type Gang, type Mission, type PlayerState, type StatKey, type TravelMode
 } from "@pop/shared";
@@ -71,7 +71,8 @@ function decide(s: PlayerState, b: BotDef): Action | null {
   if (s.hp < mh * 0.5) return s.gold > (mh - s.hp) * 0.25 * 4 ? { type: "heal" } : { type: "guardia" };
   if (PROPS.some(p => s.props?.[p.id] !== undefined && propIncome(p, s.props[p.id], Date.now()) >= p.perHour * 4)) return { type: "collect" };
   /* mudarse a algo mejor cuando le sobra la plata */
-  const house = HOUSES.find(h => h.lvl <= s.lvl && h.price > houseOf(s).price && h.price <= s.gold / 2);
+  /* se muda dentro de su barrio, o a uno al azar */
+  const house = [...housesIn(homePlace(s)), ...housesIn(pick(rng, BARRIOS))].find(h => h.lvl <= s.lvl && h.price > houseOf(s).price && h.price <= s.gold / 2);
   if (house && rng() < 0.5) return { type: "move", id: house.id };
   const prop = PROPS.find(p => s.props?.[p.id] === undefined && p.lvl <= s.lvl && p.price <= s.gold / 2);
   if (prop && rng() < 0.5) return { type: "prop", id: prop.id };

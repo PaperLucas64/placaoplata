@@ -114,7 +114,7 @@ Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los enca
 El mapa es la Capital del sur de las autopistas 25 de Mayo y Perito Moreno hacia el norte, hasta la General Paz y el río
 (con la Reserva y Aeroparque): **34 barrios oficiales pegados**, cada uno con su nombre de parodia y su contorno:
 Agromanía, Almagrito, Once y Medio, Belgranito, Caballote, Chacarota, Coglán, Colegas, Floreros, Florestita, Liniers Sur,
-Monsefrat, Monte Castrito, Ñuñez, Palermo Soja, Parque Chau, La Paterna, Puerto Mareo, Reloquita, Salida (Retiro),
+Mosecraft, Monte Castrito, Ñuñez, Palermo Soja, Parque Chau, La Paterna, Puerto Mareo, Reloquita, Salida (Retiro),
 Saavedrita, San Nicolasito, Vélez Sarsfeel, Versalles Chico, Villa Crespa, Villa del Charque, Villa Devota, Villa Mitrecito,
 Villa Lurio, Villa Ortuzán, Villa Puerredón, Villa Realeza, Villa Santa Rata y Villa Urquisa. El sur, el conurbano y el
 interior quedan para más adelante.
@@ -124,6 +124,17 @@ interior quedan para más adelante.
   salís; la vuelta a casa también. Por ahora sin subte ni tren (hay que rearmarlos para Capital).
 - **Actividad rápida** (al lado de «Ficha»): te manda a una misión o a un golpe al azar de los que podés hacer ahora.
 - **Las misiones que no podés hacer ahora no se muestran** (ni en los contactos, ni en el tablón, ni en el mapa).
+
+### 5.2·1 Pantalla como Google Maps
+- El **mapa ocupa toda la pantalla**. A la izquierda (en el teléfono, abajo), los **menús**: Calle, Gimnasio, Mercado, Casa,
+  Ciudad y Crónica; cada uno abre su panel encima del mapa.
+- Arriba, **«Buscar amigo o lugar»** (gente para agregar, barrios y lugares) y los **filtros**: «Cosas que hacer» (actividad
+  rápida), Misiones, Para robar, Trabajos, Salud, Casas, Subte, Kioscos y mercado, Negocios, Gimnasio y ciudad.
+- Arriba a la derecha, **tu foto** (con vida y energía): abre tu panel con tu pandilla o Marga, la ficha y lo que estás haciendo.
+- **Tocar un barrio** (como el mapa de Helldivers) lo acerca y muestra quién manda, las misiones que pasan ahí, todo lo que hay
+  y las casas en venta. **Cada barrio tiene** su salita (o hospital), clínica si es caro, kiosco (botiquines), inmobiliaria con
+  3 casas (precios según el barrio: humilde ×0,7, medio ×1, caro ×1,5) y sus estaciones de subte (71, de OpenStreetMap).
+- Monsefrat pasa a llamarse **Mosecraft**.
 
 ### 5.2a El mapa es el juego (lugares, como en GTA)
 El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al tocar uno se abre lo que podés hacer ahí:

@@ -10,7 +10,7 @@ import type { Gang, PlayerState, TabKey } from "./types.js";
 
 export type LugarKind =
   | "bar" | "casa" | "gym" | "estadio" | "mercado" | "salud" | "contacto" | "policia"
-  | "golpe" | "laburo" | "negocio" | "concesionaria" | "evento" | "municipio";
+  | "golpe" | "laburo" | "negocio" | "concesionaria" | "evento" | "municipio" | "inmobiliaria" | "kiosco" | "subte";
 
 export interface Lugar {
   id: string; name: string; kind: LugarKind; icon: string; barrio: string; lat: number; lng: number;
@@ -21,6 +21,7 @@ export interface Lugar {
   prop?: string;            // negocio que se compra acá
   care?: "guardia" | "clinica";
   event?: string;           // solo durante ese evento
+  deep?: boolean;           // se ve solo de muy cerca (los servicios de cada barrio)
   tab?: TabKey;             // pestaña que tiene que estar destrabada
   lvl?: number; rank?: number; tutDone?: boolean;
 }
@@ -29,11 +30,12 @@ export interface Lugar {
 export const KIND_COLOR: Record<LugarKind, string> = {
   bar: "#e6a14f", casa: "#e8e1d2", gym: "#5bc0de", estadio: "#5bc0de", mercado: "#8bd17c", salud: "#ff6b6b",
   contacto: "#e8e1d2", policia: "#cfd6e2", golpe: "#e0524f", laburo: "#9aa3ad", negocio: "#b98be0",
-  concesionaria: "#b98be0", evento: "#ff8c1a", municipio: "#9aa3ad"
+  concesionaria: "#b98be0", evento: "#ff8c1a", municipio: "#9aa3ad", inmobiliaria: "#e8e1d2", kiosco: "#8bd17c", subte: "#5bc0de"
 };
 export const KIND_NAME: Record<LugarKind, string> = {
   bar: "Contacto", casa: "Tu casa", gym: "Gimnasio", estadio: "Ring", mercado: "Mercado", salud: "Salud", contacto: "Contacto",
-  policia: "Contacto", golpe: "Para robar", laburo: "Trabajo", negocio: "Negocio", concesionaria: "Vehículos", evento: "Evento", municipio: "Ciudad"
+  policia: "Contacto", golpe: "Para robar", laburo: "Trabajo", negocio: "Negocio", concesionaria: "Vehículos", evento: "Evento", municipio: "Ciudad",
+  inmobiliaria: "Casas en venta", kiosco: "Kiosco", subte: "Subte"
 };
 
 const L = (l: Lugar) => l;

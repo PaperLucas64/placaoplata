@@ -1,18 +1,39 @@
-/* Tu guarida: arrancás en una pieza de pensión arriba del bar de Marga y te podés mudar a algo mejor.
-   Todos los viajes salen de tu casa (el lugar importa: más cerca o más lejos de donde trabajás),
+/* Tu guarida: arrancás en una pieza de pensión en el barrio donde caíste y te podés mudar.
+   Cada barrio vende tres casas, más caras o más baratas según el barrio. Todos los viajes salen de tu casa,
    y cada casa deja mejorar la cama, la caja fuerte y el armario hasta cierto punto. */
-import { GEO_HOME } from "./geo-data.js";
+import { tierOf, type Tier } from "./barrios.js";
+import { GEO_HOME, GEO_PLACES } from "./geo-data.js";
 import type { PlayerState } from "./types.js";
 
-export interface House { id: string; name: string; place: string; lvl: number; price: number; cap: number; help: string }
-export const HOUSES: House[] = [
-  { id: "pension", name: "Pieza de pensión",            place: "",              lvl: 1,  price: 0,      cap: 1, help: "Una pieza en el barrio donde caíste. Marga te la consiguió." },
-  { id: "depto",   name: "Departamento de un ambiente", place: "Once y Medio",  lvl: 6,  price: 4000,   cap: 2, help: "Contrafrente, sexto piso sin ascensor. Cerca de todo." },
-  { id: "ph",      name: "PH con terraza",              place: "Villa Crespa",  lvl: 10, price: 10000,  cap: 3, help: "Un pasillo largo, una terraza y vecinos que no preguntan." },
-  { id: "casa",    name: "Casa con patio",              place: "Villa Devota",  lvl: 15, price: 25000,  cap: 4, help: "Portón para el auto y un sótano que nadie conoce." },
-  { id: "chalet",  name: "Chalet con pileta",           place: "Belgranito",    lvl: 22, price: 60000,  cap: 5, help: "Belgrano Erre: árboles, silencio y vecinos con alarma." },
-  { id: "mansion", name: "Mansión",                     place: "Reloquita", lvl: 28, price: 120000, cap: 5, help: "Para que todo Maires sepa quién manda." }
-];
-export const houseOf = (s: Pick<PlayerState, "home">) => HOUSES.find(h => h.id === s.home?.house) ?? HOUSES[0];
+export interface HouseType { name: string; lvl: number; price: number; cap: number; help: string }
+export const HOUSE_TYPES: Record<string, HouseType> = {
+  pieza:   { name: "Pieza de pensión",            lvl: 1,  price: 0,      cap: 1, help: "Una pieza en el barrio donde caíste. Marga te la consiguió." },
+  depto:   { name: "Departamento de un ambiente", lvl: 6,  price: 4000,   cap: 2, help: "Contrafrente, sexto piso sin ascensor." },
+  ph:      { name: "PH con terraza",              lvl: 10, price: 10000,  cap: 3, help: "Un pasillo largo, una terraza y vecinos que no preguntan." },
+  casa:    { name: "Casa con patio",              lvl: 15, price: 25000,  cap: 4, help: "Portón para el auto y un sótano que nadie conoce." },
+  chalet:  { name: "Chalet con pileta",           lvl: 22, price: 60000,  cap: 5, help: "Árboles, silencio y vecinos con alarma." },
+  mansion: { name: "Mansión",                     lvl: 28, price: 120000, cap: 5, help: "Para que todo Maires sepa quién manda." }
+};
+/* qué casas vende cada clase de barrio, y cuánto más caras o más baratas */
+const OFFER: Record<Tier, string[]> = { humilde: ["depto", "ph", "casa"], medio: ["depto", "ph", "casa"], rico: ["depto", "chalet", "mansion"] };
+const MULT: Record<Tier, number> = { humilde: 0.7, medio: 1, rico: 1.5 };
+
+export interface House extends HouseType { id: string; type: string; place: string }
+const make = (type: string, barrio: string): House => {
+  const t = HOUSE_TYPES[type];
+  return { ...t, id: type === "pieza" ? "pension" : `${type}@${barrio}`, type, place: barrio, price: Math.round(t.price * MULT[tierOf(barrio)] / 100) * 100 };
+};
+/* las tres casas que se venden en un barrio */
+export const housesIn = (barrio: string): House[] => OFFER[tierOf(barrio)].map(t => make(t, barrio));
+
+/* casas de versiones anteriores (cuando había una de cada tipo, en un barrio fijo) */
+const LEGACY: Record<string, string> = { depto: "depto@Once y Medio", ph: "ph@Villa Crespa", casa: "casa@Villa Devota", chalet: "chalet@Belgranito", mansion: "mansion@Reloquita" };
+export function houseById(id?: string): House | undefined {
+  if (!id || id === "pension") return undefined;
+  const [type, barrio] = (LEGACY[id] ?? id).split("@");
+  return HOUSE_TYPES[type] && GEO_PLACES[barrio] ? make(type, barrio) : undefined;
+}
+export const houseOf = (s: Pick<PlayerState, "home">): House =>
+  houseById(s.home?.house) ?? make("pieza", s.home?.spawn && GEO_PLACES[s.home.spawn] ? s.home.spawn : GEO_HOME);
 /* el barrio donde vivís: de ahí salen y ahí vuelven todos tus viajes */
-export const homePlace = (s: Pick<PlayerState, "home">) => houseOf(s).place || s.home?.spawn || GEO_HOME;
+export const homePlace = (s: Pick<PlayerState, "home">) => houseOf(s).place;

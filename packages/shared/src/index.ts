@@ -15,3 +15,4 @@ export * from "./route.js";
 export * from "./casas.js";
 export * from "./lugares.js";
 export * from "./eventos.js";
+export * from "./barrios.js";

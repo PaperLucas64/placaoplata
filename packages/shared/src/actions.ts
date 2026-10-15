@@ -11,7 +11,7 @@ import { arcChapterKey } from "./arcs.js";
 import { hasMod, hasVehicle, MODS, nearestCare, travelModes, tripCost, tripMins, VEHICLES, type FromPoint, type ModKey, type TravelMode } from "./geo.js";
 import { PROPS, propIncome, propOf } from "./negocios.js";
 import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
-import { HOUSES, homePlace, houseOf } from "./casas.js";
+import { homePlace, houseById, houseOf } from "./casas.js";
 import { EVENT_MISSIONS } from "./eventos.js";
 import { activeEvents, lugarOf } from "./lugares.js";
 import { routeTo, TRAVEL, tripEvent } from "./geo.js";
@@ -339,14 +339,14 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
     }
 
     case "move": {
-      const h = HOUSES.find(x => x.id === a.id);
+      const h = houseById(a.id);
       if (!h || !s.tutDone) return fail("Esa casa no existe.");
       if (houseOf(s).id === h.id) return fail("Ya vivís ahí.");
       if (s.home.obra) return fail("Esperá a que termine la obra antes de mudarte.");
       if (s.lvl < h.lvl) return fail(`Pide nivel ${h.lvl}.`);
       if (s.gold < h.price) return fail("No te alcanza la plata.");
       s.gold -= h.price; s.home.house = h.id;
-      log(s, now, `Te mudaste: ${h.name.toLowerCase()} en ${h.place}${h.price ? ` (−${money(h.price)})` : ""}. Desde ahora tus viajes salen de ahí.`, "gold");
+      log(s, now, `Te mudaste: ${h.name.toLowerCase()} en ${h.place} (−${money(h.price)}). Desde ahora tus viajes salen de ahí.`, "gold");
       return {};
     }
 

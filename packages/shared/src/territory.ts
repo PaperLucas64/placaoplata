@@ -18,7 +18,7 @@ export const TURF_BONUS = 0.02;                    // +2% de plata por barrio de
 export const TURF_BASE: Record<string, Partial<Record<Gang, number>>> = {
   /* La Familia: el puerto y la plata */
   "Puerto Mareo": { familia: 30, sindicato: 8 }, "Reloquita": { familia: 15 }, "San Nicolasito": { familia: 12, amarillos: 8 },
-  "Monsefrat": { familia: 12 }, "Belgranito": { familia: 12, barra: 8 }, "Salida": { familia: 10, amarillos: 10 },
+  "Mosecraft": { familia: 12 }, "Belgranito": { familia: 12, barra: 8 }, "Salida": { familia: 10, amarillos: 10 },
   /* El Sindicato: talleres, galpones y vías */
   "Chacarota": { sindicato: 30, amarillos: 8 }, "La Paterna": { sindicato: 15 }, "Villa Ortuzán": { sindicato: 12 },
   "Agromanía": { sindicato: 10 }, "Villa Mitrecito": { sindicato: 10 }, "Villa Santa Rata": { sindicato: 10 }, "Villa Urquisa": { sindicato: 8, amarillos: 10 },

@@ -2,6 +2,7 @@
    Los recorridos son reales (OpenStreetMap, ver tools/geo/build.py) y el tiempo de viaje sale de la distancia y del medio:
    a pie es gratis pero lento; con auto o moto vas rápido pero te pueden parar. El viaje pasa más rápido que en la vida real. */
 import { GEO_HOME, GEO_PLACES, GEO_ROUTES } from "./geo-data.js";
+import { tierOf } from "./barrios.js";
 import { homePlace } from "./casas.js";
 import { addHeat, gangOf, log, money, pick } from "./rules.js";
 import type { PlayerState, Rng } from "./types.js";
@@ -129,17 +130,22 @@ export const TRAVEL_RISK: Record<TravelMode, string> = {
 
 /* ---------- dónde te curan ---------- */
 /* guardias de hospitales públicos (gratis, vas caminando) y clínicas privadas (pagás y te busca una ambulancia) */
-export const HOSPITALS: { place: string; name: string }[] = [
+const NAMED_HOSPITALS: { place: string; name: string }[] = [
   { place: "Once y Medio", name: "Hospital Ramos Mejido" }, { place: "Palermo Soja", name: "Hospital Fernandito" },
   { place: "Liniers Sur", name: "Hospital Santojanito" }, { place: "Reloquita", name: "Hospital Rivadavio" },
   { place: "Coglán", name: "Hospital Pirovanito" }, { place: "Caballote", name: "Hospital Durandito" },
   { place: "Villa Devota", name: "Hospital Zubizarretita" }, { place: "Floreros", name: "Hospital Álvarez Chico" },
   { place: "Villa Ortuzán", name: "Hospital Tornucito" }
 ];
-export const CLINICS: { place: string; name: string }[] = [
+const NAMED_CLINICS: { place: string; name: string }[] = [
   { place: "Reloquita", name: "Sanatorio Reloquita" }, { place: "Palermo Soja", name: "Clínica Palermo Soja" },
   { place: "Puerto Mareo", name: "Clínica del Puerto" }, { place: "Belgranito", name: "Sanatorio Belgranito" }
 ];
+/* cada barrio tiene dónde curarse: los que no tienen hospital, una salita; los barrios caros, además, una clínica */
+export const HOSPITALS = [...NAMED_HOSPITALS, ...Object.keys(GEO_PLACES).filter(b => !NAMED_HOSPITALS.some(h => h.place === b))
+  .map(b => ({ place: b, name: `Salita de ${b}` }))];
+export const CLINICS = [...NAMED_CLINICS, ...Object.keys(GEO_PLACES).filter(b => tierOf(b) === "rico" && !NAMED_CLINICS.some(h => h.place === b))
+  .map(b => ({ place: b, name: `Clínica ${b}` }))];
 /* el más cerca de tu casa (o de un punto, si ya andás por la calle) */
 export function nearestCare(s: PlayerState, kind: "guardia" | "clinica", kmFrom?: (place: string) => number) {
   const list = kind === "guardia" ? HOSPITALS : CLINICS, home = homePlace(s);

@@ -390,3 +390,80 @@ body{background:transparent}
 .gps-label span{transform:none}
 .gps-label{--owner:#cfc6b4}
 .gps-label span{color:var(--owner);opacity:.9}
+
+/* la barra del personaje: bloque arriba del mapa */
+.hud{position:static;margin-bottom:8px}
+.drawer{top:10px}
+.world .maplibregl-ctrl-top-right{top:10px;bottom:auto}
+.world .gps-view{bottom:122px}
+.world .gps-follow{bottom:82px}
+/* zoom en tres niveles: de lejos, lo importante; más cerca, lo demás; de muy cerca, los servicios de cada barrio */
+.gps.mid .pin.deep{display:none}
+/* lugares dentro del panel de un barrio */
+.places{display:grid;gap:6px}
+.place-row{display:flex;align-items:center;gap:10px;text-align:left;padding:6px 8px;background:#14161a}
+.place-row .pin{width:28px;height:28px;flex:none;cursor:pointer}
+.place-row .pin img{width:17px;height:17px}
+.place-row b{display:block}
+
+/* ===== como Google Maps: el mapa ocupa toda la pantalla ===== */
+.gm{position:fixed;inset:0;background:#0d0e11;z-index:1}
+.gm .city{position:absolute;inset:0}
+.gm .city .gps.city-map{height:100%;margin:0;border:0;border-radius:0}
+.gm .gps-status{position:absolute;left:88px;bottom:14px;max-width:min(520px,calc(100% - 200px));z-index:3;background:rgba(13,14,17,.88);
+  border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:.8rem}
+.gm .gps-status .crowd{float:none;display:block;margin:2px 0 0}
+.gm .maplibregl-ctrl-top-right{top:auto;bottom:40px;right:12px}
+.gm .gps-follow{left:auto;right:12px;top:auto;bottom:130px}
+.gm .gps-view{left:auto;right:12px;bottom:170px}
+/* riel de la izquierda */
+.rail{position:absolute;left:0;top:0;bottom:0;width:76px;z-index:6;background:#121317;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:8px 4px}
+.rail-logo{font-family:var(--display,inherit);font-weight:800;text-align:center;padding:6px 0 10px;font-size:1rem}
+.rail-logo .o{color:var(--sodium)}
+.rail button{position:relative;display:grid;justify-items:center;gap:2px;background:none;border:0;border-radius:10px;padding:8px 2px;font-size:.68rem;color:var(--muted)}
+.rail button .ri{font-size:1.25rem}
+.rail button.on,.rail button:hover{background:#1d2027;color:var(--fg)}
+.rail .dot{position:absolute;top:6px;right:14px}
+/* arriba: buscar y filtros */
+.topbar{position:absolute;left:88px;right:72px;top:10px;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;pointer-events:none}
+.topbar > *{pointer-events:auto}
+.search{display:flex;align-items:center;background:#1a1c21;border:1px solid var(--line);border-radius:24px;padding:0 6px 0 16px;width:min(360px,100%);flex:none;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.search input{flex:1;background:none;border:0;color:var(--fg);padding:11px 0;font-size:.95rem;outline:none;min-width:0}
+.search-go{background:none;border:0;font-size:1.05rem;padding:6px 8px}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border-radius:18px;padding:7px 12px;font-size:.82rem;background:#1a1c21;border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.chip.on{background:#2a3b52;border-color:#5b9be6;color:#fff}
+.chip.do{background:var(--sodium);color:#111;border-color:var(--sodium);font-weight:700}
+/* vos: arriba a la derecha */
+.me{position:absolute;top:8px;right:12px;z-index:6;background:none;border:0;padding:0;display:grid;justify-items:center;gap:3px}
+.me-bars{display:grid;gap:2px;width:42px}
+.me-bar{display:block;height:4px;border-radius:2px}
+.me-bar.hp{background:#e0524f}.me-bar.en{background:var(--sodium)}
+.me.on .ring{outline:2px solid var(--sodium);outline-offset:2px;border-radius:50%}
+/* el panel (como «Detalles del mapa») */
+.panel{position:absolute;left:88px;top:64px;bottom:14px;width:min(440px,calc(100% - 180px));z-index:6;overflow:auto;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.6);display:grid;align-content:start;gap:12px;padding:12px 14px 18px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-12px;background:var(--panel);padding:4px 0;z-index:2}
+.panel .pane{border:0;padding:0;background:none}
+.panel .lugar{border:0;padding:0;border-top:3px solid var(--lugar,#e8e1d2);padding-top:10px}
+.panel .sheet{position:static;border:0;padding:0}
+.panel .log{border:0;padding:0;margin:0}
+.gm .toast{z-index:20}
+/* teléfono: como Google Maps en el celular */
+@media (max-width:820px){
+  .rail{top:auto;right:0;width:auto;height:58px;flex-direction:row;justify-content:space-around;border-right:0;border-top:1px solid var(--line);padding:4px}
+  .rail-logo{display:none}
+  .rail button{padding:4px 2px;flex:1}
+  .rail .dot{right:30%}
+  .topbar{left:10px;right:10px;flex-direction:column;align-items:stretch;gap:6px}
+  .search{width:auto;margin-right:56px}
+  .me{top:10px;right:10px}
+  .me-bars{display:none}
+  .panel{left:0;right:0;width:auto;top:42%;bottom:58px;border-radius:16px 16px 0 0}
+  .gm .gps-status{left:10px;right:10px;max-width:none;bottom:66px}
+  .gm .maplibregl-ctrl-top-right{bottom:150px}
+  .gm .gps-follow{bottom:240px}
+  .gm .gps-view{bottom:280px}
+}
+.panel .lugar-close{display:none}
