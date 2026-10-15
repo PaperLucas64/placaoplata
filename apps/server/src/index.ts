@@ -15,6 +15,7 @@ import { GameError, makeGame } from "./game.js";
 import { makeRing } from "./ring.js";
 import { ensureBots, makeBots } from "./bots.js";
 import { seedTestPlayers } from "./seed.js";
+import { ChatError, makeChat } from "./chat.js";
 
 const PROD = process.env.NODE_ENV === "production";
 /* en desarrollo siempre 3000 (Vite apunta ahí); en producción, el puerto que da el hosting */
@@ -39,10 +40,21 @@ const notify = (playerId: number, msg: unknown) => {
 let botAwake = (_id: number) => false;
 let botsAwake = () => 0;
 const game = makeGame(db, notify, playerId => (sockets.get(playerId)?.size ?? 0) > 0 || botAwake(playerId));
+/* a todos los que tienen la pantalla abierta (el chat) */
+const broadcast = (msg: unknown) => {
+  const text = JSON.stringify(msg);
+  for (const set of sockets.values()) for (const ws of set) ws.send(text);
+};
+const chat = makeChat(db, broadcast);
+
+/* noticias de la ciudad que pone el servidor: quién llegó y quién se conectó */
+const addNews = (msg: string) => db.query(`INSERT INTO news (t, msg) VALUES ($1, $2)`, [Date.now(), msg]).catch(e => app.log.error(e));
+const ANNOUNCE_EVERY = 30 * 60_000; // el que recarga la página o se le corta la conexión no aparece de nuevo
+const announced = new Map<number, number>();
 
 /* errores del juego (reglas): se muestran al jugador tal cual */
 app.setErrorHandler((err, _req, reply) => {
-  if (err instanceof GameError) return reply.code(400).send({ error: err.message });
+  if (err instanceof GameError || err instanceof ChatError) return reply.code(400).send({ error: err.message });
   app.log.error(err);
   const e = err as { statusCode?: number; message?: string };
   reply.code(e.statusCode ?? 500).send({ error: e.statusCode && e.statusCode < 500 ? e.message : "Algo salió mal en el servidor." });
@@ -75,6 +87,7 @@ app.post("/api/auth/register", authLimit, async (req, reply) => {
     await q.query(`INSERT INTO players (user_id, name, gold, state) VALUES ($1, $2, $3, $4)`, [id, username, s.gold, JSON.stringify(s)]);
     return createSession(q, id);
   });
+  addNews(`${username} llegó a la ciudad con un bolso y diez pesos.`);
   reply.setCookie(COOKIE, token, cookieOpts).send({ ok: true });
 });
 
@@ -186,6 +199,16 @@ app.get("/api/news", async (req, reply) => {
   return r.rows.map(x => ({ t: Number(x.t), msg: x.msg }));
 });
 
+/* ---------- chat de la ciudad ---------- */
+app.get("/api/chat", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return chat.history(await game.idOf(uid));
+});
+app.post("/api/chat", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return chat.say(await game.idOf(uid), (req.body as { msg?: unknown })?.msg);
+});
+
 app.get("/api/ranking", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;
   const { id } = await game.me(uid);
@@ -195,8 +218,12 @@ app.get("/api/ranking", async (req, reply) => {
 app.get("/api/ws", { websocket: true }, async (socket, req) => {
   const uid = await userFromToken(db, req.cookies[COOKIE]);
   if (!uid) { socket.close(4001, "sin sesión"); return; }
-  const { id } = await game.me(uid);
-  if (!sockets.has(id)) sockets.set(id, new Set());
+  const { id, state } = await game.me(uid);
+  if (!sockets.has(id)) {
+    sockets.set(id, new Set());
+    const last = announced.get(id) ?? 0;
+    if (Date.now() - last > ANNOUNCE_EVERY) { announced.set(id, Date.now()); addNews(`${state.name} se conectó.`); }
+  }
   sockets.get(id)!.add(socket);
   socket.on("close", () => { sockets.get(id)?.delete(socket); if (!sockets.get(id)?.size) sockets.delete(id); });
 });

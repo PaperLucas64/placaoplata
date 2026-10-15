@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { money, xpNeed, energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
-import { api, connectLive, type Snapshot } from "./api";
+import { api, connectLive, type ChatMsg, type Snapshot } from "./api";
+import { Chat } from "./chat";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
 import { CityMap, Pane, PlacePanel, SearchPanel, Street } from "./panes";
@@ -35,6 +36,12 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(false);
   const [ping, setPing] = useState(0);
+  /* el chat: los mensajes llegan en vivo aunque el panel esté cerrado (así se cuentan los que no leíste) */
+  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const [unread, setUnread] = useState(0);
+  const chatOpen = useRef(false);
+  const addChat = useCallback((m: ChatMsg) => setChat(c => (c.some(x => x.id === m.id) ? c : [...c, m].slice(-200))), []);
+  useEffect(() => { api.chat().then(setChat).catch(() => {}); }, []);
 
   /* el reloj corre en la pantalla; la energía y la vida se recalculan con las mismas reglas del servidor */
   useEffect(() => { const t = setInterval(() => setClock(Date.now()), 1000); return () => clearInterval(t); }, []);
@@ -46,6 +53,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4500); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => connectLive(m => {
+    if (m.type === "chat" && m.m) { addChat(m.m); if (!chatOpen.current) setUnread(u => u + 1); return; }
     if (m.type === "ring") { setPing(p => p + 1); refresh(); }
     if (m.type === "friend" || m.type === "coop") {
       const msgs: Record<string, string> = {
@@ -67,7 +75,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       setToast(m.won ? { text: `${m.by} te atacó y lo rechazaste.`, good: true } : { text: `${m.by} te atacó y te ganó. Mirá la crónica.` });
       refresh();
     }
-  }, setLive), [refresh]);
+  }, up => { setLive(up); if (up) api.chat().then(c => setChat(c)).catch(() => {}); }), [refresh, addChat]); // al reconectar, lo que se perdió
   /* cuando termina el entrenamiento o la guardia, traer el estado del servidor */
   useEffect(() => {
     const ends = [server.busy?.until, server.home?.obra?.until, nextMissionEvent(server) ?? undefined].filter((x): x is number => !!x);
@@ -137,6 +145,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   };
   const openPanel = (k: Panel) => { setLugar(null); setPanel(panel === k ? null : k); };
   const shown = lugar ? "lugar" : panel;
+  chatOpen.current = shown === "chat";
+  useEffect(() => { if (shown === "chat") setUnread(0); }, [shown, chat.length]);
 
   /* Como Google Maps: el mapa ocupa todo; a la izquierda los menús, arriba buscar y los filtros, arriba a la derecha vos */
   return (
@@ -154,7 +164,10 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         <button className={shown === "cronica" ? "on" : ""} onClick={() => openPanel("cronica")}>
           <span className="ri" aria-hidden="true">📜</span><span>Crónica</span></button>
         <button className={shown === "clan" ? "on" : ""} onClick={() => openPanel("clan")}>
-          <span className="ri" aria-hidden="true">🛡️</span><span>Crear clan</span></button>
+          <span className="ri" aria-hidden="true">🛡️</span><span>Clan</span></button>
+        <button className={shown === "chat" ? "on" : ""} onClick={() => openPanel("chat")}>
+          <span className="ri" aria-hidden="true">💬</span><span>Chat</span>
+          {unread > 0 && shown !== "chat" && <span className="rail-badge num" aria-label={`${unread} mensajes sin leer`}>{unread > 9 ? "9+" : unread}</span>}</button>
       </nav>
 
       <div className="topbar">
@@ -189,7 +202,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       {shown && <aside className="panel" aria-label="Panel">
         <div className="panel-head">
           <b>{shown === "me" ? s.name : shown === "lugar" ? "" : shown === "cronica" ? "Crónica" : shown === "buscar" ? "Buscar"
-            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : shown === "pvp" ? "Pelear" : groups.find(g => g.id === shown)?.name}</b>
+            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : shown === "chat" ? "Chat" : shown === "pvp" ? "Pelear" : groups.find(g => g.id === shown)?.name}</b>
           <button className="link" onClick={() => { setLugar(null); setPanel(null); }}>Cerrar</button>
         </div>
         {fight && <Fight f={fight} s={s} />}
@@ -206,6 +219,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         {shown === "amigos" && <section className="pane"><Pane tab="amigos" {...ui} /></section>}
         {shown === "pvp" && <section className="pane"><Street {...ui} /></section>}
         {shown === "clan" && <div className="soon"><h2>Clanes</h2><p>Próximamente: armá tu propio clan con amigos, con chat, territorio y misiones de clan.</p></div>}
+        {shown === "chat" && <Chat msgs={chat} myName={s.name} onSent={addChat} toast={text => setToast({ text })} />}
         {shown === "buscar" && <SearchPanel {...ui} query={query} />}
         {groups.some(g => g.id === shown) && (() => {
           const g = groups.find(x => x.id === shown)!;

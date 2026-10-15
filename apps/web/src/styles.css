@@ -424,6 +424,22 @@ body{background:transparent}
 .rail button .ri{font-size:1.25rem}
 .rail button.on,.rail button:hover{background:#1d2027;color:var(--fg)}
 .rail .dot{position:absolute;top:6px;right:14px}
+.rail-badge{position:absolute;top:4px;right:12px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--sodium);color:#1b1206;font-size:.66rem;line-height:17px;font-weight:700}
+
+/* el chat de la ciudad */
+/* el chat ocupa todo el panel: los mensajes se scrollean y la caja para escribir queda siempre abajo, a la vista */
+.panel:has(> .chat){grid-template-rows:auto minmax(0,1fr);align-content:stretch;overflow:hidden}
+.chat{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;min-height:0}
+.chat > p{margin:0}
+.chat ol{list-style:none;margin:0;padding:0 4px 0 0;overflow-y:auto;display:grid;align-content:start;gap:6px;min-height:0}
+.chat li{display:grid;grid-template-columns:auto 1fr;gap:0 8px;font-size:.92rem;line-height:1.4}
+.chat li .who{font-weight:700;color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat li time{justify-self:end;color:var(--muted);font-size:.72rem}
+.chat li .msg{grid-column:1 / -1;overflow-wrap:anywhere;color:var(--fg)}
+.chat li.mine{border-left:2px solid var(--sodium);padding-left:8px}
+.chat li.empty{display:block;color:var(--muted);font-style:italic}
+.chat form{display:flex;gap:6px}
+.chat input{flex:1;min-width:0}
 /* arriba: buscar y filtros */
 .topbar{position:absolute;left:88px;right:72px;top:10px;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;pointer-events:none}
 .topbar > *{pointer-events:auto}
@@ -456,6 +472,7 @@ body{background:transparent}
   .rail-logo{display:none}
   .rail button{padding:4px 2px;flex:1}
   .rail .dot{right:30%}
+  .rail-badge{right:22%}
   .topbar{left:10px;right:10px;flex-direction:column;align-items:stretch;gap:6px}
   .search{width:auto;margin-right:56px}
   .me{top:10px;right:10px}

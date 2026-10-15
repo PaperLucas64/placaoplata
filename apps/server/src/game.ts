@@ -120,7 +120,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   async function fillDiary(q: Queryable, s: PlayerState) {
     const open = Object.values(s.diary ?? {}).filter(d => !d.city);
     if (!open.length) return;
-    const r = await q.query<{ msg: string }>(`SELECT msg FROM news WHERE position($1 in msg) = 0 ORDER BY id DESC LIMIT 3`, [s.name]);
+    const r = await q.query<{ msg: string }>(`SELECT msg FROM news WHERE position($1 in msg) = 0 AND msg NOT LIKE '% se conectó.' AND msg NOT LIKE '% llegó a la ciudad %' ORDER BY id DESC LIMIT 3`, [s.name]);
     for (const d of open) d.city = r.rows.map(x => x.msg);
   }
   async function drainNews(q: Queryable, s: PlayerState, now: number) {

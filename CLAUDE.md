@@ -62,7 +62,9 @@ Para el detalle, ver el GDD.
   - Los barrios tienen el color de la pandilla que los domina.
   - Los viajes van por las cuadras reales (OSRM). Los pide el servidor.
 - **Interfaz estilo Google Maps:**
-  - Menú lateral: Vos, Inventario, Amigos, Crónica y Crear clan (próximamente).
+  - Menú lateral: Vos, Inventario, Amigos, Crónica, Clan (próximamente) y Chat.
+  - Chat: un solo canal para toda la ciudad (`apps/server/src/chat.ts`, tabla `chat`). Llega en vivo por el WebSocket; los bots no hablan.
+  - Noticias de abajo: además de lo que hace cada uno, «X llegó a la ciudad» (personaje nuevo) y «X se conectó» (como mucho una vez cada 30 min; los bots no).
   - Arriba, el buscador, los filtros, y la vida, la energía y la XP siempre a la vista.
   - Botón ⚔️ «Pelear» al costado: tres rivales como en BiteFight, atacar a uno al azar o buscar a otros.
   - El tablón de misiones está en el Bar La Esquina.
@@ -100,4 +102,4 @@ Para el detalle, ver el GDD.
    También los costos de servidor: bots que no dejan dormir a Neon, límite de pedidos y limpieza de datos viejos.
 3. Viajar en subte entre barrios: las estaciones ya tienen nombres por línea.
 4. La terminal de Salida, para viajar al interior: «próximamente».
-5. Clanes: «Crear clan» está como próximamente.
+5. Clanes: «Clan» está como próximamente.

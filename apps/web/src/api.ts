@@ -30,6 +30,8 @@ export interface FriendsView {
 }
 /* alguien que está en la calle ahora (para el mapa) */
 export type Traveler = TravelerView;
+/* un mensaje del chat de la ciudad (me: lo mandaste vos) */
+export interface ChatMsg { id: number; t: number; name: string; gang: Gang | null; msg: string; me?: boolean }
 export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean; bot?: boolean }
 
 export const api = {
@@ -39,6 +41,8 @@ export const api = {
   me: () => call<Snapshot & { id: number }>("/api/me"),
   act: (a: Action) => call<Snapshot & { result: ActionResult }>("/api/action", a),
   ranking: () => call<RankRow[]>("/api/ranking"),
+  chat: () => call<ChatMsg[]>("/api/chat"),
+  say: (msg: string) => call<ChatMsg>("/api/chat", { msg }),
   news: () => call<{ t: number; msg: string }[]>("/api/news"),
   travelers: () => call<{ now: number; people: Traveler[]; online?: number }>("/api/travelers"),
   territory: () => call<{ map: BarrioView[]; owned: Record<Gang, number> }>("/api/territory"),
