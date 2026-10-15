@@ -80,14 +80,14 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }) };
-  /* la pestaña Amigos aparece después del tutorial (también en partidas viejas) */
-  const tabs: TabKey[] = s.tutDone && !s.tabs.includes("amigos") ? [...s.tabs.slice(0, -1), "amigos", ...s.tabs.slice(-1)] : s.tabs;
+  /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
+  const tabs: TabKey[] = s.tutDone ? withNewTabs(s.tabs) : s.tabs;
   const showFight = fight && (tab === "ring" || tab === "misiones" || tab === "calle");
 
   return (
     <>
       <header className="top">
-        <div><div className="tag">Malos Aires · de noche</div><h1>Malos <span className="o">Aires</span></h1></div>
+        <div><div className="tag">Maires · de noche</div><h1>Mai<span className="o">res</span></h1></div>
         <div className="tag num">
           <span className={`live ${live ? "on" : ""}`}>{live ? "en línea" : "sin conexión"}</span>
           {s.tabs.includes("ring") && <> · Peleas ganadas {s.wins + s.c.duelW} · perdidas {s.losses + s.c.duelL}</>}
@@ -117,4 +117,12 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       {toast && <div className={`toast ${toast.good ? "good" : ""}`} role="status">{toast.text}</div>}
     </>
   );
+}
+
+/* Negocios va después de Casa y Amigos antes de Ciudad, aunque la partida sea de antes de que existieran */
+function withNewTabs(tabs: TabKey[]): TabKey[] {
+  const out = [...tabs];
+  if (!out.includes("negocios")) out.splice(out.includes("casa") ? out.indexOf("casa") + 1 : out.length, 0, "negocios");
+  if (!out.includes("amigos")) out.splice(out.includes("ranking") ? out.indexOf("ranking") : out.length, 0, "amigos");
+  return out;
 }

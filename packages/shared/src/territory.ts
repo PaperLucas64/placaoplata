@@ -1,4 +1,4 @@
-/* Territorio: los 12 barrios de Malos Aires y la influencia de cada pandilla en ellos.
+/* Territorio: los 12 barrios de Maires y la influencia de cada pandilla en ellos.
    La influencia la generan los jugadores trabajando para una pandilla y se va gastando (la mitad por semana).
    El barrio es de la pandilla con más influencia. Cada barrio de tu pandilla te da +2% de plata. */
 import { GANG_KEYS } from "./gangs.js";
@@ -24,7 +24,7 @@ export const TURF_BASE: Record<string, Partial<Record<Gang, number>>> = {
 
 /* lo que hizo el jugador queda anotado acá y el servidor lo suma al mapa */
 export function addInfluence(s: PlayerState, gang: Gang | null | undefined, barrio: string, pts: number) {
-  if (!gang || !BARRIOS.includes(barrio) || pts <= 0) return;
+  if (!gang || !BARRIOS.includes(barrio) || !pts) return; // negativo: trabajo sucio contra esa pandilla
   (s.influence ??= []).push({ gang, barrio, pts });
 }
 /* multiplicador de plata por los barrios de tu pandilla (s.turf lo completa el servidor) */

@@ -45,7 +45,7 @@ export function Situation({ s, act, busy }: Ui) {
   return (
     <section className="boss" aria-live="polite" style={cardBg("calle")}>
       <Portrait src={img("retratos/marga")} size={96} />
-      <div className="head"><span className="tag">Andás suelto · Malos Aires</span><h3>Cuatro pandillas, una ciudad</h3></div>
+      <div className="head"><span className="tag">Andás suelto · Maires</span><h3>Cuatro pandillas, una ciudad</h3></div>
       <p className="say">«Hacé encargos y misiones para las pandillas. La que tenga la mitad de lo que hiciste te va a reclamar como propio.»</p>
       <div className="aff-bars">{GANG_KEYS.map(k => (
         <div key={k} className="aff"><span style={{ color: GANGS[k].color }}>{GANGS[k].name}</span>

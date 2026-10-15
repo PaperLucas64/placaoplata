@@ -93,7 +93,7 @@ export function Credits({ onClose }: { onClose: () => void }) {
     <div className="credits" role="dialog" aria-modal="true" aria-label="Créditos" onClick={onClose}>
       <div onClick={e => e.stopPropagation()}>
         <h2>Créditos</h2>
-        <p>Malos Aires es un juego de Mauspi Lab.</p>
+        <p>Maires es un juego de Mauspi Lab.</p>
         <ul>
           <li><b>Fondos:</b> Noraneko Games (@NoranekoGames), packs de fondos para novela visual. Modificados (recorte y filtro nocturno).</li>
           <li><b>Retratos y siluetas:</b> わたおきば / Wataokiba (わたおび), personajes de cuerpo entero. Recortados.</li>

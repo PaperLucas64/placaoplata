@@ -6,7 +6,7 @@
    de "su" pandilla y pelea en la calle contra rivales accesibles. */
 import {
   affShare, ambushCatchUp, applyAction, boardCatchUp, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, healCost, HOME, itemLocked,
-  meetsReq, missionCatchUp, missionEnergy, missionReq, nextMissionEvent,
+  meetsReq, missionCatchUp, PROPS, propIncome, missionEnergy, missionReq, nextMissionEvent,
   jobList, maxHp, MISSIONS, newPlayer, nextLevel, npcTarget, rankOf, regen, SHOP, TARGETS, trainCost, TUT, VALIJA,
   type Action, type Gang, type Rng, type StatKey
 } from "@pop/shared";
@@ -107,6 +107,12 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
     const best = jobList(s).filter(j => j.lvl <= s.lvl).at(-1)!;
     const perSession = energyMax(s) * (best.gold[0] + best.gold[1]) / 2 / best.cost;
     const saving = upgrade && upgrade.price <= perSession * 2.5 ? upgrade.price : 0;
+    /* negocios: cobra lo juntado y compra el siguiente si no se come más de la mitad de la plata */
+    if (s.tutDone) {
+      if (PROPS.some(p => s.props?.[p.id] !== undefined && propIncome(p, s.props[p.id], now) >= p.perHour * 6)) act({ type: "collect" }, "negocios");
+      const prop = PROPS.find(p => s.props?.[p.id] === undefined && p.lvl <= s.lvl && p.price <= s.gold / 2);
+      if (prop && act({ type: "prop", id: prop.id }, "negocios")) continue;
+    }
     /* casa: la mejora más barata, si no se come más de un tercio de la plata */
     if (s.tutDone && !s.home.obra) {
       const part = (Object.keys(HOME) as (keyof typeof HOME)[]).map(k => [k, nextLevel(s, k)] as const)
@@ -131,7 +137,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       else { now += ENERGY_EVERY; continue; } // junta energía para la misión
     }
     if (s.tutDone && rng() < 0.35) {
-      const street = [...s.board].reverse().find(m => meetsReq(s, m) && s.energy >= missionEnergy(m));
+      const street = s.board.filter(m => m.gang).reverse().find(m => meetsReq(s, m) && s.energy >= missionEnergy(m)); // busca respeto: las de pandilla
       if (street && s.hp > maxHp(s) * 0.6 && act({ type: "mstart", id: street.id })) continue;
     }
 

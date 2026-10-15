@@ -71,7 +71,7 @@ export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
     tEnergy: now, tHeal: now, tAttack: now, tHeat: now, log: []
   };
   s.hp = maxHp(s);
-  log(s, now, `${name} se baja del micro en Malos Aires con ${money(10)} en el bolsillo.`, "gold");
+  log(s, now, `${name} se baja del micro en Maires con ${money(10)} en el bolsillo.`, "gold");
   return s;
 }
 
@@ -92,7 +92,7 @@ export function upgradeState(s: PlayerState & { side?: string | null; tSalary?: 
   if (s.tutDone && !s.tabs.includes("casa")) s.tabs.splice(s.tabs.indexOf("ranking"), 0, "casa");
   for (const k of ["calle", "ranking"] as const) if (s.tutDone && !s.tabs.includes(k)) s.tabs.push(k);
   s.v = 3;
-  log(s, now, old ? "Malos Aires cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Malos Aires cambió: ahora mandan las cuatro pandillas.", "gold");
+  log(s, now, old ? "Maires cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Maires cambió: ahora mandan las cuatro pandillas.", "gold");
   return s;
 }
 

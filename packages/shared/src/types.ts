@@ -1,6 +1,8 @@
+import type { TravelMode, TripState } from "./geo.js";
+
 export type Gang = "familia" | "sindicato" | "barra" | "amarillos";
 export type StatKey = "fue" | "dur" | "ref" | "agu" | "lab";
-export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "amigos" | "ranking";
+export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "negocios" | "amigos" | "ranking";
 export type Rng = () => number;
 
 export interface Job {
@@ -26,7 +28,10 @@ export interface Mission {
   req?: Partial<Record<StatKey, number>>; // atributos mínimos para empezarla
   aff?: number;                // afinidad que suma (misiones de calle)
   street?: boolean; difficulty?: number; // misiones de calle generadas: 0 fácil a 3 jodida
-  place?: string;              // barrio donde pasa (suma influencia ahí)
+  place?: string;              // barrio (o ciudad del interior) donde pasa: ahí viaja tu personaje y ahí suma influencia
+  client?: string;             // quién la encarga si no es una pandilla: "vecinos", "policia" o un negocio tuyo
+  target?: Gang;               // trabajo sucio para la policía: la pandilla a la que perjudica
+  arc?: string; chapter?: number; pov?: Gang | "policia"; // historias de la ciudad: capítulo y bando
   reward?: { gold: number; xp: number; resp: number; heat?: number };
 }
 
@@ -62,6 +67,8 @@ export interface PlayerState {
   coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
   influence?: { gang: Gang; barrio: string; pts: number }[]; // influencia generada, que el servidor suma al mapa
   turf?: number; // barrios que controla tu pandilla (lo completa el servidor)
+  props?: Record<string, number>; // negocios que tenés y cuándo cobraste por última vez
+  garage?: Partial<Record<"moto" | "auto", string[]>>; // vehículos que tenés y sus arreglos
   tEnergy: number; tHeal: number; tAttack: number; tHeat: number;
   /* algo que lleva tiempo de verdad: mientras dura no se puede trabajar ni pelear */
   busy?: Busy | null;
@@ -71,7 +78,8 @@ export interface PlayerState {
 export type Busy =
   | { kind: "gym"; since: number; until: number; stat: StatKey }
   | { kind: "guardia"; since: number; until: number; hpFrom: number }
-  | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[] }; // etapas resueltas, cuántas salieron bien y cuáles
+  | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[]; // etapas resueltas, cuántas salieron bien y cuáles
+      trip?: TripState | null };                                                                          // el viaje: medio, destino, ida y vuelta
 
 export interface Fighter { name: string; hp: number; max: number; fue: number; dur: number; ref: number; arma: number; armadura: number }
 export interface FightView { p: Fighter; e: Fighter; rounds: { who: "p" | "e"; txt: string }[]; won: boolean }
@@ -92,7 +100,11 @@ export type Action =
   | { type: "guardia" }                 // hospital público: gratis, pero esperás
   | { type: "cancel" }                  // cortar lo que estés haciendo
   | { type: "spar"; i: number }
-  | { type: "mstart"; id: string }
+  | { type: "mstart"; id: string; mode?: TravelMode }
+  | { type: "prop"; id: string }        // comprar un negocio
+  | { type: "collect" }                 // cobrar lo que juntaron tus negocios
+  | { type: "vehicle"; v: "moto" | "auto" }
+  | { type: "mod"; v: "moto" | "auto"; mod: string }
   | { type: "reroll" }                  // renovar el tablón de misiones de calle
   | { type: "lawyer" }
   | { type: "build"; part: "cama" | "caja" | "armario" }

@@ -220,7 +220,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const id = await idOf(userId);
     if (typeof name !== "string" || !name.trim()) throw new GameError("Escribí el nombre de tu amigo.");
     const other = (await db.query<{ id: number }>(`SELECT id FROM players WHERE lower(name) = lower($1)`, [name.trim()])).rows[0];
-    if (!other) throw new GameError("No hay nadie con ese nombre en Malos Aires.");
+    if (!other) throw new GameError("No hay nadie con ese nombre en Maires.");
     if (other.id === id) throw new GameError("No podés ser tu propio amigo (bueno, sí, pero no acá).");
     return db.tx(async q => {
       const back = await q.query(`SELECT accepted FROM friends WHERE a_id = $1 AND b_id = $2`, [other.id, id]);

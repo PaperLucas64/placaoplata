@@ -6,7 +6,10 @@ import {
   ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSIONS, POLICE_NAMES
 } from "./gangs.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
-import { abandonMission, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, newBoard, startTimedMission } from "./missions.js";
+import { abandonMission, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionPlace, needsTrip, newBoard, POLICE_LVL, startTimedMission } from "./missions.js";
+import { arcChapterKey } from "./arcs.js";
+import { hasMod, hasVehicle, MODS, travelModes, tripCost, VEHICLES, type ModKey, type TravelMode } from "./geo.js";
+import { PROPS, propIncome, propOf } from "./negocios.js";
 import {
   addAff, addHeat, addRespect, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
@@ -22,10 +25,26 @@ const fail = (error: string): ActionResult => ({ error });
    Las de calle están en tu tablón. Los atributos mínimos se chequean aparte (meetsReq). */
 export function canStart(s: PlayerState, m: Mission) {
   if (m.id === VALIJA.id) return !s.c.valija;
-  if (!s.tutDone || !m.gang) return false;
+  if (!s.tutDone) return false;
   if (m.street) return s.board.some(x => x.id === m.id);
+  if (m.arc) return arcOpen(s, m) && rankOf(s) >= m.rank;
+  if (!m.gang) return false;
   const list = MISSIONS[m.gang], i = list.indexOf(m);
   return i >= 0 && !s.done[m.id] && rankOf(s) >= m.rank && list.slice(0, i).every(x => s.done[x.id]);
+}
+
+/* historias de la ciudad: el capítulo tiene que estar abierto (el anterior hecho) y sin hacer desde ningún bando */
+export function arcOpen(s: PlayerState, m: Mission) {
+  const ch = m.chapter ?? 0;
+  if (!m.arc || s.done[arcChapterKey(m.arc, ch)]) return false;
+  if (ch > 0 && !s.done[arcChapterKey(m.arc, ch - 1)]) return false;
+  return m.pov !== "policia" || s.lvl >= POLICE_LVL;
+}
+
+/* medio de transporte por defecto: el más barato que te alcance */
+export function defaultMode(s: PlayerState, place: string): TravelMode | undefined {
+  const modes = travelModes(s, place);
+  return (["colectivo", "riel", "micro", "pie", "taxi"] as TravelMode[]).find(k => modes.includes(k) && s.gold >= tripCost(s, k, place)) ?? modes[0];
 }
 
 /* rival de la calle: alguien de otra pandilla (o de cualquiera, si andás suelto) */
@@ -66,8 +85,8 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       else {
         /* fin del tutorial: se abre la ciudad (golpes, encargos, misiones de pandilla, la calle y tu casa) */
         s.tutDone = true; s.tAttack = now; s.tHeat = now;
-        for (const k of ["calle", "casa", "amigos", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
-        log(s, now, "Las cuatro pandillas de Malos Aires ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
+        for (const k of ["calle", "casa", "negocios", "amigos", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
+        log(s, now, "Las cuatro pandillas de Maires ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
       }
       return {};
     }
@@ -235,7 +254,15 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (!meetsReq(s, m)) return fail("Todavía no tenés los atributos que pide.");
       if (s.energy < missionEnergy(m)) return fail(`Te hacen falta ${missionEnergy(m)} de energía.`);
       if (s.hp < maxHp(s) * 0.5) return fail("Así de golpeado no te conviene salir. Curate primero.");
-      startTimedMission(s, m, now);
+      const place = missionPlace(m);
+      let mode: TravelMode | undefined;
+      if (place && needsTrip(m)) {
+        mode = a.mode ?? defaultMode(s, place);
+        if (!mode || !travelModes(s, place).includes(mode)) return fail("No podés ir así hasta ahí.");
+        const cost = tripCost(s, mode, place);
+        if (s.gold < cost) return fail(`El viaje sale ${money(cost)} y no te alcanza.`);
+      }
+      startTimedMission(s, m, now, mode, rng);
       return {};
     }
 
@@ -289,6 +316,57 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       return {};
     }
 
+    /* ---------- negocios y garaje ---------- */
+    case "prop": {
+      const p = propOf(a.id);
+      if (!p || !s.tutDone) return fail("Ese negocio no existe.");
+      if (s.props?.[p.id] !== undefined) return fail("Ya es tuyo.");
+      if (s.lvl < p.lvl) return fail(`Pide nivel ${p.lvl}.`);
+      if (s.gold < p.price) return fail("No te alcanza la plata.");
+      s.gold -= p.price; (s.props ??= {})[p.id] = now;
+      log(s, now, `Compraste ${p.name.toLowerCase()} (−${money(p.price)}). Deja ${money(p.perHour)} por hora: pasá a cobrar.`, "gold");
+      return {};
+    }
+
+    case "collect": {
+      let total = 0, heat = 0;
+      for (const p of PROPS) {
+        const since = s.props?.[p.id];
+        if (since === undefined) continue;
+        const g = propIncome(p, since, now);
+        if (g <= 0) continue;
+        total += g; heat += p.heat ?? 0; s.props![p.id] = now;
+      }
+      if (!total) return fail("Tus negocios todavía no juntaron nada.");
+      s.gold += total;
+      if (heat) addHeat(s, heat);
+      log(s, now, `Pasaste a cobrar por tus negocios: +${money(total)}${heat ? `, +${heat} de calor` : ""}.`, "good");
+      return {};
+    }
+
+    case "vehicle": {
+      const v = VEHICLES[a.v];
+      if (!v || !s.tutDone) return fail("Eso no se vende.");
+      if (hasVehicle(s, a.v)) return fail("Ya lo tenés.");
+      if (s.lvl < v.lvl) return fail(`Pide nivel ${v.lvl}.`);
+      if (s.gold < v.price) return fail("No te alcanza la plata.");
+      s.gold -= v.price; (s.garage ??= {})[a.v] = [];
+      log(s, now, `Te compraste ${a.v === "moto" ? "una" : "un"} ${v.name.toLowerCase()} (−${money(v.price)}). Ahora podés ir a las misiones por tu cuenta.`, "gold");
+      return {};
+    }
+
+    case "mod": {
+      const md = MODS[a.mod as ModKey], price = md?.price[a.v];
+      if (!md || !price) return fail("Ese arreglo no existe.");
+      if (!hasVehicle(s, a.v)) return fail("Primero comprate el vehículo.");
+      if (hasMod(s, a.v, a.mod as ModKey)) return fail("Ya lo tiene.");
+      const cost = modCost(s, price);
+      if (s.gold < cost) return fail("No te alcanza la plata.");
+      s.gold -= cost; s.garage![a.v]!.push(a.mod);
+      log(s, now, `${md.name} para tu ${a.v} (−${money(cost)}).`, "good");
+      return {};
+    }
+
     /* scout y duel contra jugadores reales necesitan la base de datos: el servidor los completa */
     case "scout": {
       if (!s.tutDone) return fail("Todavía no conocés la calle.");
@@ -311,6 +389,9 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
     }
   }
 }
+
+/* con el taller propio, los arreglos salen 30% menos */
+export const modCost = (s: PlayerState, price: number) => (s.props?.taller !== undefined ? Math.round(price * 0.7) : price);
 
 /* lo que dejás de usar va al armario si hay lugar; si no, se pierde */
 function stash(s: PlayerState, now: number, id: string) {

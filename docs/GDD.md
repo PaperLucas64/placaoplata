@@ -1,4 +1,4 @@
-# Malos Aires — Game Design Document
+# Maires — Game Design Document
 
 **Estudio:** Mauspi Lab · **Versión del documento:** 2.0 (15/10/2026) · **Estado:** jugable online, en prueba entre amigos
 **Dónde se juega:** https://cinectomia.com/juego/ · **Repo:** github.com/PaperLucas64/placaoplata
@@ -7,7 +7,7 @@ Relacionados: [BALANCE.md](BALANCE.md) (números y cómo medirlos) · [CREDITOS.
 > Los números salen del código (`packages/shared/src`: `config.ts`, `data.ts`, `gangs.ts`, `rules.ts`, `actions.ts`).
 > Si se cambia un número allá, actualizar acá.
 
-**Nombre:** Malos Aires, parodia de Buenos Aires (como Los Santos con Los Ángeles). Antes se llamó "Placa o Plata" y la ciudad "Bahía Gris".
+**Nombre:** Maires, parodia de Buenos Aires (como Los Santos con Los Ángeles). Antes se llamó "Placa o Plata", "Bahía Gris" y "Malos Aires".
 
 **Cambio de la versión 2:** ya no se elige entre policía y delincuente. Hay **cuatro pandillas** y pertenecés a la que
 más trabajaste (afinidad dinámica). La policía pasó a ser una **amenaza para todos**. Se agregó **la casa** (base del jugador).
@@ -16,7 +16,7 @@ más trabajaste (afinidad dinámica). La policía pasó a ser una **amenaza para
 
 ## 1. Visión
 
-Juego de navegador por energía, al estilo **BiteFight**, en **Malos Aires**, una ciudad portuaria rioplatense de noche.
+Juego de navegador por energía, al estilo **BiteFight**, en **Maires**, una ciudad portuaria rioplatense de noche.
 Llegás solo con tu nombre, hacés trabajos para las **cuatro pandillas** que se pelean la ciudad y terminás siendo de la que
 más te banque. Peleás contra pandilleros de las otras —personajes y **jugadores reales**—, esquivás a la policía y
 armás tu casa.
@@ -153,7 +153,7 @@ con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · 
   atributos que más usa). Calle: el atributo principal, según la dificultad.
 - Hay que tener al menos la mitad de la vida para salir.
 
-**La valija** (tutorial): 30 min. **Historias de pandilla** (3 por pandilla, en orden, piden rango): 20 / 40 / 60 min.
+**La valija** (tutorial): 30 min, sin viaje. **Historias de pandilla** (3 por pandilla, en orden, piden rango): 15 / 30 / 45 min de trabajo **más el viaje** (ver §5.7d).
 
 | Pandilla | 1ª (rango 0) | 2ª (rango 2) | 3ª (rango 4) |
 |---|---|---|---|
@@ -164,20 +164,70 @@ con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · 
 
 Premios: $150 / $500 / $1.800 · 60 / 180 / 600 XP · 30 / 90 / 300 respeto · +10 / +20 / +35 calor · +10 / +20 / +40 afinidad.
 
-**Tablón de la calle (misiones generadas):** 4 misiones a tu nivel (de 1 a 50 y más), una por dificultad, cada una de una
-pandilla al azar. Se arman combinando **12 barrios de Malos Aires** (La Bocota, Puerto Mareo, San Telmón, Palermo Soja,
+**Tablón de la calle (misiones generadas):** 4 misiones de pandilla a tu nivel (de 1 a 50 y más), una por dificultad, cada una de una
+pandilla al azar, **más una de los vecinos, una de la policía (desde nivel 5) y hasta dos de tus negocios** (ver abajo). Se arman combinando **12 barrios de Maires** (La Bocota, Puerto Mareo, San Telmón, Palermo Soja,
 Villa Crespa, Barrancas, Florida Vieja, Once y Medio, Mataderos, Recoleta Bien, Liniers Sur, Pompeya Chica), **6 objetivos
 por pandilla**, etapas por atributo y un rival (pandillero o policía): cientos de combinaciones. Se renueva cada 6 horas o
 pagando 2 de energía.
 
 | Dificultad | Duración | Energía | Pide (atributo principal) | Paga | Afinidad | Sale bien (bot) |
 |---|---|---|---|---|---|---|
-| Fácil | 10 min | 4 | 55% de lo típico a tu nivel | ×1,0 | +2 | ~93% |
-| Normal | 20 min | 6 | 70% | ×1,15 | +3 | ~79% |
-| Difícil | 35 min | 8 | 85% | ×1,3 | +5 | ~63% |
-| Jodida | 50 min | 10 | 100% | ×1,5 | +8 | ~34% |
+| Fácil | 8 min + viaje | 4 | 55% de lo típico a tu nivel | ×1,0 | +2 | ~93% |
+| Normal | 15 min + viaje | 6 | 70% | ×1,15 | +3 | ~79% |
+| Difícil | 25 min + viaje | 8 | 85% | ×1,3 | +5 | ~63% |
+| Jodida | 40 min + viaje | 10 | 100% | ×1,5 | +8 | ~34% |
 
 Paga por energía: `(10 + 2,4 × nivel) × multiplicador` de plata y `(3 + 0,55 × nivel) × multiplicador` de XP.
+
+**Otros clientes del tablón:**
+- **Vecinos** (gente que no es de nadie: Doña Elsa del almacén, el Turco del cambio, un diputado que perdió el perro, el
+  cura de la parroquia…; 10 pedidos): pagan igual, **+15% de XP, la mitad de respeto y de calor**. No suman afinidad ni territorio.
+- **La policía: trabajo sucio** para el **comisario Funes** (desde nivel 5; 7 pedidos, como plantar evidencia en un
+  aguantadero o marcar un escondite para un allanamiento): paga ×0,9, **te baja el calor** (el doble del calor que daría
+  esa dificultad) y **perjudica a una pandilla** (nunca la tuya): pierde 2 / 4 / 6 / 10 de influencia en ese barrio y esa
+  misma afinidad con vos. Si le tenías afinidad, corre el rumor de que alguien pasa datos.
+- **Tus negocios** (§5.9b): 4 pedidos por negocio, algunos con **viaje al interior**. Pagan ×1,1 (×1,6 de plata y ×1,3 de XP
+  si son en el interior). No suman afinidad.
+
+### 5.7c Historias de la ciudad (el mismo hecho, desde cada bando)
+- Cada historia tiene **3 capítulos en orden**. Cada capítulo tiene **5 versiones**: una por pandilla y una para la policía
+  corrupta (Funes). Es el mismo hecho contado desde cada lado.
+- **Se elige bando por capítulo:** cuando una versión sale bien, las otras de ese capítulo se cierran. El capítulo siguiente
+  se abre cuando terminás el anterior, desde el bando que sea (podés cambiar de bando entre capítulos).
+- Los capítulos todavía cerrados no muestran su nombre ni sus misiones.
+- Premio: el del capítulo; afinidad con ese bando **+10 / +20 / +30** e influencia **+4 / +6 / +10** en el barrio. Desde la
+  policía: 80% de la plata, sin afinidad, y **−20 / −30 / −40 de calor**.
+
+| Historia | Capítulo 1 | Capítulo 2 | Capítulo 3 |
+|---|---|---|---|
+| **La semana del clásico** (Bocota Juniors vs. Ríver Plateado) | Trapos y apuestas · La Bocota · rango 0 · 15 min | El árbitro · Villa Crespa · rango 1 · 30 min | La revancha en Rosarito · **interior** · rango 2 · 45 min |
+| **El Río Bravo** (un contenedor sin declarar con los libros del intendente) | Llega el barco · Puerto Mareo · rango 1 · 15 min | Lo que había adentro · Barrancas · rango 2 · 30 min | El intendente · Recoleta Bien · rango 3 · 45 min |
+
+Pruebas: dificultad 6 / 10 / 15 (clásico) y 8 / 13 / 19 (Río Bravo); piden esa dificultad +1 y esa misma en los dos atributos.
+Premios: clásico $200 / $600 / $1.500; Río Bravo $400 / $1.100 / $2.600 (con XP, respeto y calor en proporción).
+
+### 5.7d Viajes y GPS
+- Cada misión pasa en un lugar. Tu personaje **sale de la pensión** (San Telmón), **viaja**, hace el trabajo y **vuelve**.
+  La misión dura `ida + trabajo + vuelta`. Las etapas se resuelven mientras estás en el lugar.
+- **GPS:** mapa real (OpenStreetMap, estilo oscuro de CARTO) con el recorrido y tu personaje moviéndose. Dice cuántos km
+  faltan y en cuántos minutos llegás. Los recorridos son reales: calles para autos y colectivos, veredas a pie, y las vías
+  de verdad del subte (líneas A, B, C, D) y los trenes (Mitre, Sarmiento, Roca), calculados una vez con `tools/geo/build.py`.
+- **Los barrios son lugares reales con nombre de parodia** (La Bocota = La Boca, Puerto Mareo = Puerto Madero,
+  San Telmón = San Telmo, etc.). **Interior:** La Plata Dulce, Rosarito, Mar del Plato y Cordobita.
+- El viaje se comprime: en la ciudad, 1 minuto de verdad son 4 de viaje; en la ruta (más de 50 km), 8.
+
+| Medio | Velocidad | Costo (ida y vuelta) | Dónde | Riesgo en cada tramo |
+|---|---|---|---|---|
+| A pie | 5 km/h | gratis | ciudad | 3%: te afanan 3% de lo que llevás |
+| Colectivo | 14 km/h + espera | $2 | ciudad | 6%: punga, 5% de lo que llevás |
+| Subte y tren | 30 (subte) · 40 / 60 (tren) km/h + caminar | $1 por tramo (larga distancia: $0,05/km) | donde hay línea | 4%: punga, 4% |
+| Taxi / remís | 25 km/h (85 en ruta) | $2,5/km (**gratis para Los Amarillos**) | todos | 8%: el taxista es buchón, +4 de calor (Amarillos: nunca) |
+| Micro de larga distancia | 70 km/h + 20 min | $0,1/km | interior | con 30+ de calor, 10%: Gendarmería, +5 de calor |
+| Tu moto (nivel 15) | 32 km/h (100 en ruta) | nafta $0,15/km | todos | te ven llegar (+1 de calor); 12% control: multa `15 + nivel × 5` (con 40+ de calor te reconocen: doble y +6 de calor) |
+| Tu auto (nivel 25) | 28 km/h (110 en ruta) | nafta $0,3/km | todos | igual, 10% de control |
+
+Arreglos: **motor preparado** (+25% de velocidad; moto $2.500, auto $6.000), **papeles en regla** (la mitad de controles;
+$1.500 / $3.000), **vidrios polarizados** (solo auto, $4.000: no te ven llegar y en los controles no te reconocen).
 
 ### 5.7b Amigos y misiones de a dos
 - **Amigos:** se agregan por nombre; el otro acepta (si los dos se piden, queda aceptado). Se ve nivel, pandilla y si está en línea.
@@ -225,6 +275,20 @@ plata encima), XP, respeto, +4 calor. **Lo guardado en la caja fuerte no se pued
 - **Mínimo 8 boxeadores:** si hay menos inscriptos se completa con boxeadores del barrio de nivel parecido.
 - **Premios al cerrar el mes:** 1º nivel×$300 y +100 de respeto; 2º nivel×$200 y +60; 3º nivel×$120 y +40; el resto +10 por participar.
 - **Historial:** tu puesto de cada mes queda guardado para siempre, y la pestaña muestra los últimos campeones.
+
+### 5.9b Negocios y garaje (pestaña Negocios)
+Negocios: dejan plata por hora aunque no estés; hay que pasar a **cobrar** (junta hasta 24 horas). Cada negocio suma misiones al tablón.
+
+| Negocio | Nivel | Precio | Por hora | Se paga solo en | Extra |
+|---|---|---|---|---|---|
+| Maxikiosco 24 horas (Once y Medio) | 4 | $2.500 | $25 | 100 h | |
+| Licencia de taxi (San Telmón) | 8 | $6.000 | $50 | 120 h | misión a Mar del Plato |
+| Plantación en una terraza (Palermo Soja) | 12 | $12.000 | $110 | 109 h | +2 de calor por cobro; misión a Rosarito |
+| Lavadero de autos (Barrancas) | 16 | $22.000 | $180 | 122 h | misión a La Plata Dulce |
+| Taller mecánico (Mataderos) | 20 | $35.000 | $260 | 135 h | arreglos del garaje 30% más baratos; misión a Cordobita |
+| Boliche en Palermo Soja | 25 | $60.000 | $420 | 143 h | misión a Mar del Plato |
+
+Garaje: **moto** desde nivel 15 ($6.000) y **auto** desde nivel 25 ($25.000), con los arreglos de §5.7d.
 
 ### 5.9 La casa
 Se mejora con plata y **tiempo de obra** (una obra a la vez, no te bloquea).
@@ -294,6 +358,10 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 - Mudanzas: de la pieza de pensión a un departamento, una casa, un chalet.
 
 ### Contenido y sistemas
+- **Más historias de la ciudad** (hay 2, de 3 capítulos y 5 bandos cada una) y más pedidos de vecinos, de Funes y de cada negocio.
+- GPS: que el personaje quede donde terminó (hoy siempre vuelve a la pensión), más líneas de colectivo con recorrido propio,
+  ver en el mapa a los amigos que están en una misión, mudarse de barrio.
+- Garaje: más vehículos (camioneta, lancha por el río), robos de autos, persecuciones.
 - Fin de juego (equipo nivel 5+, trabajos y ring para niveles 15–30), nivel máximo o reinicio.
 - Turno largo (como el cementerio de BiteFight); el sistema de "ocupado" ya está listo.
 - Informes de pelea y revancha; mensajes entre jugadores; logros.

@@ -47,7 +47,7 @@ export const VALIJA: Mission = {
     { text:"Entregar la valija en el bar de Marga.", energy:1, auto:true,
       ok:"Llegaste. Marga deja la valija sobre la barra y la abre delante tuyo." }
   ],
-  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Ahora las cuatro pandillas de Malos Aires saben quién sos. Cada una te va a ofrecer trabajo: la que más te banque te va a reclamar.»"
+  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Ahora las cuatro pandillas de Maires saben quién sos. Cada una te va a ofrecer trabajo: la que más te banque te va a reclamar.»"
 };
 
 /* Mercado negro: arma y protección por rango, iguales para todas las pandillas.
@@ -74,7 +74,7 @@ export interface TutStep {
 }
 export const TUT: TutStep[] = [
   { id:"t1", tab:"laburos",  title:"Recién llegado",
-    say:"Si te vas a quedar en Malos Aires, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
+    say:"Si te vas a quedar en Maires, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
     goal:s=>s.c.jobs>=2, prog:s=>`Laburos hechos: ${Math.min(s.c.jobs,2)} de 2`, reward:{gold:15,xp:6} },
   { id:"t2", tab:"gimnasio", title:"Ponerse en forma",
     say:"Así como estás no durás una semana. En el gimnasio de Don Tito pagás y entrenás; lleva unos minutos, pero vale la pena. Subí cualquier atributo.",
@@ -92,4 +92,4 @@ export const TUT: TutStep[] = [
     say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
     goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.busy?.kind === "mision" ? `en curso (etapa ${s.busy.done + 1} de ${VALIJA.steps.length})` : "sin empezar"}`, reward:{gold:40,xp:15} }
 ];
-export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", amigos:"Amigos", ranking:"Ciudad" };
+export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", negocios:"Negocios", amigos:"Amigos", ranking:"Ciudad" };

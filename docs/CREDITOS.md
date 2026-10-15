@@ -1,6 +1,6 @@
 # Créditos del arte
 
-Malos Aires es un juego de **Mauspi Lab**. El arte de terceros se usa según la licencia de cada pack.
+Maires es un juego de **Mauspi Lab**. El arte de terceros se usa según la licencia de cada pack.
 En este repo hay **solo versiones procesadas** (recortadas, con filtro nocturno, comprimidas), nunca los archivos originales,
 porque varias licencias no permiten redistribuirlos sueltos. Se generan con `tools/assets/build.py`.
 También se muestran en el juego (botón **Créditos**, al lado de la crónica).
@@ -15,3 +15,12 @@ También se muestran en el juego (botón **Créditos**, al lado de la crónica).
 
 Si se agrega arte nuevo: anotar acá el pack, el autor y la licencia, y sumarlo a los créditos del juego
 (`Credits` en `apps/web/src/parts.tsx`).
+
+## Mapa y recorridos (GPS)
+
+- **Datos del mapa y de los recorridos:** © colaboradores de [OpenStreetMap](https://www.openstreetmap.org/copyright),
+  bajo la licencia ODbL. Los recorridos de `packages/shared/src/geo-data.ts` y `apps/web/src/gps/rutas.json` se calcularon
+  con `tools/geo/build.py` usando OSRM (routing.openstreetmap.de) y Overpass.
+- **Teselas:** [OpenFreeMap](https://openfreemap.org) (gratis, sin clave) con datos de [OpenMapTiles](https://openmaptiles.org).
+  El estilo oscuro sale de «positron», recoloreado y sin los nombres reales.
+- **Motor del mapa:** [MapLibre GL JS](https://maplibre.org) (licencia BSD-3).

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -246,12 +247,15 @@ describe("misiones con tiempo", () => {
     expect(s.busy).toBeNull();
     expect(s.energy).toBeLessThan(e);
   });
-  it("el tablón trae cuatro misiones de calle a tu nivel, de fácil a jodida", () => {
+  it("el tablón trae cuatro misiones de pandilla a tu nivel, de fácil a jodida, más vecinos y policía", () => {
     const s = veteran("Ana");
     newBoard(s, seeded(3), T0);
-    expect(s.board.map(m => m.difficulty)).toEqual([0, 1, 2, 3]);
-    expect(new Set(s.board.map(m => m.title)).size).toBe(4);
-    expect(s.board[3].reward!.gold).toBeGreaterThan(s.board[0].reward!.gold);
+    const gangs = s.board.filter(m => m.gang);
+    expect(gangs.map(m => m.difficulty)).toEqual([0, 1, 2, 3]);
+    expect(new Set(gangs.map(m => m.title)).size).toBe(4);
+    expect(gangs[3].reward!.gold).toBeGreaterThan(gangs[0].reward!.gold);
+    expect(s.board.some(m => m.client === "vecinos")).toBe(true);
+    expect(s.board.some(m => m.client === "policia")).toBe(true);   // nivel 6: Funes ya ofrece trabajo
   });
 });
 
@@ -329,5 +333,90 @@ describe("torneo del Ring", () => {
   it("el desempate suma los puntos de los rivales", () => {
     const all = [{ id: 1, points: 2, opponents: [2, 3] }, { id: 2, points: 3, opponents: [1] }, { id: 3, points: 1, opponents: [1] }];
     expect(buchholz(all[0], all)).toBe(4);
+  });
+});
+
+/* resuelve una misión entera: pasa mucho tiempo de golpe */
+const finish = (s: PlayerState, seed = 1) => missionCatchUp(s, ctx(T0 + 24 * 3_600_000, seed));
+const strong = (s: PlayerState) => { s.stats = { fue: 60, dur: 60, ref: 60, agu: 60, lab: 60 }; s.hp = maxHp(s); return s; };
+
+describe("viajes y GPS", () => {
+  it("la misión suma ida y vuelta; a pie tarda más que en colectivo y las etapas esperan a que llegues", () => {
+    const a = veteran("Ana"), b = veteran("Beto");
+    const m = MISSIONS.sindicato[0]; // El paro: en Barrancas
+    applyAction(a, { type: "mstart", id: m.id, mode: "pie" }, ctx());
+    applyAction(b, { type: "mstart", id: m.id, mode: "colectivo" }, ctx());
+    const ba = a.busy!, bb = b.busy!;
+    expect(ba.kind === "mision" && ba.trip?.place).toBe("Barrancas");
+    expect(ba.until - ba.since).toBeGreaterThan(bb.until - bb.since);
+    expect(b.gold).toBe(500 - tripCost(b, "colectivo", "Barrancas"));
+    const go = ba.kind === "mision" ? ba.trip!.go : 0;
+    missionCatchUp(a, ctx(T0 + go - 1000));
+    expect(ba.kind === "mision" && ba.done).toBe(0);              // todavía viajando
+    missionCatchUp(a, ctx(T0 + go + 1000));
+    expect(a.log.some(l => l.msg.includes("Llegaste a Barrancas"))).toBe(true);
+  });
+  it("al interior no se va a pie ni en colectivo; los Amarillos no pagan el taxi", () => {
+    const s = veteran("Ana");
+    expect(travelModes(s, "Rosarito")).not.toContain("pie");
+    expect(travelModes(s, "Rosarito")).toContain("micro");
+    expect(tripMins(s, "micro", "Rosarito")).toBeGreaterThan(tripMins(s, "colectivo", "Barrancas"));
+    const y = veteran("Yami", "amarillos");
+    expect(tripCost(y, "taxi", "Barrancas")).toBe(0);
+    expect(tripCost(s, "taxi", "Barrancas")).toBeGreaterThan(0);
+  });
+  it("la moto pide nivel 15 y el motor preparado la hace más rápida", () => {
+    const s = veteran("Ana"); s.gold = 20000;
+    expect(applyAction(s, { type: "vehicle", v: "moto" }, ctx()).error).toMatch(/nivel 15/);
+    s.lvl = 15;
+    expect(applyAction(s, { type: "vehicle", v: "moto" }, ctx()).error).toBeUndefined();
+    expect(travelModes(s, "Mataderos")).toContain("moto");
+    const slow = tripMins(s, "moto", "Rosarito");
+    applyAction(s, { type: "mod", v: "moto", mod: "motor" }, ctx());
+    expect(tripMins(s, "moto", "Rosarito")).toBeLessThan(slow);
+    expect(applyAction(s, { type: "mod", v: "moto", mod: "polarizado" }, ctx()).error).toBeTruthy(); // la moto no se polariza
+  });
+});
+
+describe("clientes del tablón y negocios", () => {
+  it("el trabajo sucio para Funes baja el calor y le saca terreno y afinidad a otra pandilla", () => {
+    const s = strong(veteran("Ana", "familia")); s.heat = 50; s.aff.barra = 12;
+    newBoard(s, seeded(5), T0);
+    const m = s.board.find(x => x.client === "policia")!;
+    expect(m.target).not.toBe("familia");
+    s.aff[m.target!] = 12;
+    applyAction(s, { type: "mstart", id: m.id, mode: "colectivo" }, ctx());
+    s.influence = [];
+    finish(s);
+    expect(s.heat).toBeLessThan(50);
+    expect(s.aff[m.target!]).toBeLessThan(12);
+    expect(s.influence?.some(i => i.gang === m.target && i.pts < 0)).toBe(true);
+  });
+  it("un negocio junta plata por hora, hasta 24 horas, y trae misiones al tablón", () => {
+    const s = veteran("Ana"); s.lvl = 4; s.gold = 3000;
+    expect(applyAction(s, { type: "prop", id: "kiosco24" }, ctx()).error).toBeUndefined();
+    const k = PROPS[0];
+    expect(propIncome(k, T0, T0 + 2 * 3_600_000)).toBe(50);
+    expect(propIncome(k, T0, T0 + 100 * 3_600_000)).toBe(24 * 25);
+    const g = s.gold;
+    applyAction(s, { type: "collect" }, ctx(T0 + 3 * 3_600_000));
+    expect(s.gold).toBe(g + 75);
+    newBoard(s, seeded(2), T0);
+    expect(s.board.some(m => m.client === "kiosco24")).toBe(true);
+  });
+});
+
+describe("historias de la ciudad", () => {
+  it("cada capítulo se hace con un solo bando y el siguiente se abre al terminar el anterior", () => {
+    const s = strong(veteran("Ana")); s.respect = RANK_AT[3];
+    const c1 = findMission(s, arcMissionId("clasico", 0, "barra"))!, c1b = findMission(s, arcMissionId("clasico", 0, "familia"))!;
+    const c2 = findMission(s, arcMissionId("clasico", 1, "sindicato"))!;
+    expect(ARC_MISSIONS.length).toBe(30);
+    expect(canStart(s, c2)).toBe(false);
+    expect(applyAction(s, { type: "mstart", id: c1.id, mode: "colectivo" }, ctx()).error).toBeUndefined();
+    finish(s);
+    expect(s.done[c1.id]).toBe(true);
+    expect(canStart(s, c1b)).toBe(false);   // ese capítulo ya lo hiciste con La Barra
+    expect(canStart(s, c2)).toBe(true);     // y se abrió el siguiente, desde cualquier bando
   });
 });

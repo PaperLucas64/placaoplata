@@ -1,4 +1,4 @@
-/* Las cuatro pandillas de Malos Aires, la policía (amenaza para todos) y la casa.
+/* Las cuatro pandillas de Maires, la policía (amenaza para todos) y la casa.
    Pertenecés a una pandilla cuando tiene la mitad o más de tu afinidad (todo lo que hiciste pesa igual). */
 import type { Gang, Job, Mission } from "./types.js";
 
@@ -15,7 +15,7 @@ export const GANGS: Record<Gang, GangInfo> = {
   barra:     { name: "La Barra", boss: "El Tano Lucero", color: "#6cc070", hood: "la cancha",
                perk: "+10% de fuerza en las peleas", say: "El barrio se banca con el cuerpo, pibe." },
   amarillos: { name: "Los Amarillos", boss: "Rita \"Taxi\" Quiroga", color: "#f2c94c", hood: "las remiserías",
-               perk: "Juntás 30% menos de calor", say: "Conozco cada calle de Malos Aires. Y cada salida." }
+               perk: "Juntás 30% menos de calor", say: "Conozco cada calle de Maires. Y cada salida." }
 };
 
 /* Rango por respeto (igual para todas las pandillas) */
@@ -110,7 +110,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           win:"La dejás encerrada en su propia oficina, con la placa sobre el escritorio.", lose:"Te tumba de una piña y escapás por la ventana sin la libreta." },
         { text:"Entregarle la libreta a La Señora.", energy:1, auto:true, ok:"La Señora quema la libreta en la estufa, hoja por hoja." }
       ],
-      outro:"«Desde hoy, en Malos Aires no se mueve nada sin que vos lo sepas.»" }
+      outro:"«Desde hoy, en Maires no se mueve nada sin que vos lo sepas.»" }
   ],
   sindicato: [
     { id:"paro", gang:"sindicato", tier:0, rank:0, title:"El paro", reward:R1,
@@ -150,7 +150,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           win:"El Gallego queda tirado en el muelle. La lancha no arranca.", lose:"El Gallego te tira al agua helada. Hay que volver a intentarlo." },
         { text:"Bajar la carga de la lancha antes de que llegue la policía.", stat:"fue", diff:17, energy:3, dmg:.1,
           ok:"La lancha queda vacía y La Señora se va sin nada.", ko:"Se te resbaló un cajón y casi te arrastra al agua." },
-        { text:"Volver a los galpones con la carga.", energy:1, auto:true, ok:"Medio Malos Aires se entera antes del amanecer." }
+        { text:"Volver a los galpones con la carga.", energy:1, auto:true, ok:"Medio Maires se entera antes del amanecer." }
       ],
       outro:"El Gordo te da la mano delante de todos. «El puerto es del Sindicato. Y vos sos parte.»" }
   ],
@@ -236,7 +236,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           ok:"Salís del auto caminando.", ko:"Te sacaron del auto en camilla." },
         { text:"Volver a la remisería con la plata.", energy:1, auto:true, ok:"Todas las remiserías prenden las balizas a la vez." }
       ],
-      outro:"«Las calles de Malos Aires son amarillas. Y vos manejás.»" }
+      outro:"«Las calles de Maires son amarillas. Y vos manejás.»" }
   ]
 };
 

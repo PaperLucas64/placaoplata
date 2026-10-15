@@ -1,13 +1,19 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   affShare, canStart, closetSlots, HOME_BARRIO, TURF_BONUS, type Gang, COOP_ENERGY, COOP_MINS, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
   trainTime, healCost, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionMins, missionNeed, missionReq, STREET_DIFF, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
-  SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey
+  SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
+  ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
+  POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
+  tripPhase, VEHICLES, type ModKey, type TravelMode, type Vehicle
 } from "@pop/shared";
 import { api, type BarrioView, type FriendsView, type RankRow, type RingView } from "./api";
 import type { Ui } from "./Game";
 import { avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
+
+const GpsMap = lazy(() => import("./gps/GpsMap"));
+const mapFallback = <div className="gps" style={{ height: 260 }} />;
 
 const riskTxt = ["", "bajo", "medio", "alto"];
 
@@ -23,6 +29,7 @@ export function Pane({ tab, ...rest }: Ui & { tab: TabKey }) {
     case "misiones": return <Missions {...ui} />;
     case "calle": return <Street {...ui} />;
     case "casa": return <House {...rest} />;
+    case "negocios": return <Business {...rest} />;
     case "amigos": return <Friends {...rest} />;
     case "ranking": return <Ranking {...ui} />;
   }
@@ -157,41 +164,80 @@ const STAT_SHORT: Record<StatKey, string> = { fue: "Fuerza", dur: "Dureza", ref:
 const DIFF_CLASS = ["r1", "r1", "r2", "r3"];
 
 /* La misión en curso: etapas resueltas (✓ / ✗), la que viene y cuánto falta */
+const kmTxt = (km: number) => (km >= 10 ? `${Math.round(km)} km` : `${km.toFixed(1).replace(".", ",")} km`);
+const minTxt = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))} min`;
+
+/* La misión en curso: el GPS con tu personaje y las etapas. Lo que todavía no pasó no se cuenta. */
 function MissionProgress({ s, now }: Ui) {
   const b = s.busy;
   if (b?.kind !== "mision") return null;
   const m = findMission(s, b.id);
   if (!m) return null;
   const n = m.steps.length, res = b.res ?? [];
-  return <div className="mission thread" style={{ borderColor: m.gang ? GANGS[m.gang].color : "var(--sodium)" }}>
+  const t = b.trip, ph = tripPhase(b, now);
+  const arrived = !t || (t.ev & 1) === 1;
+  const km = t ? tripKm(t.place, t.mode) : 0;
+  return <div className="mission thread" style={{ borderColor: clientOf(m).color }}>
     <h3>En curso: {m.title}</h3>
-    <ol className="steps">{m.steps.map((st, i) => (
-      <li key={i} className={i < b.done ? (res[i] ? "ok" : "ko") : i === b.done ? "now" : ""}>
-        <span className="n">{i < b.done ? (res[i] ? "✓" : "✗") : i + 1}</span>
-        <span>{st.text}{i === b.done && <><br /><span className="tag">se resuelve en {Math.max(1, Math.ceil((b.since + (b.until - b.since) * (i + 1) / n - now) / 60000))} min</span></>}</span>
-      </li>))}
+    {t && ph && <>
+      <Suspense fallback={mapFallback}>
+        <GpsMap place={t.place} mode={t.mode} at={{ back: ph.phase === "vuelta", f: ph.frac }} avatar={avatarImg(s.avatar)} />
+      </Suspense>
+      <p className="gps-status num">{
+        ph.phase === "ida" ? <>{TRAVEL[t.mode].name} a <b>{t.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</> :
+        ph.phase === "alla" ? <>En <b>{t.place}</b>, trabajando · después, {minTxt(t.back)} de vuelta</> :
+        <>Volviendo a la pensión · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(ph.left)}</>}</p>
+    </>}
+    <ol className="steps">{m.steps.map((st, i) => {
+      const past = i < b.done, current = i === b.done && arrived;
+      return <li key={i} className={past ? (res[i] ? "ok" : "ko") : current ? "now" : "later"}>
+        <span className="n">{past ? (res[i] ? "✓" : "✗") : i + 1}</span>
+        {past ? <span>{(st.fight ? (res[i] ? st.win : st.lose) : res[i] ? st.ok : st.ko) ?? st.text}</span>
+          : current ? <span>{st.text}<br /><span className="tag">se resuelve en {minTxt(missionStepAt(b, n, i) - now)}</span></span>
+          : <span className="dash" aria-label="todavía no pasó" />}
+      </li>;
+    })}
     </ol>
     <p className="tag">Tienen que salir bien {missionNeed(m)} de {n} etapas. Lo que pasa queda en la crónica.</p>
   </div>;
 }
 
-/* Tarjeta de una misión: duración, energía, requisitos y premio */
-function MissionCard({ m, s, act, busy, note }: Ui & { m: Mission; note?: string }) {
+/* Tarjeta de una misión: dónde es, duración, energía, requisitos y premio. Al salir, elegís cómo ir. */
+function MissionCard({ m, s, act, busy, note, chip }: Ui & { m: Mission; note?: string; chip?: { name: string; color: string } }) {
+  const [choosing, setChoosing] = useState(false);
   const req = Object.entries(missionReq(m)) as [StatKey, number][];
   const ok = canStart(s, m), meets = meetsReq(s, m), energy = missionEnergy(m);
   const done = !!s.done[m.id];
   const can = ok && meets && !s.busy && s.energy >= energy && s.hp >= maxHp(s) * 0.5;
-  return <div className="item">
-    <div><h3>{m.title}{m.street && <span className={`risk ${DIFF_CLASS[m.difficulty ?? 0]}`}>{STREET_DIFF[m.difficulty ?? 0].name}</span>}</h3>
-      <div className="meta">{done ? "Hecha." : m.street ? null : m.intro}</div>
+  const place = missionPlace(m), trip = needsTrip(m) && place;
+  const c = chip ?? (m.street ? clientOf(m) : undefined);
+  const start = (mode?: TravelMode) => { setChoosing(false); act({ type: "mstart", id: m.id, mode }); };
+  return <div className="item mission-card">
+    <div><h3>{m.title}{m.street && <span className={`risk ${DIFF_CLASS[m.difficulty ?? 0]}`}>{STREET_DIFF[m.difficulty ?? 0].name}</span>}
+        {c && <span className="client" style={{ color: c.color, borderColor: c.color }}>{c.name}</span>}</h3>
+      <div className="meta">{done ? "Hecha." : m.street ? m.intro || null : m.intro}</div>
       {!done && <div className="meta num">
-        {missionMins(m)} min · {energy} energía
+        {place && <>{place} · </>}{missionMins(m)} min{trip ? " + viaje" : ""} · {energy} energía
         {req.length > 0 && <> · pide {req.map(([k, v], i) => <span key={k} style={{ color: s.stats[k] < v ? "#eba09e" : undefined }}>{i ? ", " : ""}{STAT_SHORT[k]} {v}</span>)}</>}
         {m.reward && <> · {money(m.reward.gold)}, {m.reward.xp} XP, +{m.reward.resp} respeto</>}
+        {m.reward?.heat && m.reward.heat < 0 ? <> · <b>−{-m.reward.heat} de calor</b></> : null}
         {m.street && m.gang && <> · +{m.aff} afinidad con <span style={{ color: GANGS[m.gang].color }}>{GANGS[m.gang].name}</span></>}
+        {m.target && <> · <span style={{ color: GANGS[m.target].color }}>{GANGS[m.target].name}</span> pierde terreno y te quiere menos</>}
       </div>}
-      {!done && note && <div className="lock">{note}</div>}</div>
-    <div className="act"><button className={can ? "primary" : ""} disabled={busy || !can} onClick={() => act({ type: "mstart", id: m.id })}>{done ? "Hecha" : "Salir"}</button></div>
+      {!done && note && <div className="lock">{note}</div>}
+      {choosing && trip && <div className="travel">
+        <div className="tag">¿Cómo vas hasta {place}? ({kmTxt(tripKm(place, "colectivo"))} desde la pensión)</div>
+        {travelModes(s, place).map(k => {
+          const cost = tripCost(s, k, place), mins = tripMins(s, k, place) * 2 + missionMins(m);
+          return <button key={k} className="mode" disabled={busy || s.gold < cost} onClick={() => start(k)}>
+            <b>{TRAVEL[k].name}</b><span className="num">{mins} min en total · {cost ? `${money(cost)} ida y vuelta` : "gratis"}</span><span className="tag">{TRAVEL_RISK[k]}</span>
+          </button>;
+        })}
+        <button className="mode ghost" onClick={() => setChoosing(false)}>Mejor no</button>
+      </div>}
+    </div>
+    <div className="act"><button className={can ? "primary" : ""} disabled={busy || !can || choosing}
+      onClick={() => (trip ? setChoosing(true) : start())}>{done ? "Hecha" : "Salir"}</button></div>
   </div>;
 }
 
@@ -213,6 +259,9 @@ function Missions(ui: Ui) {
       <button disabled={busy || !!s.busy || s.energy < BOARD_REROLL_COST} onClick={() => act({ type: "reroll" })}>Buscar otras · {BOARD_REROLL_COST} energía</button>
     </div>
     <div className="list">{s.board.filter(m => !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    {s.lvl < POLICE_LVL && <p className="tag">Desde el nivel {POLICE_LVL}, el comisario Funes también deja trabajos sucios en el tablón.</p>}
+    <Stories {...ui} />
+    <h3>Las pandillas</h3>
     {GANG_KEYS.map(g => {
       const info = GANGS[g];
       return <div key={g} className="thread" style={{ borderColor: info.color }}>
@@ -224,6 +273,34 @@ function Missions(ui: Ui) {
             note={canStart(s, m) ? undefined : rk < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : "Primero terminá la anterior"} />)}</div>
       </div>;
     })}
+  </>;
+}
+
+/* Historias de la ciudad: cada capítulo con un solo bando; el siguiente se abre al terminar el anterior */
+function Stories(ui: Ui) {
+  const { s } = ui;
+  return <>
+    <h3>Historias de la ciudad</h3>
+    <p className="tag">El mismo hecho, contado desde cada bando. Cada capítulo lo hacés con uno solo: cuando sale bien, los otros bandos se cierran. El capítulo siguiente se abre cuando terminás el anterior.</p>
+    {ARCS.map(arc => <div key={arc.id} className="thread arc">
+      <h3>{arc.title}</h3>
+      <div className="meta">{arc.blurb}</div>
+      {arc.chapters.map((c, ch) => {
+        const by = POVS.find(p => s.done[arcMissionId(arc.id, ch, p)]);
+        const open = ch === 0 || !!s.done[arcChapterKey(arc.id, ch - 1)];
+        return <div key={ch} className="chapter">
+          <h4>Capítulo {ch + 1} · {open || by ? c.name : "???"} <span className="tag">{open || by ? `${c.place} · rango ${RANK_NAMES[c.rank]}` : ""}</span></h4>
+          {by ? <div className="meta">Lo hiciste con <b style={{ color: POV_COLOR[by] }}>{POV_NAME[by]}</b>.</div>
+            : !open ? <div className="meta">Se abre cuando termines el capítulo anterior.</div>
+            : <div className="list">{POVS.map(p => {
+                const m = findMission(s, arcMissionId(arc.id, ch, p))!;
+                const note = p === "policia" && s.lvl < POLICE_LVL ? `Funes no te conoce todavía: nivel ${POLICE_LVL}.`
+                  : rankOf(s) < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : !arcOpen(s, m) ? "Cerrada" : undefined;
+                return <MissionCard key={p} m={m} {...ui} note={note} chip={{ name: POV_NAME[p], color: POV_COLOR[p] }} />;
+              })}</div>}
+        </div>;
+      })}
+    </div>)}
   </>;
 }
 
@@ -256,10 +333,12 @@ function Ranking({ s }: Ui) {
     api.territory().then(setMap).catch(() => {});
   }, [s.respect]);
   const mine = gangOf(s);
+  const owners = useMemo(() => map && Object.fromEntries(map.map.map(b => [b.barrio, b.owner ? GANGS[b.owner].color : null])), [map]);
   return <>
-    <h2>Malos Aires</h2>
+    <h2>Maires</h2>
     <p>Cada barrio es de la pandilla con más influencia. La influencia la ganás trabajando para una pandilla (misiones, encargos, golpes y peleas) y se va gastando: pierde la mitad por semana. Cada barrio de tu pandilla te da +{Math.round(TURF_BONUS * 100)}% de plata.</p>
     {mine && map && <p className="result good">{GANGS[mine].name} controla {map.owned[mine]} {map.owned[mine] === 1 ? "barrio" : "barrios"}: +{map.owned[mine] * Math.round(TURF_BONUS * 100)}% de plata para vos.</p>}
+    {owners && <Suspense fallback={mapFallback}><GpsMap owners={owners} height={300} /></Suspense>}
     {!map ? <p className="tag">Cargando el mapa…</p> :
       <div className="barrios">{map.map.map(b => {
         const total = GANG_KEYS.reduce((a, g) => a + b.points[g], 0) || 1;
@@ -272,7 +351,7 @@ function Ranking({ s }: Ui) {
         </div>;
       })}</div>}
     <h2>Ranking</h2>
-    <p>Quién manda en Malos Aires, de las cuatro pandillas. Se ordena por respeto.</p>
+    <p>Quién manda en Maires, de las cuatro pandillas. Se ordena por respeto.</p>
     {!rows ? <p className="tag">Cargando…</p> :
       <ol className="ranking">{rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className={r.me ? "me" : ""}>
@@ -333,6 +412,45 @@ function House({ s, act, busy, now }: Ui) {
 }
 
 /* Amigos y misiones de a dos */
+/* Negocios y garaje */
+function Business({ s, act, busy, now }: Ui) {
+  const owned = (id: string) => s.props?.[id] !== undefined;
+  const pending = PROPS.reduce((a, p) => a + (owned(p.id) ? propIncome(p, s.props![p.id], now) : 0), 0);
+  return <>
+    <h2>Negocios</h2>
+    <p>Comprás un negocio y deja plata por hora, aunque no estés. Hay que pasar a cobrarla: junta como mucho {PROP_CAP_HOURS} horas. Cada negocio trae sus propias misiones al tablón.</p>
+    <div className="row-actions"><button className={pending ? "primary" : ""} disabled={busy || !pending} onClick={() => act({ type: "collect" })}>Cobrar {money(pending)}</button></div>
+    <div className="list">{PROPS.map(p => {
+      const mine = owned(p.id), locked = s.lvl < p.lvl;
+      return <div className="item" key={p.id}>
+        <div><h3>{p.name}{mine && <span className="kind">tuyo</span>}</h3>
+          <div className="meta">{p.help} {p.place}.</div>
+          <div className="meta num">{money(p.perHour)} por hora{p.heat ? ` · +${p.heat} de calor por cobro` : ""}
+            {mine ? <> · juntó {money(propIncome(p, s.props![p.id], now))}</> : <> · {money(p.price)}</>}</div>
+          {!mine && locked && <div className="lock">Pide nivel {p.lvl}</div>}</div>
+        <div className="act">{!mine && <button disabled={busy || locked || s.gold < p.price} onClick={() => act({ type: "prop", id: p.id })}>Comprar</button>}</div>
+      </div>;
+    })}</div>
+    <h3>Garaje</h3>
+    <p>Con vehículo propio vas más rápido a las misiones, pero te ven llegar y te pueden parar en un control.{owned("taller") ? " Con tu taller, los arreglos salen 30% menos." : ""}</p>
+    <div className="list">{(Object.keys(VEHICLES) as Vehicle[]).map(v => {
+      const info = VEHICLES[v], has = hasVehicle(s, v), locked = s.lvl < info.lvl;
+      return <div className="item" key={v}>
+        <div><h3>{info.name}{has && <span className="kind">tuya</span>}</h3>
+          <div className="meta">{info.help}</div>
+          {!has && <div className="meta num">{money(info.price)}</div>}
+          {!has && locked && <div className="lock">Pide nivel {info.lvl}</div>}
+          {has && <div className="mods">{(Object.keys(MODS) as ModKey[]).filter(k => MODS[k].price[v]).map(k => {
+            const done = hasMod(s, v, k), cost = modCost(s, MODS[k].price[v]!);
+            return <button key={k} disabled={busy || done || s.gold < cost} onClick={() => act({ type: "mod", v, mod: k })}>
+              {MODS[k].name}{done ? " ✓" : ` · ${money(cost)}`}<span className="tag">{MODS[k].help}</span></button>;
+          })}</div>}</div>
+        <div className="act">{!has && <button disabled={busy || locked || s.gold < info.price} onClick={() => act({ type: "vehicle", v })}>Comprar</button>}</div>
+      </div>;
+    })}</div>
+  </>;
+}
+
 function Friends({ s, busy, ping, refresh, toast }: Ui) {
   const [data, setData] = useState<FriendsView | null>(null);
   const [name, setName] = useState("");

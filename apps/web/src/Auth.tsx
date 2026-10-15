@@ -19,10 +19,10 @@ export function Auth({ onIn }: { onIn: () => void }) {
 
   return (
     <section id="auth">
-      <div><div className="tag">Malos Aires · de noche</div><h1>Malos <span className="o">Aires</span></h1></div>
-      <p>Llegás a Malos Aires con un bolso y diez pesos. Marga, la dueña del bar La Esquina, te da un lugar donde dormir a cambio de que le hagas unos encargos. Después vas a tener que elegir: la placa o la plata.</p>
+      <div><div className="tag">Maires · de noche</div><h1>Mai<span className="o">res</span></h1></div>
+      <p>Llegás a Maires con un bolso y diez pesos. Marga, la dueña del bar La Esquina, te da un lugar donde dormir a cambio de que le hagas unos encargos. Después vas a tener que elegir: la placa o la plata.</p>
       <form onSubmit={submit}>
-        <h3>{mode === "new" ? "Bajar del micro" : "Volver a Malos Aires"}</h3>
+        <h3>{mode === "new" ? "Bajar del micro" : "Volver a Maires"}</h3>
         <label className="tag" htmlFor="u">{mode === "new" ? "¿Cómo te llamás?" : "Tu nombre"}</label>
         <input id="u" value={username} onChange={e => setUser(e.target.value)} maxLength={20} autoComplete="username" required />
         {mode === "new" && <>
