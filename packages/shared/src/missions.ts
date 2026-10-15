@@ -4,6 +4,7 @@
 import { VALIJA } from "./data.js";
 import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } from "./gangs.js";
 import { addAff, addHeat, addRespect, battle, clamp, gainXp, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
+import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
 import type { Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
 
 const MIN = 60_000;
@@ -96,12 +97,15 @@ function finishMission(s: PlayerState, m: Mission, ok: number, at: number) {
   }
   if (m.id === VALIJA.id) { s.c.valija = 1; log(s, at, VALIJA.outro, "gold"); return; }
   const r = m.reward!;
-  s.gold += r.gold; gainXp(s, at, r.xp);
+  const gold = Math.round(r.gold * turfMult(s)); // los barrios de tu pandilla pagan un poco más
+  s.gold += gold; gainXp(s, at, r.xp);
   addRespect(s, at, r.resp);
+  /* influencia en el mapa: las de calle en su barrio, las de la historia en el barrio de la pandilla */
+  if (m.gang) addInfluence(s, m.gang, m.place ?? HOME_BARRIO[m.gang], m.street ? [1, 2, 3, 5][m.difficulty ?? 0] : [5, 8, 12][m.tier ?? 0]);
   if (r.heat) addHeat(s, r.heat);
   if (m.street) s.board = s.board.filter(x => x.id !== m.id);
   else s.done[m.id] = true;
-  log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(r.gold)}, +${r.xp} XP, +${r.resp} de respeto.`, "gold");
+  log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto.`, "gold");
   if (m.gang) addAff(s, at, m.gang, m.aff ?? MISSION_AFF[m.tier ?? 0]);
 }
 
@@ -115,9 +119,6 @@ export function abandonMission(s: PlayerState, now: number) {
 }
 
 /* ---------- misiones de calle generadas ---------- */
-/* Barrios de Malos Aires (también van a ser los territorios) */
-export const BARRIOS = ["La Bocota", "Puerto Mareo", "San Telmón", "Palermo Soja", "Villa Crespa", "Barrancas", "Florida Vieja",
-  "Once y Medio", "Mataderos", "Recoleta Bien", "Liniers Sur", "Pompeya Chica"];
 
 interface Objective { text: string; stat: StatKey }
 const OBJECTIVES: Record<Gang, Objective[]> = {
@@ -191,7 +192,7 @@ export function streetMission(rng: Rng, lvl: number, d: number, gang: Gang, id: 
     { text: `Volver con ${GANGS[gang].boss}`, energy: per, auto: true, ok: `${GANGS[gang].boss} cuenta la plata y asiente.` }
   ];
   return {
-    id, street: true, gang, difficulty: d, rank: 0, mins: D.mins,
+    id, street: true, gang, difficulty: d, rank: 0, mins: D.mins, place,
     title: `${obj.text} en ${place}`,
     intro: `${GANGS[gang].name} · ${D.name} · ${D.mins} min`,
     steps, outro: "",

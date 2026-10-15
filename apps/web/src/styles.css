@@ -206,3 +206,9 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .item.locked{opacity:.55}
 .steps li.ko{color:var(--muted)}
 .steps li.ko .n{border-color:var(--red);color:var(--red)}
+
+/* ---- mapa de barrios ---- */
+.barrios{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.barrio{border:1px solid;padding:10px;display:grid;gap:6px;background:#191b1e}
+.barrio .stack{display:flex;height:8px;background:#0d0e10;overflow:hidden}
+.barrio .stack span{display:block;height:100%}

@@ -26,6 +26,7 @@ export interface Mission {
   req?: Partial<Record<StatKey, number>>; // atributos mínimos para empezarla
   aff?: number;                // afinidad que suma (misiones de calle)
   street?: boolean; difficulty?: number; // misiones de calle generadas: 0 fácil a 3 jodida
+  place?: string;              // barrio donde pasa (suma influencia ahí)
   reward?: { gold: number; xp: number; resp: number; heat?: number };
 }
 
@@ -59,6 +60,8 @@ export interface PlayerState {
   board: Mission[]; tBoard: number; // tablón de misiones de calle y cuándo se armó
   /* misión de a dos aceptada: esperando a que los dos estén libres, o en curso */
   coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
+  influence?: { gang: Gang; barrio: string; pts: number }[]; // influencia generada, que el servidor suma al mapa
+  turf?: number; // barrios que controla tu pandilla (lo completa el servidor)
   tEnergy: number; tHeal: number; tAttack: number; tHeat: number;
   /* algo que lleva tiempo de verdad: mientras dura no se puede trabajar ni pelear */
   busy?: Busy | null;

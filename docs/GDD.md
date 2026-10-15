@@ -197,6 +197,25 @@ el resto, personajes. A los de tu pandilla no los podés atacar. 3 de energía p
 nadie con menos de 25% de vida ni internado en la guardia. Ganar: 35% de lo que lleva encima (jugadores: hasta 25% de su
 plata encima), XP, respeto, +4 calor. **Lo guardado en la caja fuerte no se puede robar.**
 
+### 5.8b Territorio (pestaña Ciudad)
+- **12 barrios:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,
+  Mataderos, Recoleta Bien, Liniers Sur y Pompeya Chica. Barrio de cada pandilla: Familia → Puerto Mareo, Sindicato →
+  Barrancas, Barra → La Bocota, Amarillos → Once y Medio.
+- **Influencia:** cada barrio tiene la de las cuatro pandillas. Se gana trabajando para una:
+
+| Qué | Influencia | Para quién | Dónde |
+|---|---|---|---|
+| Misión de calle | +1 / +2 / +3 / +5 (según dificultad) | la pandilla que la da | su barrio |
+| Misión de la historia | +5 / +8 / +12 | esa pandilla | su barrio |
+| Misión de a dos | +4 | la pandilla de la misión | su barrio |
+| Encargo (sale bien) | +1 | esa pandilla | su barrio |
+| Golpe (sale bien) | +1 | tu pandilla | un barrio al azar |
+| Pelea ganada en la calle | +2 | tu pandilla | el barrio de la pandilla del rival |
+
+- Se gasta: **pierde la mitad por semana**. Cada pandilla tiene además una presencia fija de personajes del juego (30 en su barrio, 8–12 en algunos otros).
+- **Dueño:** la pandilla con más influencia, si tiene al menos 10 y no está empatada; si no, **en disputa**.
+- **Premio:** cada barrio de tu pandilla te da **+2% de plata** en golpes, encargos y misiones.
+
 ### 5.9 La casa
 Se mejora con plata y **tiempo de obra** (una obra a la vez, no te bloquea).
 
@@ -254,7 +273,6 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 - **Probar el balance de las peleas entre jugadores reales.**
 
 ### Pandillas
-- **Territorio:** barrios que cambian de dueño según la actividad de los jugadores de cada pandilla.
 - **Más misiones escritas** por pandilla (rangos 1, 3 y 5); más objetivos y barrios para el generador; misiones diarias.
 - **Guerras entre pandillas** y eventos (el clásico, un paro general, una redada policial).
 - Rango propio dentro de la pandilla, títulos por pandilla, chat de pandilla.

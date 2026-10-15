@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  coopMission, missionCatchUp, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
+  BARRIOS, coopMission, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -276,5 +276,32 @@ describe("misiones de a dos", () => {
     s.coop = { id: 1, partner: "Beto", partnerId: 2, mission: coopMission(seeded(1), 6, "familia", 1), status: "waiting" };
     expect(applyAction(s, { type: "train", stat: "fue" }, ctx()).error).toMatch(/de a dos/);
     expect(applyAction(s, { type: "job", id: "bici" }, ctx()).error).toBeUndefined(); // lo instantáneo, sí
+  });
+});
+
+describe("territorio", () => {
+  it("el barrio es de la pandilla con más influencia, si pasa el mínimo", () => {
+    expect(ownerOf({ barra: 30, familia: 8 })).toBe("barra");
+    expect(ownerOf({ barra: 12, familia: 12 })).toBeNull();   // empate: en disputa
+    expect(ownerOf({ amarillos: 5 })).toBeNull();             // muy poca influencia
+  });
+  it("la influencia pierde la mitad por semana", () => {
+    expect(decayed(100, TURF_HALF_LIFE)).toBeCloseTo(50);
+    expect(decayed(100, 2 * TURF_HALF_LIFE)).toBeCloseTo(25);
+  });
+  it("una misión de calle suma influencia en su barrio para la pandilla que la da", () => {
+    let s: PlayerState, seed = 1;
+    do {
+      s = veteran("Ana"); s.stats = { fue: 40, dur: 40, ref: 40, agu: 40, lab: 40 }; s.hp = maxHp(s);
+      newBoard(s, seeded(seed), T0);
+      applyAction(s, { type: "mstart", id: s.board[0].id }, ctx());
+      missionCatchUp(s, ctx(T0 + 60 * 60_000, seed++));
+    } while (!s.influence?.length && seed < 20);
+    expect(s.influence![0].barrio).toBe(BARRIOS.find(b => s.log.some(l => l.msg.includes(b))));
+  });
+  it("cada barrio de tu pandilla paga un 2% más", () => {
+    const s = veteran("Ana", "barra"); s.turf = 3;
+    expect(turfMult(s)).toBeCloseTo(1.06);
+    expect(turfMult(veteran("Beto"))).toBe(1); // suelto: sin bonus
   });
 });

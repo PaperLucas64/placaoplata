@@ -5,6 +5,7 @@ import { RING, SHOP, STAT_NAMES, TUT, VALIJA } from "./data.js";
 import {
   ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSIONS, POLICE_NAMES
 } from "./gangs.js";
+import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
 import { abandonMission, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, newBoard, startTimedMission } from "./missions.js";
 import {
   addAff, addHeat, addRespect, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
@@ -89,7 +90,8 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
         log(s, now, `${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
       } else {
         const perk = golpe && gangOf(s) === "familia" ? 1.1 : 1; // La Familia saca más de cada golpe
-        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015) * perk);
+        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015) * perk * (golpe ? turfMult(s) : 1));
+        if (golpe) addInfluence(s, gangOf(s), pick(rng, BARRIOS), 1); // cada golpe marca territorio para tu pandilla
         const xp = rnd(rng, ...j.xp);
         s.gold += gold; gainXp(s, now, xp); s.c.jobs++;
         if (j.resp) addRespect(s, now, j.resp);
@@ -109,7 +111,8 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       const diff = Math.round(Math.max(5, 0.5 + s.lvl * 1.4) * 0.85);
       const g = GANGS[a.gang];
       if (rng() * 100 < checkChance(s.stats[e.stat], diff)) {
-        const gold = Math.round(rnd(rng, s.lvl * 10, s.lvl * 18) * (1 + s.stats.lab * 0.015));
+        const gold = Math.round(rnd(rng, s.lvl * 10, s.lvl * 18) * (1 + s.stats.lab * 0.015) * turfMult(s));
+        addInfluence(s, a.gang, HOME_BARRIO[a.gang], 1);
         const xp = 6 + s.lvl * 3;
         s.gold += gold; gainXp(s, now, xp); addRespect(s, now, 3); addHeat(s, 3);
         log(s, now, `${e.name} para ${g.name}: ${e.ok} +${money(gold)}, +${xp} XP.`, "good");
@@ -325,8 +328,9 @@ export function checkDuel(s: PlayerState, i: number): string | null {
 }
 
 /* Premio o castigo de una pelea en la calle. `loot` es lo que lleva encima el rival. */
-export function duelOutcome(s: PlayerState, t: { name: string; lvl: number }, won: boolean, now: number, loot: number, bonusResp = 0) {
+export function duelOutcome(s: PlayerState, t: { name: string; lvl: number; gang?: Gang | null }, won: boolean, now: number, loot: number, bonusResp = 0) {
   if (won) {
+    if (t.gang) addInfluence(s, gangOf(s), HOME_BARRIO[t.gang], 2); // ganarle a uno en su barrio
     const gold = Math.round(loot * 0.35);
     const xp = 6 + t.lvl * 2, r = clamp(4 + (t.lvl - s.lvl) * 2, 1, 12) + bonusResp;
     s.gold += gold; gainXp(s, now, xp); addRespect(s, now, r); s.c.duelW++;
@@ -346,7 +350,7 @@ export function pvp(att: PlayerState, def: PlayerState, { now, rng }: Ctx): Acti
   att.hp = Math.max(1, fight.p.hp);
   def.hp = Math.max(1, fight.e.hp);
   const stake = Math.round(def.gold * 0.25);
-  const gold = duelOutcome(att, { name: def.name, lvl: def.lvl }, fight.won, now, stake / 0.35, 2);
+  const gold = duelOutcome(att, { name: def.name, lvl: def.lvl, gang: gangOf(def) }, fight.won, now, stake / 0.35, 2);
   const ag = gangOf(att), tag = ag ? ` (${GANGS[ag].name})` : "";
   if (fight.won) {
     const lost = Math.min(def.gold, gold);

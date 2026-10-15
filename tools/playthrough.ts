@@ -45,6 +45,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
   const act = (a: Action, tag = a.type) => {
     const e0 = s.energy, g0 = s.gold, l0 = s.lvl, r0 = rankOf(s);
     const res = applyAction(s, a, { now, rng });
+    s.influence = []; // el bot no tiene mapa: la influencia se descarta
     if (res.error) return false;
     spent += Math.max(0, e0 - s.energy);
     const dg = a.type === "deposit" || a.type === "withdraw" ? 0 : s.gold - g0; // mover plata a la caja no es ganar ni gastar
@@ -66,6 +67,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       const id = s.busy.id, tag = s.board.some(m => m.id === id) ? `calle ${s.board.find(m => m.id === id)!.difficulty}` : `misión ${id}`;
       const g1 = s.gold, l1 = s.lvl, r1 = rankOf(s), v1 = s.c.valija;
       missionCatchUp(s, { now, rng });
+      s.influence = [];
       if (!s.busy) {
         const ok = s.c.valija > v1 || s.log.slice(0, 3).some(l => l.msg.includes("salió bien"));
         fight(tag, ok); if (ok) mark(tag);

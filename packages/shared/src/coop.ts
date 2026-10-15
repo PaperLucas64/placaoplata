@@ -2,7 +2,7 @@
    En cada etapa actúa el que tenga mejor el atributo que se pide; las peleas las dan juntos.
    La orquestación (invitaciones, espera, guardar a los dos) la hace el servidor; acá están las reglas. */
 import { GANG_KEYS, GANG_MEMBERS, GANGS, POLICE_NAMES } from "./gangs.js";
-import { BARRIOS } from "./missions.js";
+import { addInfluence, BARRIOS, turfMult } from "./territory.js";
 import { addAff, addHeat, addRespect, battle, clamp, gainXp, gearVal, log, maxHp, money, pick, playerFighter, scaledEnemy } from "./rules.js";
 import type { Fighter, Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
 
@@ -51,7 +51,7 @@ export function coopMission(rng: Rng, lvl: number, gang: Gang, coopId: number): 
     { text: `Volver con ${GANGS[gang].boss}`, energy: per, auto: true, ok: `${GANGS[gang].boss} reparte la plata en dos partes iguales.` }
   ];
   return {
-    id: coopMissionId(coopId), gang, rank: 0, mins: COOP_MINS, title: `Golpe de a dos en ${place}`,
+    id: coopMissionId(coopId), gang, rank: 0, mins: COOP_MINS, title: `Golpe de a dos en ${place}`, place,
     intro: `${GANGS[gang].name} · de a dos · ${COOP_MINS} min`, steps, outro: "", aff: COOP_AFF,
     reward: { gold: Math.round(COOP_ENERGY * (10 + 2.4 * lvl) * COOP_PAY), xp: Math.round(COOP_ENERGY * (3 + 0.55 * lvl) * COOP_PAY), resp: 8, heat: 8 }
   };
@@ -94,9 +94,11 @@ export function finishCoop(s: PlayerState, m: Mission, ok: number, at: number, p
     return;
   }
   const r = m.reward!;
-  s.gold += r.gold; gainXp(s, at, r.xp); addRespect(s, at, r.resp);
+  const gold = Math.round(r.gold * turfMult(s));
+  s.gold += gold; gainXp(s, at, r.xp); addRespect(s, at, r.resp);
   if (r.heat) addHeat(s, r.heat);
-  log(s, at, `«${m.title}» con ${partner} salió bien: ${money(r.gold)}, +${r.xp} XP, +${r.resp} de respeto.`, "gold");
+  if (m.gang && m.place) addInfluence(s, m.gang, m.place, 4);
+  log(s, at, `«${m.title}» con ${partner} salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto.`, "gold");
   if (m.gang) addAff(s, at, m.gang, m.aff ?? COOP_AFF);
 }
 

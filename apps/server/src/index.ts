@@ -102,6 +102,12 @@ app.post("/api/action", async (req, reply) => {
   return { state, result, now: Date.now() };
 });
 
+app.get("/api/territory", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  const t = await game.territory();
+  return { map: t.map, owned: t.owned };
+});
+
 /* ---------- amigos y misiones de a dos ---------- */
 const num = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : NaN);
 app.get("/api/friends", async (req, reply) => {

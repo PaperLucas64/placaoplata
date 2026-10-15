@@ -8,6 +8,7 @@ import {
   type Rng, type Target
 } from "@pop/shared";
 import type { Db, Queryable } from "./db.js";
+import { makeTerritory } from "./territory.js";
 
 const rng: Rng = Math.random;
 export class GameError extends Error {}
@@ -65,6 +66,7 @@ async function fillTargets(q: Queryable, id: number, s: PlayerState) {
 }
 
 export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => void, isOnline: (playerId: number) => boolean) {
+  const territory = makeTerritory(db);
   async function idOf(userId: number) {
     const r = await db.query<{ id: number }>(`SELECT id FROM players WHERE user_id = $1`, [userId]);
     if (!r.rows[0]) throw new GameError("Sin personaje");
@@ -75,14 +77,17 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   /* Abre una sesión sobre varios jugadores: candados, transacción, el tiempo que pasó y la misión de a dos.
      Al final guarda a todos. */
   async function session<T>(ids: number[], fn: (q: Queryable, rows: Map<number, Row>, now: number) => Promise<T>): Promise<T> {
+    const map = await territory.snapshot();
     return withLocks(ids, () => db.tx(async q => {
       const now = Date.now();
       const rows = new Map<number, Row>();
       for (const i of [...new Set(ids)].sort((a, b) => a - b)) { const r = await lockRow(q, i); if (r) rows.set(i, r); }
+      /* cuántos barrios tiene la pandilla de cada uno (para el +2% de plata por barrio) */
+      for (const r of rows.values()) { const g = gangOf(r.state); r.state.turf = g ? map.owned[g] : 0; }
       for (const r of rows.values()) catchUp(r.state, now);
       for (const r of rows.values()) if (r.state.coop) await coopProgress(q, r.state.coop.id, rows, now);
       const out = await fn(q, rows, now);
-      for (const r of rows.values()) await saveRow(q, r.id, r.state);
+      for (const r of rows.values()) { await territory.drain(q, r.state, now); await saveRow(q, r.id, r.state); }
       return out;
     }));
   }
@@ -323,5 +328,5 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     return rows.sort((a, b) => b.resp - a.resp);
   }
 
-  return { me, act, ranking, friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
+  return { me, act, ranking, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
 }

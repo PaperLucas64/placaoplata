@@ -15,6 +15,7 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export interface Snapshot { state: PlayerState; now: number }
+export interface BarrioView { barrio: string; owner: Gang | null; points: Record<Gang, number> }
 export interface Person { id: number; name: string; lvl: number; gang: Gang | null; avatar: number; online: boolean }
 export interface FriendsView {
   friends: Person[]; incoming: Person[]; outgoing: Person[];
@@ -29,6 +30,7 @@ export const api = {
   me: () => call<Snapshot & { id: number }>("/api/me"),
   act: (a: Action) => call<Snapshot & { result: ActionResult }>("/api/action", a),
   ranking: () => call<RankRow[]>("/api/ranking"),
+  territory: () => call<{ map: BarrioView[]; owned: Record<Gang, number> }>("/api/territory"),
   friends: () => call<FriendsView>("/api/friends"),
   addFriend: (name: string) => call<{ ok: boolean; accepted: boolean }>("/api/friends/add", { name }),
   acceptFriend: (id: number) => call("/api/friends/accept", { id }),

@@ -6,3 +6,4 @@ export * from "./rules.js";
 export * from "./actions.js";
 export * from "./missions.js";
 export * from "./coop.js";
+export * from "./territory.js";

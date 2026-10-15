@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  affShare, canStart, closetSlots, COOP_ENERGY, COOP_MINS, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
+  affShare, canStart, closetSlots, HOME_BARRIO, TURF_BONUS, type Gang, COOP_ENERGY, COOP_MINS, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
   trainTime, healCost, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionMins, missionNeed, missionReq, STREET_DIFF, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey
 } from "@pop/shared";
-import { api, type FriendsView, type RankRow } from "./api";
+import { api, type BarrioView, type FriendsView, type RankRow } from "./api";
 import type { Ui } from "./Game";
 import { avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
@@ -222,9 +222,28 @@ function Street({ s, act, busy }: Ui) {
 
 function Ranking({ s }: Ui) {
   const [rows, setRows] = useState<RankRow[] | null>(null);
-  useEffect(() => { api.ranking().then(setRows).catch(() => setRows([])); }, [s.respect]);
+  const [map, setMap] = useState<{ map: BarrioView[]; owned: Record<Gang, number> } | null>(null);
+  useEffect(() => {
+    api.ranking().then(setRows).catch(() => setRows([]));
+    api.territory().then(setMap).catch(() => {});
+  }, [s.respect]);
+  const mine = gangOf(s);
   return <>
-    <h2>Ranking de Malos Aires</h2>
+    <h2>Malos Aires</h2>
+    <p>Cada barrio es de la pandilla con más influencia. La influencia la ganás trabajando para una pandilla (misiones, encargos, golpes y peleas) y se va gastando: pierde la mitad por semana. Cada barrio de tu pandilla te da +{Math.round(TURF_BONUS * 100)}% de plata.</p>
+    {mine && map && <p className="result good">{GANGS[mine].name} controla {map.owned[mine]} {map.owned[mine] === 1 ? "barrio" : "barrios"}: +{map.owned[mine] * Math.round(TURF_BONUS * 100)}% de plata para vos.</p>}
+    {!map ? <p className="tag">Cargando el mapa…</p> :
+      <div className="barrios">{map.map.map(b => {
+        const total = GANG_KEYS.reduce((a, g) => a + b.points[g], 0) || 1;
+        const c = b.owner ? GANGS[b.owner].color : "var(--line)";
+        return <div key={b.barrio} className="barrio" style={{ borderColor: c, background: b.owner ? `linear-gradient(160deg, ${c}33, transparent 70%)` : undefined }}>
+          <b>{b.barrio}</b>
+          <span className="tag" style={{ color: b.owner ? c : undefined }}>{b.owner ? GANGS[b.owner].name : "En disputa"}</span>
+          <div className="stack">{GANG_KEYS.map(g => <span key={g} title={`${GANGS[g].name}: ${b.points[g]}`} style={{ width: `${b.points[g] / total * 100}%`, background: GANGS[g].color }} />)}</div>
+          {b.barrio === HOME_BARRIO[mine ?? "familia"] && mine && <span className="tag">el barrio de tu pandilla</span>}
+        </div>;
+      })}</div>}
+    <h2>Ranking</h2>
     <p>Quién manda en Malos Aires, de las cuatro pandillas. Se ordena por respeto.</p>
     {!rows ? <p className="tag">Cargando…</p> :
       <ol className="ranking">{rows.map((r, i) => (

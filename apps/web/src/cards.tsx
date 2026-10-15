@@ -35,7 +35,7 @@ export function Situation({ s, act, busy }: Ui) {
       <section className="boss" aria-live="polite" style={{ ...cardBg(g), borderColor: info.color }}>
         <Portrait src={bossImg(g)} gang={g} size={96} />
         <div className="head"><span className="tag">{info.boss} · {info.hood}</span><h3 style={{ color: info.color }}>{info.name}</h3></div>
-        <p className="say">«{info.say}» <span className="tag">Ventaja: {info.perk}.</span></p>
+        <p className="say">«{info.say}» <span className="tag">Ventaja: {info.perk}.{s.turf ? ` Controlan ${s.turf} ${s.turf === 1 ? "barrio" : "barrios"}: +${s.turf * 2}% de plata.` : ""}</span></p>
         <div className="goal">{respect}{lawyer}</div>
       </section>
     );
