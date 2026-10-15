@@ -40,6 +40,8 @@ export interface Mission {
   event?: string;              // solo durante ese evento del calendario
   prize?: string;              // ítem de regalo al salir bien
   reward?: { gold: number; xp: number; resp: number; heat?: number };
+  until?: number;              // misiones temporales: se van del mapa a esta hora
+  who?: string;                // encuentros raros: quién te lo pide
 }
 
 export interface LogEntry { t: number; msg: string; cls?: "good" | "bad" | "gold" }
@@ -73,6 +75,7 @@ export interface PlayerState {
   respect: number; heat: number; done: Record<string, boolean>; targets: Target[];
   home: Home;
   board: Mission[]; tBoard: number; // tablón de misiones de calle y cuándo se armó
+  tOdd?: number;                     // cuándo apareció el último encuentro raro
   /* misión de a dos aceptada: esperando a que los dos estén libres, o en curso */
   coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
   influence?: { gang: Gang; barrio: string; pts: number }[]; // influencia generada, que el servidor suma al mapa

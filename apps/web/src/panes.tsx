@@ -119,7 +119,7 @@ function mapPins(s: Ui["s"], now: number, filter?: string | null): Pin[] {
   for (const m of kinds && !kinds.includes("mision") ? [] : s.board ?? []) {
     const c = GEO_PLACES[m.place ?? ""]; if (!c || !doable(s, m)) continue;
     const [lat, lng] = missionPt(m, missionPlace(m) ?? m.place!)!;
-    pins.push({ id: `mision:${m.id}`, name: m.title, icon: "mision", color: clientOf(m).color, lat, lng });
+    pins.push({ id: `mision:${m.id}`, name: m.title, icon: m.client === "raro" ? "raro" : "mision", color: clientOf(m).color, lat, lng });
   }
   return pins;
 }
@@ -600,7 +600,8 @@ function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; no
   return <div className="item mission-card">
     <div><h3>{m.title}{m.hours ? <span className="risk r3">{m.hours} horas</span>
           : m.street && <span className={`risk ${DIFF_CLASS[m.difficulty ?? 0]}`}>{STREET_DIFF[m.difficulty ?? 0].name}</span>}
-        {c && <span className="client" style={{ color: c.color, borderColor: c.color }}>{c.name}</span>}</h3>
+        {c && <span className="client" style={{ color: c.color, borderColor: c.color }}>{c.name}</span>}
+        {m.until && !done && <span className="client until">⏳ {minTxt(m.until - now)}</span>}</h3>
       <div className="meta">{done ? "Hecha." : m.street ? m.intro || null : m.intro}</div>
       {!done && <div className="meta num">
         {place && <>{place} · </>}{m.hours ? `${m.hours} h` : `${missionMins(m)} min`}{trip ? " + viaje" : ""} · {energy} energía

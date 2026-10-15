@@ -496,3 +496,6 @@ body{background:transparent}
   .gm .gps-view{top:236px;bottom:auto}
   .gm .gps-follow{top:276px;bottom:auto}
 }
+
+/* misiones temporales: cuánto les queda */
+.client.until{color:#ff8cc6;border-color:#ff8cc6}

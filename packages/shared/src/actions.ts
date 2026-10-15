@@ -288,6 +288,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
     case "mstart": {
       const m = findMission(s, a.id);
       if (!m || !canStart(s, m)) return fail("Esa misión no está disponible.");
+      if (m.until && now > m.until) return fail("Llegaste tarde: ya no está.");
       if (!meetsReq(s, m)) return fail("Todavía no tenés los atributos que pide.");
       if (s.energy < missionEnergy(m)) return fail(`Te hacen falta ${missionEnergy(m)} de energía.`);
       if (s.hp < maxHp(s) * 0.5) return fail("Así de golpeado no te conviene salir. Curate primero.");

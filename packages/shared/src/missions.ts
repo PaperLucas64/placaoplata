@@ -290,6 +290,7 @@ export const VECINOS_COLOR = "#c9a27a", POLICE_COLOR = "#cfd6e2", PROP_COLOR = "
 export function clientOf(m: Mission): { name: string; color: string } {
   if (m.client === "policia") return { name: "La 4ª (Funes)", color: POLICE_COLOR };
   if (m.client === "vecinos") return { name: "Vecinos", color: VECINOS_COLOR };
+  if (m.client === "raro") return { name: m.who ? m.who[0].toUpperCase() + m.who.slice(1) : "Alguien raro", color: ODD_COLOR };
   const p = m.client ? propOf(m.client) : undefined;
   if (p) return { name: p.name, color: PROP_COLOR };
   return m.gang ? { name: GANGS[m.gang].name, color: GANGS[m.gang].color } : { name: "Marga", color: "var(--sodium)" };
@@ -420,6 +421,69 @@ export function longMission(rng: Rng, lvl: number, hours: number, id: string): M
   };
 }
 
+/* ---------- encuentros raros ---------- */
+/* Gente extraña que aparece un rato en algún barrio y te pide algo. Duran poco: si no vas, se van. */
+type OddStep = [StatKey, string, string, string]; // atributo, qué hacés, si sale bien, si sale mal
+const RAROS: { who: string; text: string; steps: [OddStep, OddStep]; ok: string }[] = [
+  { who: "un hombre disfrazado de Batman", text: "Recuperar la batimoto (una Zanella robada)", ok: "Batman se sube a la Zanella y se va sin decir gracias, como corresponde.",
+    steps: [["ref", "Seguir por los techos al pibe que se la llevó", "Lo alcanzaste en la tercera terraza.", "Te quedaste colgado de una antena."],
+            ["fue", "Recuperar la moto sin rayarla", "La moto vuelve impecable.", "Le dejaste un rayón del largo de una cuadra."]] },
+  { who: "una vidente de la feria", text: "Encontrar el gato que vio en su bola de cristal", ok: "La vidente te lee la mano gratis. Dice que vas a ser rico. Ya veremos.",
+    steps: [["lab", "Preguntarle a los vecinos por un gato negro con un ojo verde", "Una vecina lo vio en un baldío.", "Nadie vio nada. O no te quieren decir."],
+            ["ref", "Agarrar al gato sin que te arañe", "El gato se dejó agarrar como si te conociera.", "El gato te dejó la cara como un mapa."]] },
+  { who: "un turista perdido", text: "Mostrarle «el tango de verdad» a un turista", ok: "El turista te paga en dólares y te pide una selfie.",
+    steps: [["lab", "Convencerlo de no comprar un mate de ochenta dólares", "Le conseguiste uno a precio de barrio.", "Lo compró igual. Y dos bombillas."],
+            ["dur", "Bancarte tres horas de milonga", "Bailaste hasta con la dueña del lugar.", "Te pisaron tanto que volvés rengo."]] },
+  { who: "una señora con catorce gatos", text: "Cuidarle los gatos mientras va al bingo", ok: "La señora ganó el bingo y te da una parte del pozo.",
+    steps: [["dur", "Sobrevivir a catorce gatos con hambre", "Los gatos te aceptaron como uno más.", "Los gatos te declararon la guerra."],
+            ["lab", "Convencer a la veterinaria de fiarte el alimento", "La veterinaria te fía hasta el lunes.", "La veterinaria no fía. Nunca."]] },
+  { who: "un mago callejero", text: "Ser el asistente de un mago en la peatonal", ok: "El mago reparte la gorra con vos. Saca una paloma de tu bolsillo, de regalo.",
+    steps: [["ref", "Esconder la paloma antes de que la vea el público", "Nadie vio la paloma. Aplausos.", "La paloma se escapó en medio del truco."],
+            ["dur", "Dejarte serruchar al medio (casi)", "Saliste entero y saludaste.", "Casi no es tan casi."]] },
+  { who: "un payaso con resaca", text: "Reemplazar a un payaso en un cumpleaños de quince chicos", ok: "La madre del cumpleañero te paga y te da torta para llevar.",
+    steps: [["lab", "Hacer reír a quince chicos de siete años", "Se rieron hasta los padres.", "Un nene te dijo que eras el peor payaso del mundo."],
+            ["dur", "Aguantar los globos de agua", "Terminaste empapado pero sonriente.", "Te emboscaron en el patio."]] },
+  { who: "un repartidor de pizza en pánico", text: "Entregar doce pizzas antes de que se enfríen", ok: "El repartidor te da la propina de todas y una grande de muzza.",
+    steps: [["ref", "Cruzar la avenida con doce pizzas", "Llegaron calientes, como recién salidas.", "Llegaron. La de fugazzeta, no."],
+            ["lab", "Convencer al cliente de que la de anchoas era así", "El cliente comió y pidió otra.", "El cliente pidió hablar con el encargado."]] },
+  { who: "un hombre que dice venir del futuro", text: "Evitar que alguien compre un billete de lotería", ok: "El del futuro te agradece y se desvanece detrás de un colectivo. Te deja un sobre.",
+    steps: [["lab", "Convencer al lotero de que no venda el 4815", "El lotero guardó el billete en un cajón.", "El lotero lo vendió en tu cara."],
+            ["ref", "Llegar antes del sorteo", "Llegaste con un minuto de sobra.", "Llegaste tarde. El futuro ya cambió."]] },
+  { who: "un conspiranoico con gorro de aluminio", text: "Apagar una antena 5G que no existe", ok: "El del gorro te regala uno igual. Por las dudas.",
+    steps: [["fue", "Trepar a la terraza del edificio", "Llegaste arriba. No hay ninguna antena.", "La escalera estaba podrida."],
+            ["lab", "Explicarle al encargado qué hacés en la terraza", "El encargado te creyó. Y también se puso un gorro.", "El encargado llamó a la policía."]] },
+  { who: "una abuela que quiere tatuarse", text: "Acompañar a una abuela al tatuador sin que se entere el hijo", ok: "La abuela sale con un ancla en el brazo y te invita a tomar el té.",
+    steps: [["lab", "Convencer al tatuador de que sí, es mayor de edad", "El tatuador se rió y agarró la máquina.", "El tatuador pidió autorización de los padres."],
+            ["ref", "Esquivar al hijo, que la está buscando", "El hijo pasó por al lado y no los vio.", "El hijo los encontró y te echó la culpa."]] },
+  { who: "una estatua viviente", text: "Cubrir a una estatua viviente mientras va al baño", ok: "La estatua te da la mitad de las monedas del sombrero.",
+    steps: [["dur", "Quedarte quieto media hora", "Ni un parpadeo. Una nena te dejó un caramelo.", "Te picó la nariz y se rompió el hechizo."],
+            ["ref", "No reírte cuando un nene te pica la panza", "Ni una mueca. Profesional.", "Te reíste. El público pidió la plata de vuelta."]] },
+  { who: "un taxista que vio un OVNI", text: "Ir a ver unas luces raras sobre el río", ok: "Las luces eran un dron de una boda. El taxista te paga igual, por las dudas.",
+    steps: [["ref", "Llegar a la costanera antes de que se vayan las luces", "Llegaste y las viste. Son raras de verdad.", "Llegaste y no había nada. Ni el taxista."],
+            ["lab", "Convencer a la Prefectura de que no estás borracho", "Los de Prefectura también miran el cielo.", "Te hicieron soplar el alcoholímetro dos veces."]] },
+  { who: "un hombre vestido de dinosaurio", text: "Recuperar la cabeza de un disfraz de dinosaurio", ok: "El dinosaurio vuelve a estar completo. Te abraza con sus bracitos cortos.",
+    steps: [["fue", "Sacársela a un borracho que la tiene puesta", "El borracho se la sacó y se puso a llorar.", "El borracho rugió y te mordió."],
+            ["ref", "Escapar del patovica del boliche", "Saliste por la cocina.", "El patovica te sacó por la puerta grande."]] },
+  { who: "un perro con una nota en el collar", text: "Llevar a un perro a la dirección de la nota", ok: "La dueña llora de alegría y te da una recompensa que tenía guardada.",
+    steps: [["ref", "Seguir al perro, que se escapa cada dos cuadras", "Lo seguiste hasta la puerta.", "El perro te hizo recorrer medio barrio."],
+            ["lab", "Convencer a la dueña de que no lo robaste vos", "La dueña te creyó al toque.", "La dueña llamó a la vecina, a la policía y a la radio."]] }
+]
+export const ODD_COLOR = "#ff8cc6";
+export const ODD_EVERY = 75 * MIN, ODD_MAX = 2;          // uno nuevo cada tanto, como mucho dos a la vez
+export function oddMission(rng: Rng, lvl: number, now: number, id: string): Mission {
+  const r = pick(rng, RAROS), place = pick(rng, BARRIOS);
+  const typ = Math.max(5, 0.5 + lvl * 1.4), diff = Math.round(typ * 0.8), units = 6;
+  const steps: MissionStep[] = r.steps.map(([stat, text, ok, ko]) => ({ text, stat, diff, energy: units / 3, dmg: 0.05, ok, ko }));
+  steps.push({ text: `Volver con ${r.who}`, energy: units / 3, auto: true, ok: r.ok });
+  return {
+    id, street: true, client: "raro", who: r.who, difficulty: 1, rank: 0, mins: 10, place,
+    title: `${r.text} en ${place}`, intro: `Te lo pide ${r.who}. Está un rato nomás: si no vas, se va.`,
+    steps, outro: "", req: { [r.steps[0][0]]: Math.max(5, Math.round(typ * 0.6)) }, aff: 0,
+    until: now + rnd(rng, 60, 150) * MIN,
+    reward: { gold: Math.round(units * (10 + 2.4 * lvl) * 1.2), xp: Math.round(units * (3 + 0.55 * lvl) * 1.5), resp: 2, heat: 0 }
+  };
+}
+
 /* El tablón: una misión de cada dificultad de pandillas al azar, una de algún vecino, una de la policía
    (desde nivel 5), hasta dos de tus negocios y cuatro trabajos largos en el conurbano (2, 4, 8 y 12 horas) */
 export function newBoard(s: PlayerState, rng: Rng, now: number) {
@@ -434,6 +498,9 @@ export function newBoard(s: PlayerState, rng: Rng, now: number) {
     s.board.push(streetMission(rng, s.lvl, rnd(rng, 1, 3), p, id(p), mine));
   }
   for (const h of LONG_HOURS) s.board.push(longMission(rng, s.lvl, h, id(`l${h}`)));
+  /* una urgente: paga más, pero dura dos horas */
+  const u = s.board.find(m => m.gang && !m.hours && (m.difficulty ?? 0) >= 1);
+  if (u?.reward) { u.until = now + 120 * MIN; u.title = `Urgente: ${u.title}`; u.reward.gold = Math.round(u.reward.gold * 1.4); u.reward.xp = Math.round(u.reward.xp * 1.3); }
   s.tBoard = now;
 }
 /* Se renueva cada 6 horas (o cuando se vacía), solo después del tutorial y si no estás en una de sus misiones */
@@ -441,6 +508,15 @@ export function boardCatchUp(s: PlayerState, { now, rng }: { now: number; rng: R
   if (!s.tutDone) return false;
   const b = s.busy;
   if (b?.kind === "mision" && s.board?.some(m => m.id === b.id)) return false;
-  if (!s.board?.length || now - (s.tBoard ?? 0) >= BOARD_EVERY) { newBoard(s, rng, now); return true; }
-  return false;
+  let changed = false;
+  if (!s.board?.length || now - (s.tBoard ?? 0) >= BOARD_EVERY) { newBoard(s, rng, now); changed = true; }
+  /* las temporales que pasaron su hora se van (salvo la que estás haciendo) */
+  const live = s.board.filter(m => !m.until || m.until > now || (b?.kind === "mision" && b.id === m.id));
+  if (live.length !== s.board.length) { s.board = live; changed = true; }
+  /* encuentros raros: aparece uno cada tanto */
+  if (now - (s.tOdd ?? 0) >= ODD_EVERY && s.board.filter(m => m.client === "raro").length < ODD_MAX) {
+    s.board.push(oddMission(rng, s.lvl, now, `raro-${now.toString(36)}-${rnd(rng, 0, 9999)}`));
+    s.tOdd = now; changed = true;
+  }
+  return changed;
 }
