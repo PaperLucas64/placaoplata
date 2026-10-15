@@ -5,7 +5,7 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, HOUSES, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
+  tripPhase, VEHICLES, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, HOUSES, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
 } from "@pop/shared";
 import { api, type BarrioView, type FriendsView, type RankRow, type RingView, type Traveler } from "./api";
 import type { Ui } from "./Game";
@@ -144,7 +144,7 @@ function Gym({ s, act, busy }: Ui) {
     <div className="list">{(Object.keys(STAT_NAMES) as StatKey[]).map(k => {
       const c = trainCost(s.stats[k]);
       return <div className="item" key={k}>
-        <div><h3>{STAT_NAMES[k]} <span className="num">{s.stats[k]}</span></h3><div className="meta">{STAT_HELP[k]}</div></div>
+        <div><h3>{STAT_NAMES[k]} <span className="num">{s.stats[k]}</span>{gearBonus(s, k) > 0 && <span className="num bonus"> (+{gearBonus(s, k)} del equipo)</span>}</h3><div className="meta">{STAT_HELP[k]}</div></div>
         <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)} · {Math.round(trainTime(s.stats[k]) / 60000)} min</span></button></div>
       </div>;
     })}</div>
@@ -166,7 +166,7 @@ function Shop({ s, act, busy }: Ui) {
       return <div className={`item ${locked ? "locked" : ""}`} key={it.id}>
         <div className="with-art"><ItemIcon id={it.id} /><div><h3>{it.name}{it.rank && <span className="badge" style={{ marginLeft: 6 }}>mercado negro</span>}</h3>
           <div className="meta num">{sup ? `Llevás ${supplementsTaken(s)} de ${SUPPLEMENT_MAX}` : it.slot === "consumible" ? "Se usa desde la clínica"
-            : `${SLOT_NAMES[it.slot]} · ${ATTACK_SLOTS.includes(it.slot) ? "golpe" : "protección"} +${it.val}${cur && cur.id !== it.id ? ` (tenés +${cur.val})` : ""}`} · {money(price)}
+            : `${SLOT_NAMES[it.slot]} · ${bonusTxt(it)}${cur && cur.id !== it.id ? ` (tenés: ${bonusTxt(cur)})` : ""}`} · {money(price)}
             {s.lvl < it.lvl && ` · se desbloquea en nivel ${it.lvl}`}{it.rank && rankOf(s) < it.rank ? ` · se desbloquea en rango ${RANK_NAMES[it.rank]}` : ""}</div></div></div>
         <div className="act"><button disabled={busy || own || maxed || s.gold < price || locked} onClick={() => act({ type: "buy", id: it.id })}>{own ? "Lo tenés" : maxed ? "Al máximo" : "Comprar"}</button></div>
       </div>;
@@ -174,18 +174,22 @@ function Shop({ s, act, busy }: Ui) {
   </>;
 }
 
+/* "Fuerza +3, Dureza +1" */
+const bonusTxt = (it: { bonus?: Partial<Record<StatKey, number>> }) =>
+  (Object.entries(it.bonus ?? {}) as [StatKey, number][]).map(([k, v]) => `${STAT_NAMES[k]} +${v}`).join(", ") || "—";
+
 /* Equipo, estilo RPG: lo que tenés puesto en cada lugar y tu bolso */
 function Equipment({ s, act, busy }: Ui) {
   return <>
     <h2>Equipo</h2>
-    <p>Golpe <b className="num">+{attackVal(s)}</b> (arma blanca + arma de fuego) · protección <b className="num">+{defenseVal(s)}</b> (cabeza + chaleco + ropa). Lo que no tenés puesto va en el bolso: entran {bagSize(s)} cosas (más con un armario mejor).</p>
+    <p>Lo que tenés puesto te suma a tus atributos: las armas, a la fuerza; el casco, el chaleco y la ropa, a la dureza. En tu ficha lo ves entre paréntesis, por ejemplo «Fuerza 9 (+3)». Lo que no tenés puesto va en el bolso: entran {bagSize(s)} cosas (más con un armario mejor).</p>
     <div className="slots">{SLOTS.map(k => {
       const it = SHOP.find(x => x.id === s.gear[k]);
       return <div className={`slot ${it ? "" : "empty"}`} key={k}>
         <span className="tag">{SLOT_NAMES[k]}</span>
         {it ? <ItemIcon id={it.id} /> : <span className="icon" />}
         <b>{it ? it.name : "—"}</b>
-        <span className="num meta">{it ? `+${it.val}` : "vacío"}</span>
+        <span className="num meta bonus">{it ? bonusTxt(it) : "vacío"}</span>
         {it && <button className="link" disabled={busy || s.inv.length >= bagSize(s)} onClick={() => act({ type: "unequip", slot: k })}>Sacármelo</button>}
       </div>;
     })}</div>
@@ -197,7 +201,7 @@ function Equipment({ s, act, busy }: Ui) {
         const cur = SHOP.find(x => x.id === s.gear[it.slot as Slot]);
         return <div className="item" key={`${id}-${i}`}>
           <div className="with-art"><ItemIcon id={id} /><div><h3>{it.name}</h3>
-            <div className="meta num">{SLOT_NAMES[it.slot]} · +{it.val}{cur ? ` (tenés puesto +${cur.val})` : " · ese lugar está vacío"}</div></div></div>
+            <div className="meta num">{SLOT_NAMES[it.slot]} · {bonusTxt(it)}{cur ? ` (tenés puesto: ${bonusTxt(cur)})` : " · ese lugar está vacío"}</div></div></div>
           <div className="act">
             <button className="primary" disabled={busy} onClick={() => act({ type: "equip", id })}>Ponérmelo</button>
             <button disabled={busy} onClick={() => act({ type: "sell", id })}>Vender · {money(Math.round(it.price * SELL_RATE))}</button>
@@ -344,7 +348,7 @@ function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; no
       <div className="meta">{done ? "Hecha." : m.street ? m.intro || null : m.intro}</div>
       {!done && <div className="meta num">
         {place && <>{place} · </>}{m.hours ? `${m.hours} h` : `${missionMins(m)} min`}{trip ? " + viaje" : ""} · {energy} energía
-        {req.length > 0 && <> · pide {req.map(([k, v], i) => <span key={k} style={{ color: s.stats[k] < v ? "#eba09e" : undefined }}>{i ? ", " : ""}{STAT_SHORT[k]} {v}</span>)}</>}
+        {req.length > 0 && <> · pide {req.map(([k, v], i) => <span key={k} style={{ color: eff(s, k) < v ? "#eba09e" : undefined }}>{i ? ", " : ""}{STAT_SHORT[k]} {v}</span>)}</>}
         {m.reward && <> · {money(m.reward.gold)}, {m.reward.xp} XP, +{m.reward.resp} respeto</>}
         {m.reward?.heat && m.reward.heat < 0 ? <> · <b>−{-m.reward.heat} de búsqueda</b></> : null}
         {m.street && m.gang && <> · +{m.aff} afinidad con <span style={{ color: GANGS[m.gang].color }}>{GANGS[m.gang].name}</span></>}

@@ -310,3 +310,4 @@ body{background:transparent}
 .subtabs button[aria-selected="true"]{color:var(--fg);border-color:var(--line);background:var(--panel)}
 .gps-view{position:absolute;left:10px;bottom:10px;z-index:2;padding:6px 10px;font-size:.78rem;background:rgba(13,14,17,.85);border:1px solid var(--line)}
 .gps-view.on{border-color:var(--sodium);color:var(--sodium)}
+.bonus{color:#7fc8a9;font-weight:600}

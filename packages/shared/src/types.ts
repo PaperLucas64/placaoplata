@@ -15,6 +15,7 @@ export interface RingRival { name: string; lvl: number; mult: number; lore: stri
 export type Slot = "blanca" | "fuego" | "cabeza" | "torso" | "ropa";
 export interface Item {
   id: string; slot: Slot | "consumible"; name: string; val: number; price: number; lvl: number;
+  bonus?: Partial<Record<StatKey, number>>; // lo que te suma a cada atributo mientras lo tenés puesto
   rank?: number;
 }
 export interface MissionStep {

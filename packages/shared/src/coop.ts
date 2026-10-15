@@ -3,7 +3,7 @@
    La orquestación (invitaciones, espera, guardar a los dos) la hace el servidor; acá están las reglas. */
 import { GANG_KEYS, GANG_MEMBERS, GANGS, POLICE_NAMES } from "./gangs.js";
 import { addInfluence, BARRIOS, turfMult } from "./territory.js";
-import { addAff, addHeat, addRespect, battle, clamp, gainXp, gearVal, log, maxHp, money, pick, playerFighter, scaledEnemy } from "./rules.js";
+import { addAff, addHeat, addRespect, battle, clamp, eff, gainXp, log, maxHp, money, pick, playerFighter, scaledEnemy } from "./rules.js";
 import type { Fighter, Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
 
 const MIN = 60_000;
@@ -63,7 +63,7 @@ export function teamFighter(a: PlayerState, b: PlayerState): Fighter {
   return {
     name: `${a.name} y ${b.name}`, hp: fa.hp + fb.hp, max: fa.max + fb.max,
     fue: Math.max(fa.fue, fb.fue), dur: Math.round((fa.dur + fb.dur) / 2), ref: Math.max(fa.ref, fb.ref),
-    arma: Math.max(gearVal(a, "arma"), gearVal(b, "arma")), armadura: Math.round((gearVal(a, "armadura") + gearVal(b, "armadura")) / 2)
+    arma: 0, armadura: 0 // el equipo ya está en los atributos
   };
 }
 
@@ -79,8 +79,8 @@ export function resolveCoopStep(a: PlayerState, b: PlayerState, st: MissionStep,
     a.hp = Math.max(1, Math.round(maxHp(a) * left)); b.hp = Math.max(1, Math.round(maxHp(b) * left));
     return { ok: f.won, who: "los dos" };
   }
-  const doer = a.stats[st.stat!] >= b.stats[st.stat!] ? a : b;
-  const ok = rng() * 100 < clamp(50 + (doer.stats[st.stat!] - st.diff!) * 7, 15, 95);
+  const doer = eff(a, st.stat!) >= eff(b, st.stat!) ? a : b;
+  const ok = rng() * 100 < clamp(50 + (eff(doer, st.stat!) - st.diff!) * 7, 15, 95);
   if (!ok && st.dmg) doer.hp = Math.max(1, doer.hp - Math.round(maxHp(doer) * st.dmg));
   return { ok, who: doer.name };
 }

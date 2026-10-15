@@ -14,7 +14,7 @@ import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
 import { HOUSES, homePlace, houseOf } from "./casas.js";
 import { routeTo, TRAVEL, tripEvent } from "./geo.js";
 import {
-  addAff, addHeat, addRespect, bagSize, battle, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
+  addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
@@ -170,7 +170,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       s.gold -= it.price; s.c.buy++;
       /* si el lugar está vacío (o es mejor que lo que tenés), te lo ponés; lo otro va al bolso */
       const cur = itemOf(s.gear[it.slot]);
-      if (empty || it.val > (cur?.val ?? 0)) {
+      if (empty || itemPower(it) > itemPower(cur)) {
         if (cur) s.inv.push(cur.id);
         s.gear[it.slot] = it.id;
         log(s, now, `Te llevaste ${it.name.toLowerCase()} y te lo pusiste (−${money(it.price)}).`, "gold");
@@ -508,7 +508,7 @@ function resolveJob(s: PlayerState, j: Job, now: number, rng: Rng, place?: strin
 function resolveEncargo(s: PlayerState, gang: Gang, now: number, rng: Rng) {
   const e = ENCARGOS[gang], g = GANGS[gang];
   const diff = Math.round(Math.max(5, 0.5 + s.lvl * 1.4) * 0.85);
-  if (rng() * 100 < checkChance(s.stats[e.stat], diff)) {
+  if (rng() * 100 < checkChance(eff(s, e.stat), diff)) {
     const gold = Math.round(rnd(rng, s.lvl * 10, s.lvl * 18) * (1 + s.stats.lab * 0.015) * turfMult(s));
     addInfluence(s, gang, HOME_BARRIO[gang], 1);
     const xp = 6 + s.lvl * 3;

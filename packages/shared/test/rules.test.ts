@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  canAmbush, onStreet, attackVal, defenseVal, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
+  canAmbush, onStreet, attackVal, defenseVal, eff, gearBonus, playerFighter, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -141,6 +141,13 @@ describe("casa", () => {
     Object.assign(s.gear, { blanca: "navaja", fuego: "fusil", cabeza: "casco", torso: "negro", ropa: "placas" });
     expect(attackVal(s)).toBe(9 + 14);
     expect(defenseVal(s)).toBe(3 + 11 + 7);
+  });
+  it("el equipo suma a los atributos: la llave inglesa da +2 de fuerza, y cuenta en las pruebas", () => {
+    const s = veteran("Ana"); s.gear.blanca = "llave"; s.gear.torso = "chaleco";
+    expect(gearBonus(s, "fue")).toBe(2);
+    expect(eff(s, "fue")).toBe(s.stats.fue + 2);
+    expect(eff(s, "dur")).toBe(s.stats.dur + 6);
+    expect(playerFighter(s).fue).toBe(s.stats.fue + 2);
   });
   it("con el bolso lleno no entra nada más; vender da el 40%", () => {
     const s = veteran("Ana"); s.gold = 5000; s.gear.blanca = "navaja"; s.inv = ["llave", "bate", "gorra", "campera"];

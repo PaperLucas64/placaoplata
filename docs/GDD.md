@@ -141,8 +141,10 @@ otro desde donde estás. Los laburos honestos y cobrar los negocios siguen siend
 los golpes y las emboscadas pasan a ser de la policía. El **abogado** baja 40 de calor por `20 + nivel × 8`.
 
 ### 5.5 Mercado, equipo e inventario
-**Cinco lugares de equipo (estilo RPG):** arma blanca y arma de fuego (suman al **golpe**) y cabeza, chaleco y ropa
-(suman a la **protección**). Lo que comprás te lo ponés si el lugar está vacío o es mejor; lo otro va al **bolso**
+**Cinco lugares de equipo (estilo RPG):** el equipo **suma a tus atributos** y en la ficha se ve como «Fuerza 13 (+4)».
+Las armas (blanca y de fuego) suman fuerza; casco, chaleco y ropa suman dureza; la gorra, reflejos. Esos atributos con el
+equipo cuentan en las peleas, en las pruebas de las misiones y en los requisitos. Equivale a lo de antes (arma ÷ 1,6 en
+fuerza, protección × 1,4 en dureza). Lo que comprás te lo ponés si el lugar está vacío o es mejor; lo otro va al **bolso**
 (Casa › Equipo): entran 4 cosas más lo que dé el armario (+2 / +4 / +8). Desde el bolso te lo ponés, te lo sacás o lo
 **vendés** al 40%. Con lo mejor de todo: golpe +23 y protección +23 (igual que antes con dos lugares).
 
@@ -174,6 +176,9 @@ con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · 
 - **Requisitos:** atributos mínimos para empezarla. Pandillas: 1ª misión 7 y 6, 2ª 10 y 9, 3ª 16 y 15 (en los dos
   atributos que más usa). Calle: el atributo principal, según la dificultad.
 - Hay que tener al menos la mitad de la vida para salir.
+- **Lo que aprendés:** al salir bien, las misiones de la historia (de pandilla y de la ciudad) dan **+1** al atributo que más
+  usan; las del tablón, a veces (Fácil 0%, Normal 8%, Difícil 15%, Jodida 30%); los trabajos largos de 8 h o más, +1.
+  El gimnasio sigue siendo la forma principal de subir. Para compensar, los rivales del juego escalan a 1,45 por nivel.
 
 **La valija** (tutorial): 30 min, sin viaje. **Historias de pandilla** (3 por pandilla, en orden, piden rango): 15 / 30 / 45 min de trabajo **más el viaje** (ver §5.7d).
 

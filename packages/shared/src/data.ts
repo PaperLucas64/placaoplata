@@ -22,15 +22,15 @@ export const RING: RingRival[] = [
   { name:"El campeón del barrio", lvl:12, mult:1.05, lore:"Tiene el cinturón colgado en la panadería de la esquina." }
 ];
 export const SHOP: Item[] = [
-  { id:"llave",    slot:"blanca",    name:"Llave inglesa",        val:3,  price:30,   lvl:1 },
-  { id:"bate",     slot:"blanca",    name:"Bate de aluminio",     val:5,  price:150,  lvl:3 },
-  { id:"baston",   slot:"blanca",    name:"Bastón extensible",    val:7,  price:350,  lvl:6 },
-  { id:"revolver", slot:"fuego",     name:"Revólver 38 viejo",    val:5,  price:450,  lvl:6 },
-  { id:"pistola",  slot:"fuego",     name:"Pistola 9 mm",         val:8,  price:1000, lvl:10 },
-  { id:"campera",  slot:"ropa",      name:"Campera de cuero",     val:2,  price:25,   lvl:1 },
-  { id:"gorra",    slot:"cabeza",    name:"Gorra con visera",     val:1,  price:40,   lvl:2 },
-  { id:"casco",    slot:"cabeza",    name:"Casco de moto",        val:3,  price:180,  lvl:3 },
-  { id:"chaleco",  slot:"torso",     name:"Chaleco acolchado",    val:4,  price:350,  lvl:6 },
+  { id:"llave",    slot:"blanca",    name:"Llave inglesa",        val:3,  price:30,   lvl:1, bonus:{ fue: 2 } },
+  { id:"bate",     slot:"blanca",    name:"Bate de aluminio",     val:5,  price:150,  lvl:3, bonus:{ fue: 3 } },
+  { id:"baston",   slot:"blanca",    name:"Bastón extensible",    val:7,  price:350,  lvl:6, bonus:{ fue: 4 } },
+  { id:"revolver", slot:"fuego",     name:"Revólver 38 viejo",    val:5,  price:450,  lvl:6, bonus:{ fue: 3 } },
+  { id:"pistola",  slot:"fuego",     name:"Pistola 9 mm",         val:8,  price:1000, lvl:10, bonus:{ fue: 5 } },
+  { id:"campera",  slot:"ropa",      name:"Campera de cuero",     val:2,  price:25,   lvl:1, bonus:{ dur: 3 } },
+  { id:"gorra",    slot:"cabeza",    name:"Gorra con visera",     val:1,  price:40,   lvl:2, bonus:{ ref: 1 } },
+  { id:"casco",    slot:"cabeza",    name:"Casco de moto",        val:3,  price:180,  lvl:3, bonus:{ dur: 4 } },
+  { id:"chaleco",  slot:"torso",     name:"Chaleco acolchado",    val:4,  price:350,  lvl:6, bonus:{ dur: 6 } },
   { id:"botiquin", slot:"consumible",name:"Botiquín (+50% vida)", val:.5, price:20,   lvl:1 },
   /* vida para siempre: cara y cada vez más cara (ver supplementCost) */
   { id:"suplemento", slot:"consumible",name:"Suplemento de Don Tito (+10 de vida máxima, para siempre)", val:10, price:300, lvl:3 }
@@ -56,15 +56,15 @@ export const VALIJA: Mission = {
 /* Mercado negro: arma y protección por rango, iguales para todas las pandillas.
    Precio: ~2 sesiones de trabajo del nivel en que se llega al rango. */
 SHOP.push(
-  { id:"manopla",   slot:"blanca", name:"Manopla de bronce",           val:7,  price:550,  lvl:1, rank:1 },
-  { id:"gruesa",    slot:"ropa",   name:"Campera de cuero gruesa",     val:5,  price:500,  lvl:1, rank:1 },
-  { id:"navaja",    slot:"blanca", name:"Navaja automática",           val:9,  price:1300, lvl:1, rank:2 },
-  { id:"placas",    slot:"ropa",   name:"Campera con placas",          val:7,  price:1200, lvl:1, rank:2 },
-  { id:"antidisturbios", slot:"cabeza", name:"Casco antidisturbios",   val:5,  price:1000, lvl:1, rank:2 },
-  { id:"recortada", slot:"fuego",  name:"Escopeta recortada",          val:11, price:2200, lvl:1, rank:3 },
-  { id:"robado",    slot:"torso",  name:"Chaleco robado a la policía", val:8,  price:1800, lvl:1, rank:3 },
-  { id:"fusil",     slot:"fuego",  name:"Fusil del contrabando",       val:14, price:3600, lvl:1, rank:4 },
-  { id:"negro",     slot:"torso",  name:"Chaleco del mercado negro",   val:11, price:2900, lvl:1, rank:4 }
+  { id:"manopla",   slot:"blanca", name:"Manopla de bronce",           val:7,  price:550,  lvl:1, rank:1, bonus:{ fue: 4 } },
+  { id:"gruesa",    slot:"ropa",   name:"Campera de cuero gruesa",     val:5,  price:500,  lvl:1, rank:1, bonus:{ dur: 7 } },
+  { id:"navaja",    slot:"blanca", name:"Navaja automática",           val:9,  price:1300, lvl:1, rank:2, bonus:{ fue: 6 } },
+  { id:"placas",    slot:"ropa",   name:"Campera con placas",          val:7,  price:1200, lvl:1, rank:2, bonus:{ dur: 10 } },
+  { id:"antidisturbios", slot:"cabeza", name:"Casco antidisturbios",   val:5,  price:1000, lvl:1, rank:2, bonus:{ dur: 7 } },
+  { id:"recortada", slot:"fuego",  name:"Escopeta recortada",          val:11, price:2200, lvl:1, rank:3, bonus:{ fue: 7 } },
+  { id:"robado",    slot:"torso",  name:"Chaleco robado a la policía", val:8,  price:1800, lvl:1, rank:3, bonus:{ dur: 11 } },
+  { id:"fusil",     slot:"fuego",  name:"Fusil del contrabando",       val:14, price:3600, lvl:1, rank:4, bonus:{ fue: 9 } },
+  { id:"negro",     slot:"torso",  name:"Chaleco del mercado negro",   val:11, price:2900, lvl:1, rank:4, bonus:{ dur: 15 } }
 );
 /* nombres de cada lugar del equipo */
 export const SLOT_NAMES: Record<Slot, string> = { blanca: "Arma blanca", fuego: "Arma de fuego", cabeza: "Cabeza", torso: "Chaleco", ropa: "Ropa" };

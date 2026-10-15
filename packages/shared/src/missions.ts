@@ -2,12 +2,12 @@
    cuenta lo que pasó. Las resuelve el servidor (y el bot de balance): la pantalla solo muestra el avance.
    Además, el tablón de misiones de calle generadas a tu nivel. */
 import { ARC_INFLUENCE, ARC_MISSIONS, arcChapterKey, COMISARIO } from "./arcs.js";
-import { VALIJA } from "./data.js";
+import { STAT_NAMES, VALIJA } from "./data.js";
 import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } from "./gangs.js";
 import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type FromPoint, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
 import { homePlace } from "./casas.js";
-import { addAff, addHeat, addRespect, battle, clamp, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
+import { addAff, addHeat, addRespect, battle, clamp, eff, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
 import type { Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
 
@@ -43,7 +43,7 @@ export function missionReq(m: Mission): Partial<Record<StatKey, number>> {
   return Object.fromEntries(top.map((k, i) => [k, STORY_REQ[m.tier!][i]]));
 }
 export const meetsReq = (s: PlayerState, m: Mission) =>
-  (Object.entries(missionReq(m)) as [StatKey, number][]).every(([k, v]) => s.stats[k] >= v);
+  (Object.entries(missionReq(m)) as [StatKey, number][]).every(([k, v]) => eff(s, k) >= v);
 
 /* ---------- empezar, avanzar, terminar ---------- */
 /* Salís a hacer la misión: desde tu casa, o desde donde estés si venías volviendo de otra cosa (fp).
@@ -119,7 +119,7 @@ export function missionCatchUp(s: PlayerState, { now, rng }: { now: number; rng:
   }
   if (b.done >= m.steps.length && now >= b.until) {
     if (t && t.back && !(t.ev & 2)) { t.ev |= 2; tripEvent(s, t.mode, t.place, true, b.until, rng); } // misiones de antes: la vuelta ya estaba incluida
-    s.busy = null; finishMission(s, m, b.ok, b.until); changed = true;
+    s.busy = null; finishMission(s, m, b.ok, b.until, rng); changed = true;
     if (t && !t.back) { startReturn(s, t.mode, t.place, b.until, rng); finishBusyLater(s, now); }
   }
   return changed;
@@ -155,12 +155,32 @@ function resolveStep(s: PlayerState, st: MissionStep, rng: Rng): boolean {
     s.hp = Math.max(1, f.p.hp);
     return f.won;
   }
-  const ok = rng() * 100 < clamp(50 + (s.stats[st.stat!] - st.diff!) * 7, 15, 95);
+  const ok = rng() * 100 < clamp(50 + (eff(s, st.stat!) - st.diff!) * 7, 15, 95);
   if (!ok && st.dmg) s.hp = Math.max(1, s.hp - Math.round(maxHp(s) * st.dmg));
   return ok;
 }
 
-function finishMission(s: PlayerState, m: Mission, ok: number, at: number) {
+/* Lo que se aprende en la calle: las misiones de la historia siempre dan un punto
+   del atributo que más usan; las del tablón, a veces (más cuanto más difíciles); los trabajos largos de 8 horas o más, uno. */
+export const STREET_STAT_CHANCE = [0, 0.08, 0.15, 0.3];
+export function mainStat(m: Mission): StatKey | undefined {
+  const count: Partial<Record<StatKey, number>> = {};
+  for (const st of m.steps) if (st.stat) count[st.stat] = (count[st.stat] ?? 0) + 1;
+  return (Object.keys(count) as StatKey[]).sort((a, b) => count[b]! - count[a]!)[0];
+}
+function statReward(s: PlayerState, m: Mission, at: number, rng: Rng) {
+  const k = mainStat(m);
+  if (!k) return;
+  const n = m.hours ? (m.hours >= 8 ? 1 : 0)
+    : m.street ? (rng() < STREET_STAT_CHANCE[m.difficulty ?? 0] ? 1 : 0)
+    : 1;
+  if (!n) return;
+  s.stats[k] += n;
+  if (k === "agu") s.hp += 12 * n;
+  log(s, at, `Lo que aprendiste en la calle: +${n} de ${STAT_NAMES[k].toLowerCase()}.`, "good");
+}
+
+function finishMission(s: PlayerState, m: Mission, ok: number, at: number, rng: Rng = Math.random) {
   const success = ok >= missionNeed(m);
   if (!success) {
     gainXp(s, at, 5 + s.lvl);
@@ -183,6 +203,7 @@ function finishMission(s: PlayerState, m: Mission, ok: number, at: number) {
   if (m.arc) s.done[arcChapterKey(m.arc, m.chapter ?? 0)] = true;
   log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto${r.heat && r.heat < 0 ? `, ${r.heat} de búsqueda` : ""}.`, "gold");
   if (m.gang) addAff(s, at, m.gang, m.aff ?? MISSION_AFF[m.tier ?? 0]);
+  statReward(s, m, at, rng);
   /* trabajo sucio: la pandilla perjudicada pierde terreno y te tiene menos simpatía */
   if (m.target) {
     const hurt = POLICE_HURT[m.difficulty ?? 0];

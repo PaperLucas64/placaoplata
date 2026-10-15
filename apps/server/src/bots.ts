@@ -3,7 +3,7 @@
    cada uno tiene su horario (se despierta y se acuesta a una hora de Argentina) y su forma de jugar.
    De noche salen a un trabajo largo. Se apagan con BOTS=0. */
 import {
-  ARC_MISSIONS, canStart, HOUSES, houseOf, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
+  ARC_MISSIONS, itemOf, itemPower, canStart, HOUSES, houseOf, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
   lawyerCost, maxHp, meetsReq, MISSIONS, missionEnergy, missionPlace, needsTrip, newPlayer, nextLevel, pick, planChase, PROPS,
   propIncome, SHOP, trainCost, travelModes, type Action, type Gang, type Mission, type PlayerState, type StatKey, type TravelMode
 } from "@pop/shared";
@@ -80,7 +80,7 @@ function decide(s: PlayerState, b: BotDef): Action | null {
       .filter(([, lv]) => lv && lv.cost <= s.gold / 3).sort((x, y) => x[1]!.cost - y[1]!.cost)[0];
     if (part) return { type: "build", part: part[0] };
   }
-  const gear = SHOP.find(it => it.slot !== "consumible" && forSale(s, it) && !itemLocked(s, it) && it.val > gearVal(s, it.slot) && it.price <= s.gold / 2 && it.id !== "suplemento");
+  const gear = SHOP.find(it => it.slot !== "consumible" && forSale(s, it) && !itemLocked(s, it) && itemPower(it) > itemPower(itemOf(s.gear[it.slot])) && it.price <= s.gold / 2 && it.id !== "suplemento");
   if (gear) return { type: "buy", id: gear.id };
   /* misiones: la historia de su pandilla, después las historias de la ciudad desde su bando, después el tablón */
   const mine = gangOf(s) ?? b.gang;

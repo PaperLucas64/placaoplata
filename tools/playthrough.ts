@@ -6,7 +6,7 @@
    de "su" pandilla y pelea en la calle contra rivales accesibles. */
 import {
   affShare, ambushCatchUp, applyAction, boardCatchUp, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, healCost, HOME, itemLocked,
-  meetsReq, missionCatchUp, salidaCatchUp, PROPS, propIncome, missionEnergy, missionReq, nextMissionEvent,
+  meetsReq, missionCatchUp, salidaCatchUp, itemOf, itemPower, type Slot, PROPS, propIncome, missionEnergy, missionReq, nextMissionEvent,
   jobList, maxHp, MISSIONS, newPlayer, nextLevel, npcTarget, rankOf, regen, SHOP, TARGETS, trainCost, TUT, VALIJA,
   type Action, type Gang, type Rng, type StatKey
 } from "@pop/shared";
@@ -103,7 +103,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
 
     /* gastar plata: primero el siguiente escalón de equipo (ahorrando si hace falta), después entrenar lo más bajo */
     const upgrade = SHOP.filter(it => it.slot !== "consumible" && !itemLocked(s, it)
-      && it.val >= gearVal(s, it.slot) + 2).sort((a, b) => a.price - b.price)[0]; // el siguiente escalón, no el más caro
+      && itemPower(it) >= itemPower(itemOf(s.gear[it.slot as Slot])) + 2).sort((a, b) => a.price - b.price)[0]; // el siguiente escalón, no el más caro
     if (upgrade && upgrade.price <= s.gold && act({ type: "buy", id: upgrade.id }, "equipo")) continue;
     /* ahorra si el ítem cuesta como mucho ~2,5 sesiones de trabajo */
     const best = jobList(s).filter(j => j.lvl <= s.lvl).at(-1)!;

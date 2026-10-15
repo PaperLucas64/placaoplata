@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   clamp, energyMax, findMission, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
-  type FightView, type PlayerState, type StatKey, attackVal, defenseVal, SLOTS, SLOT_NAMES } from "@pop/shared";
+  type FightView, type PlayerState, type StatKey, eff, gearBonus, SLOTS, SLOT_NAMES } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
 import { ItemIcon } from "./icons";
 
@@ -39,13 +39,11 @@ export function Sheet({ s, now, onCancel, disabled }: { s: PlayerState; now: num
       {s.home.safe > 0 && <div className="stat"><span>En la caja fuerte</span><span className="num">{money(s.home.safe)}</span></div>}
       {s.tabs.includes("gimnasio") && (
         <div className="stats">{(Object.keys(STAT_NAMES) as StatKey[]).map(k =>
-          <div className="stat" key={k}><span>{STAT_NAMES[k]}</span><span className="num">{s.stats[k]}</span></div>)}
+          <div className="stat" key={k}><span>{STAT_NAMES[k]}</span><span className="num">{eff(s, k)}{gearBonus(s, k) > 0 && <span className="bonus"> (+{gearBonus(s, k)})</span>}</span></div>)}
         </div>
       )}
       {s.tabs.includes("feria") && (
         <div className="gear">
-          <div className="stat"><span>Golpe</span><span className="num">+{attackVal(s)}</span></div>
-          <div className="stat"><span>Protección</span><span className="num">+{defenseVal(s)}</span></div>
           <div className="gear-row">{SLOTS.map(k => s.gear[k]
             ? <span key={k} title={`${SLOT_NAMES[k]}: ${SHOP.find(i => i.id === s.gear[k])?.name}`}><ItemIcon id={s.gear[k]!} /></span>
             : <span key={k} className="icon empty" title={`${SLOT_NAMES[k]}: vacío`} />)}</div>

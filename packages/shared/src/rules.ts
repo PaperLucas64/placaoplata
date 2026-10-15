@@ -6,7 +6,7 @@ import { ATTACK_SLOTS, JOBS, OLD_ITEMS, OLD_SLOT, SHOP, SLOTS, STAT_NAMES } from
 import {
   BED_ENERGY, BED_HEAL, CLOSET_SLOTS, GANG_KEYS, GANG_MIN_POINTS, GANG_THRESHOLD, GANGS, GOLPES, HOME, RANK_AT, RANK_NAMES, SAFE_CAP
 } from "./gangs.js";
-import type { Fighter, FightView, Gang, Home, Item, LogEntry, PlayerState, Rng, Slot } from "./types.js";
+import type { Fighter, FightView, Gang, Home, Item, LogEntry, PlayerState, Rng, Slot, StatKey } from "./types.js";
 
 export const rnd = (rng: Rng, a: number, b: number) => Math.floor(rng() * (b - a + 1)) + a;
 export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -25,6 +25,12 @@ export const forSale = (s: PlayerState, it: Item) => s.tutDone ? true : TUTORIAL
 export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
 export const trainCost = (v: number) => Math.round(3 * Math.pow(v, 2));
 export const itemOf = (id: string | null | undefined) => (id ? SHOP.find(i => i.id === id) : undefined);
+/* lo que te suma el equipo a un atributo, y el atributo con eso sumado (el que cuenta en peleas y pruebas) */
+export const gearBonus = (s: Pick<PlayerState, "gear">, k: StatKey) =>
+  SLOTS.reduce((a, slot) => a + (itemOf(s.gear?.[slot])?.bonus?.[k] ?? 0), 0);
+export const eff = (s: Pick<PlayerState, "gear" | "stats">, k: StatKey) => s.stats[k] + gearBonus(s, k);
+/* cuánto suma un ítem en total (para comparar) */
+export const itemPower = (it?: Item) => Object.values(it?.bonus ?? {}).reduce((a, v) => a + (v ?? 0), 0);
 export const slotVal = (s: PlayerState, slot: Slot) => itemOf(s.gear?.[slot])?.val ?? 0;
 /* golpe = arma blanca + arma de fuego; protección = cabeza + chaleco + ropa */
 export const attackVal = (s: PlayerState) => ATTACK_SLOTS.reduce((a, k) => a + slotVal(s, k), 0);
@@ -200,8 +206,9 @@ export function regen(s: PlayerState, now: number) {
 /* ---------- combate ---------- */
 /* La Barra pega 10% más fuerte */
 export function playerFighter(s: PlayerState): Fighter {
-  const fue = gangOf(s) === "barra" ? Math.round(s.stats.fue * 1.1) : s.stats.fue;
-  return { name: s.name, hp: s.hp, max: maxHp(s), fue, dur: s.stats.dur, ref: s.stats.ref, arma: attackVal(s), armadura: defenseVal(s) };
+  const fue = gangOf(s) === "barra" ? Math.round(eff(s, "fue") * 1.1) : eff(s, "fue");
+  /* el equipo ya está sumado en los atributos */
+  return { name: s.name, hp: s.hp, max: maxHp(s), fue, dur: eff(s, "dur"), ref: eff(s, "ref"), arma: 0, armadura: 0 };
 }
 /* Golpes fuertes y con variación: las peleas duran pocos rounds y un rival un poco mejor no es imposible.
    Curva medida con tools/playthrough.ts y docs/BALANCE.md. */
@@ -231,7 +238,7 @@ export function battle(rng: Rng, p: Fighter, e: Fighter): FightView {
 }
 /* Rival del juego escalado por nivel, al ritmo al que se puede entrenar en el gimnasio */
 export function scaledEnemy(rng: Rng, name: string, lvl: number, mult: number): Fighter {
-  const base = Math.max(5, 0.5 + lvl * 1.4);   // lo que mide el bot en un jugador que entrena parejo
+  const base = Math.max(5, 0.5 + lvl * 1.45);  // lo que mide el bot en un jugador que entrena parejo (más lo que aprende en las misiones)
   const v = () => Math.max(3, Math.round(base * mult + rnd(rng, -2, 2)));
   const agu = v();
   const max = Math.round((40 + agu * 12 + lvl * 6) * (0.85 + mult * 0.15));
