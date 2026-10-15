@@ -2,9 +2,12 @@ import type { Action, ActionResult, PlayerState } from "@pop/shared";
 
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
+/* dirección del servidor: vacía = el mismo sitio que la pantalla */
+const API = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+
 async function call<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, body === undefined ? {} : {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
+  const res = await fetch(API + path, body === undefined ? { credentials: "include" } : {
+    method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(data.error ?? "Algo salió mal.", res.status);
@@ -27,7 +30,8 @@ export const api = {
 export function connectLive(onMsg: (m: any) => void, onStatus: (up: boolean) => void) {
   let ws: WebSocket | null = null, stop = false, retry = 1000;
   const open = () => {
-    ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`);
+    const base = new URL(API || location.origin);
+    ws = new WebSocket(`${base.protocol === "https:" ? "wss" : "ws"}://${base.host}/api/ws`);
     ws.onopen = () => { retry = 1000; onStatus(true); };
     ws.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch {} };
     ws.onclose = () => { onStatus(false); if (!stop) setTimeout(open, retry = Math.min(retry * 2, 30000)); };

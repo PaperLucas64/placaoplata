@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
+import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import websocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
@@ -20,6 +21,8 @@ const PORT = Number(process.env.API_PORT ?? (PROD ? process.env.PORT : undefined
 const db = await openDb();
 const app = Fastify({ logger: { level: PROD ? "info" : "warn" } });
 await app.register(cookie);
+/* si la pantalla vive en otro sitio (p. ej. cinectomia.com/juego), WEB_ORIGIN la habilita: "https://cinectomia.com" */
+if (process.env.WEB_ORIGIN) await app.register(cors, { origin: process.env.WEB_ORIGIN.split(","), credentials: true });
 await app.register(rateLimit, { global: false });
 await app.register(websocket);
 

@@ -1,0 +1,45 @@
+# Publica la pantalla del juego en cinectomia.com/juego por FTP cada vez que cambia en main.
+# Necesita, en GitHub → Settings → Secrets and variables → Actions:
+#   Secrets:   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD
+#   Variables: FTP_DIR  (carpeta destino, termina en /; por defecto public_html/juego/)
+#              API_URL  (dirección del servidor del juego, cuando esté publicado; vacío = mismo sitio)
+name: Publicar pantalla
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/web/**", "packages/shared/**", "package-lock.json", ".github/workflows/publicar-pantalla.yml"]
+  workflow_dispatch:
+
+concurrency: publicar-pantalla
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    env:
+      HAS_FTP: ${{ secrets.FTP_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tests y tipos
+        run: npm test && npm run typecheck
+      - name: Armar la pantalla
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.API_URL }}
+      - name: Subir por FTP
+        if: env.HAS_FTP == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: apps/web/dist/
+          server-dir: ${{ vars.FTP_DIR || 'public_html/juego/' }}
+      - name: Falta configurar el FTP
+        if: env.HAS_FTP != 'true'
+        run: echo "::warning::No hay secretos de FTP cargados; se armó la pantalla pero no se subió."
