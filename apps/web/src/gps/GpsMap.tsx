@@ -304,7 +304,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     if (!data || !me.current) return;
     const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME], dest = place ? GEO_PLACES[place] : undefined, r = place ? data.rutas[homeName]?.[place] : undefined;
     let pos: Pt = [home.lat, home.lng];
-    if (at && path && path.length > 1 && !at.back) pos = positionAt([{ pts: path, w: 1 }], at.f);
+    if (at && path && path.length > 1) pos = positionAt([{ pts: path, w: 1 }], at.back ? 1 - at.f : at.f); // por las cuadras
     else if (at && r && mode) pos = positionAt(legsFor(r, mode), at.back ? 1 - at.f : at.f);
     else if (at && dest && !at.back && at.f >= 1) pos = [dest.lat, dest.lng];
     me.current.setLngLat(ll(pos));

@@ -370,24 +370,24 @@ export function streetMission(rng: Rng, lvl: number, d: number, client: StreetCl
   };
 }
 
-/* ---------- trabajos largos en el conurbano ---------- */
+/* ---------- trabajos largos (turnos de horas) ---------- */
 /* Turnos de horas (para cuando no vas a estar): pagan menos por hora que jugar activo, pero mucho por energía.
    Mientras tanto la energía se sigue cargando hasta el tope. */
 export const LONG_HOURS = [2, 4, 8, 12];
 export const LONG_ENERGY: Record<number, number> = { 2: 6, 4: 8, 8: 10, 12: 12 };
 const LONG: Objective[] = [
-  { text: "Custodiar una lancha con carga en el Delta de Tigre Mojado", stat: "dur", place: "Tigre Mojado" },
-  { text: "Vigilar una mansión de San Isidrón toda la noche", stat: "ref", place: "San Isidrón" },
-  { text: "Llevar autos robados a un country de Pilar de Oro", stat: "ref", place: "Pilar de Oro" },
-  { text: "Trabajar de patovica en una fiesta privada de San Isidrón", stat: "fue", place: "San Isidrón" },
-  { text: "Cuidar un depósito de mercadería robada en Avellanada", stat: "dur", place: "Avellanada" },
-  { text: "Hacer el turno noche en un desarmadero de Lomas de Zafarrancho", stat: "fue", place: "Lomas de Zafarrancho" },
-  { text: "Cobrar en todas las ferias de Quilmates", stat: "lab", place: "Quilmates" },
-  { text: "Seguir a un concejal por todo Lomas de Zafarrancho", stat: "ref", place: "Lomas de Zafarrancho" },
-  { text: "Descargar camiones sin papeles en el Mercado Central de La Matancera", stat: "fue", place: "La Matancera" },
-  { text: "Custodiar una fiesta clandestina en Moronga", stat: "dur", place: "Moronga" },
-  { text: "Esconder un cargamento en una quinta de Moreno del Fondo", stat: "lab", place: "Moreno del Fondo" },
-  { text: "Recorrer los talleres de Moronga cobrando deudas", stat: "lab", place: "Moronga" }
+  { text: "Custodiar un cargamento en los diques de Puerto Mareo", stat: "dur", place: "Puerto Mareo" },
+  { text: "Vigilar una mansión de Reloquita toda la noche", stat: "ref", place: "Reloquita" },
+  { text: "Llevar autos robados a un garaje de Villa Devota", stat: "ref", place: "Villa Devota" },
+  { text: "Trabajar de patovica en una fiesta de Palermo Soja", stat: "fue", place: "Palermo Soja" },
+  { text: "Cuidar un depósito de mercadería robada en La Paterna", stat: "dur", place: "La Paterna" },
+  { text: "Hacer el turno noche en un taller de Villa Lurio", stat: "fue", place: "Villa Lurio" },
+  { text: "Cobrar en todos los puestos de la feria de Floreros", stat: "lab", place: "Floreros" },
+  { text: "Seguir a un concejal por todo Belgranito", stat: "ref", place: "Belgranito" },
+  { text: "Descargar camiones sin papeles en la terminal de Salida", stat: "fue", place: "Salida" },
+  { text: "Custodiar una fiesta clandestina en Villa Crespa", stat: "dur", place: "Villa Crespa" },
+  { text: "Esconder un cargamento en un galpón de Chacarota", stat: "lab", place: "Chacarota" },
+  { text: "Recorrer los talleres de Villa Urquisa cobrando deudas", stat: "lab", place: "Villa Urquisa" }
 ];
 export function longMission(rng: Rng, lvl: number, hours: number, id: string): Mission {
   const gang = pick(rng, GANG_KEYS);
@@ -412,7 +412,7 @@ export function longMission(rng: Rng, lvl: number, hours: number, id: string): M
   const units = 6 + 3 * hours; // lo que paga, medido en "energía de misión"
   return {
     id, street: true, gang, hours, rank: 0, mins: hours * 60, place: obj.place, difficulty: 1,
-    title: obj.text, intro: `${GANGS[gang].name} te manda a ${zone ? ZONE_NAMES[zone] : "el conurbano"}. Turno de ${hours} horas.`,
+    title: obj.text, intro: `${GANGS[gang].name} te manda a ${obj.place}${zone ? ` (${ZONE_NAMES[zone]})` : ""}. Turno de ${hours} horas.`,
     steps, outro: "",
     req: { [obj.stat]: Math.max(5, Math.round(typ * 0.7)) },
     aff: hours,

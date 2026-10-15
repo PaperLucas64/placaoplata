@@ -61,9 +61,13 @@ export function tripPos(rutas: Rutas, o: OnTrip, now: number, streetOnly = false
   const r = rutas[o.trip.from ?? GEO_HOME]?.[o.trip.place], dest = placePt(o.trip.place);
   if (!ph || !dest || now < o.since || now > o.until) return null;
   if (ph.phase === "alla") return streetOnly ? null : dest;  // adentro de un lugar: ahí no se lo puede asaltar
-  if (ph.phase === "ida" && o.trip.path && o.trip.path.length > 1) return along(o.trip.path, ph.frac); // salió desde la calle
-  if (!r) return streetOnly ? null : dest;
-  return positionAt(legsFor(r, o.trip.mode), ph.phase === "vuelta" ? 1 - ph.frac : ph.frac);
+  if (o.trip.path && o.trip.path.length > 1) return along(o.trip.path, ph.phase === "vuelta" ? 1 - ph.frac : ph.frac); // el camino por las cuadras
+  const f = ph.phase === "vuelta" ? 1 - ph.frac : ph.frac;
+  if (!r) { /* sin recorrido guardado ni camino: en línea recta, estimado */
+    const o0 = placePt(o.trip.from ?? GEO_HOME);
+    return o0 ? lerp(o0, dest, f) : streetOnly ? null : dest;
+  }
+  return positionAt(legsFor(r, o.trip.mode), f);
 }
 export function chasePos(c: OnChase, now: number): Pt | null {
   if (now < c.since || now > c.until) return null;
@@ -134,8 +138,10 @@ export function travelerPos(rutas: Rutas, t: TravelerView, now: number): Pt | nu
 }
 
 /* volver a casa, visto como un viaje que ya está en la vuelta (sirve para el mapa y para los cruces) */
-export function returnTrip(b: { since: number; until: number; mode: TravelMode; place: string; home: string }): OnTrip {
-  return { since: b.since, until: b.until, trip: { mode: b.mode, place: b.place, go: 0, back: Math.max(1, b.until - b.since), from: b.home } };
+export function returnTrip(b: { since: number; until: number; mode: TravelMode; place: string; home: string; path?: Pt[] }): OnTrip {
+  /* el camino de la vuelta va del lugar a casa; acá se da vuelta (casa → lugar) porque la fase "vuelta" lo recorre al revés */
+  return { since: b.since, until: b.until, trip: { mode: b.mode, place: b.place, go: 0, back: Math.max(1, b.until - b.since), from: b.home,
+    ...(b.path ? { path: [...b.path].reverse() } : {}) } };
 }
 /* dónde está ahora un jugador que viene volviendo a casa */
 export function wherePlayer(rutas: Rutas, s: PlayerState, now: number): Pt {

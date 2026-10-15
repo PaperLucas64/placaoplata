@@ -80,6 +80,9 @@ export function CityMap(ui: Ui) {
   </section>;
 }
 
+/* ¿la podés hacer ahora? (si no, no se muestra: ni por rango, ni por la anterior, ni por atributos) */
+export const doable = (s: Ui["s"], m: Mission) => canStart(s, m) && meetsReq(s, m);
+
 /* ---------- los lugares del mapa ---------- */
 /* un punto cerca del centro de un barrio (para lo que no tiene dirección propia), siempre el mismo para la misma clave */
 function near(barrio: string, key: string): [number, number] {
@@ -102,11 +105,11 @@ function mapPins(s: Ui["s"], now: number): Pin[] {
   const pins: Pin[] = allLugares(s).filter(l => l.id === "casa" || lugarOpen(s, l, now))
     .filter(l => l.kind !== "negocio" || s.lvl >= (propOf(l.prop!)?.lvl ?? 99) - 2 || s.props?.[l.prop!] !== undefined)
     .map(l => ({ id: l.id, name: l.name, icon: l.icon, color: l.gang ? GANGS[l.gang].color : KIND_COLOR[l.kind], lat: l.lat, lng: l.lng,
-      badge: l.kind === "contacto" && l.gang ? String(MISSIONS[l.gang].filter(m => canStart(s, m)).length || "") || undefined : undefined,
+      badge: l.kind === "contacto" && l.gang ? String(MISSIONS[l.gang].filter(m => doable(s, m)).length || "") || undefined : undefined,
       near: ["golpe", "laburo", "salud", "negocio", "municipio", "concesionaria", "estadio"].includes(l.kind) }));
   /* las misiones del tablón: banderitas en su barrio, del color de quien las da */
   for (const m of s.board ?? []) {
-    const c = GEO_PLACES[m.place ?? ""]; if (!c) continue;
+    const c = GEO_PLACES[m.place ?? ""]; if (!c || !doable(s, m)) continue;
     const [lat, lng] = near(m.place!, m.id);
     pins.push({ id: `mision:${m.id}`, name: m.title, icon: "mision", color: clientOf(m).color, lat, lng });
   }
@@ -151,10 +154,10 @@ export function PlacePanel(ui: Ui) {
     {l.kind === "contacto" && l.gang && <GangContact g={l.gang} {...pane} />}
     {l.kind === "policia" && <>
       <h3>Trabajos sucios</h3>
-      <div className="list">{s.board.filter(m => m.client === "policia").map(m => <MissionCard key={m.id} m={m} {...pane} />)}</div>
+      <div className="list">{s.board.filter(m => m.client === "policia" && doable(s, m)).map(m => <MissionCard key={m.id} m={m} {...pane} />)}</div>
       <h3>Lo que Funes sabe de las historias de la ciudad</h3>
       <div className="list">{ARCS.flatMap(a => a.chapters.map((_, ch) => findMission(s, arcMissionId(a.id, ch, "policia"))!))
-        .filter(m => canStart(s, m)).map(m => <MissionCard key={m.id} m={m} {...pane} chip={{ name: POV_NAME.policia, color: POV_COLOR.policia }} />)}</div>
+        .filter(m => doable(s, m)).map(m => <MissionCard key={m.id} m={m} {...pane} chip={{ name: POV_NAME.policia, color: POV_COLOR.policia }} />)}</div>
     </>}
     {job && <div className="list"><div className="item">
       <div><h3>{job.name}<span className={`risk r${job.risk}`}>riesgo {riskTxt[job.risk]}</span></h3>
@@ -165,8 +168,8 @@ export function PlacePanel(ui: Ui) {
     </div></div>}
     {l.kind === "evento" && <>
       <p className="tag">{EVENTS.find(e => e.id === l.event)?.name}: solo por unos días.</p>
-      <div className="list">{EVENT_MISSIONS.filter(m => m.event === l.event).map(m => <MissionCard key={m.id} m={m} {...pane}
-        note={s.done[m.id] ? undefined : canStart(s, m) ? undefined : !activeEvents(now).includes(m.event!) ? "Terminó el evento" : "Primero la anterior"} />)}</div>
+      <div className="list">{EVENT_MISSIONS.filter(m => m.event === l.event && doable(s, m)).map(m => <MissionCard key={m.id} m={m} {...pane} />)}</div>
+      {EVENT_MISSIONS.filter(m => m.event === l.event).every(m => s.done[m.id]) && <p className="tag">Ya terminaste las misiones de este evento.</p>}
     </>}
   </section>;
 }
@@ -183,15 +186,16 @@ function GangContact({ g, ...ui }: Ui & { g: Gang }) {
       <div className="act"><button disabled={busy || s.energy < ENCARGO_COST || s.hp < maxHp(s) * MIN_HP_TO_FIGHT} onClick={() => act({ type: "encargo", gang: g })}>Hacerlo</button></div>
     </div></div>
     <h3>La historia de {info.name}</h3>
-    <div className="list">{MISSIONS[g].map((m: Mission) => <MissionCard key={m.id} m={m} {...ui}
-      note={canStart(s, m) ? undefined : s.done[m.id] ? undefined : rk < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : "Primero terminá la anterior"} />)}</div>
+    {(() => { const list = MISSIONS[g].filter(m => doable(s, m));
+      return list.length ? <div className="list">{list.map((m: Mission) => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+        : <p className="tag">{MISSIONS[g].every(m => s.done[m.id]) ? "Ya hiciste toda su historia." : `Por ahora no tiene nada para vos. Volvé con más rango (${RANK_NAMES[rk + 1] ?? "más"}) o mejores atributos.`}</p>; })()}
     {(() => {
-      const arcs = ARCS.flatMap(a => a.chapters.map((_, ch) => findMission(s, arcMissionId(a.id, ch, g))!)).filter(m => canStart(s, m));
+      const arcs = ARCS.flatMap(a => a.chapters.map((_, ch) => findMission(s, arcMissionId(a.id, ch, g))!)).filter(m => doable(s, m));
       return arcs.length ? <><h3>Historias de la ciudad, desde {info.name}</h3>
         <div className="list">{arcs.map(m => <MissionCard key={m.id} m={m} {...ui} chip={{ name: POV_NAME[g], color: POV_COLOR[g] }} />)}</div></> : null;
     })()}
     {(() => {
-      const board = s.board.filter(m => m.gang === g);
+      const board = s.board.filter(m => m.gang === g && doable(s, m));
       return board.length ? <><h3>Pedidos de {info.name} en el tablón</h3><div className="list">{board.map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div></> : null;
     })()}
   </>;
@@ -510,10 +514,10 @@ function Missions(ui: Ui) {
       <h3>Tablón de la calle</h3>
       <button disabled={busy || !!s.busy || s.energy < BOARD_REROLL_COST} onClick={() => act({ type: "reroll" })}>Buscar otras · {BOARD_REROLL_COST} energía</button>
     </div>
-    <div className="list">{s.board.filter(m => !m.hours && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    <div className="list">{s.board.filter(m => !m.hours && doable(s, m) && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
     <h3>Trabajos largos en el conurbano</h3>
     <p className="tag">Turnos de horas en {Object.values(ZONE_NAMES).join(", ")}: para cuando no vas a estar. Pagan mucho por la energía que gastan; mientras tanto la energía se sigue cargando (hasta el tope).</p>
-    <div className="list">{s.board.filter(m => m.hours && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    <div className="list">{s.board.filter(m => m.hours && doable(s, m) && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
     {s.lvl < POLICE_LVL && <p className="tag">Desde el nivel {POLICE_LVL}, el comisario Funes también deja trabajos sucios en el tablón.</p>}
     <Stories {...ui} />
     <h3>Las pandillas</h3>
@@ -523,9 +527,7 @@ function Missions(ui: Ui) {
         <div className="with-art"><Portrait src={bossImg(g)} gang={g} size={56} />
           <div><h3 style={{ color: info.color }}>{info.name}{mine === g && <span className="kind">tu pandilla</span>}</h3>
             <div className="meta">{info.boss} · {info.hood} · vos: {Math.round(affShare(s, g) * 100)}%</div></div></div>
-        <div className="list">{MISSIONS[g].map((m: Mission) =>
-          <MissionCard key={m.id} m={m} {...ui}
-            note={canStart(s, m) ? undefined : rk < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : "Primero terminá la anterior"} />)}</div>
+        <div className="list">{MISSIONS[g].filter(m => doable(s, m)).map((m: Mission) => <MissionCard key={m.id} m={m} {...ui} />)}</div>
       </div>;
     })}
   </>;
@@ -547,12 +549,8 @@ function Stories(ui: Ui) {
           <h4>Capítulo {ch + 1} · {open || by ? c.name : "???"} <span className="tag">{open || by ? `${c.place} · rango ${RANK_NAMES[c.rank]}` : ""}</span></h4>
           {by ? <div className="meta">Lo hiciste con <b style={{ color: POV_COLOR[by] }}>{POV_NAME[by]}</b>.</div>
             : !open ? <div className="meta">Se abre cuando termines el capítulo anterior.</div>
-            : <div className="list">{POVS.map(p => {
-                const m = findMission(s, arcMissionId(arc.id, ch, p))!;
-                const note = p === "policia" && s.lvl < POLICE_LVL ? `Funes no te conoce todavía: nivel ${POLICE_LVL}.`
-                  : rankOf(s) < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : !arcOpen(s, m) ? "Cerrada" : undefined;
-                return <MissionCard key={p} m={m} {...ui} note={note} chip={{ name: POV_NAME[p], color: POV_COLOR[p] }} />;
-              })}</div>}
+            : <div className="list">{POVS.map(p => findMission(s, arcMissionId(arc.id, ch, p))!).filter(m => doable(s, m)).map(m =>
+                <MissionCard key={m.id} m={m} {...ui} chip={{ name: POV_NAME[m.pov!], color: POV_COLOR[m.pov!] }} />)}</div>}
         </div>;
       })}
     </div>)}

@@ -15,7 +15,7 @@ export function Bar({ cls, label, v, max, note }: { cls: string; label: string; 
 }
 
 /* La barra de arriba del mapa: quién sos, cómo estás y qué estás haciendo. La ficha completa, con un botón. */
-export function Hud({ s, now, onSheet, onCancel, disabled }: { s: PlayerState; now: number; onSheet: () => void; onCancel: () => void; disabled: boolean }) {
+export function Hud({ s, now, onSheet, onQuick, onCancel, disabled }: { s: PlayerState; now: number; onSheet: () => void; onQuick: () => void; onCancel: () => void; disabled: boolean }) {
   const mh = maxHp(s), em = energyMax(s), g = gangOf(s);
   const mini = (cls: string, label: string, v: number, max: number) => (
     <div className={`mini ${cls}`} title={`${label}: ${v} / ${max}`}>
@@ -38,6 +38,7 @@ export function Hud({ s, now, onSheet, onCancel, disabled }: { s: PlayerState; n
       <span className="hud-gold num">{money(s.gold)}</span>
       <div className="hud-busy"><BusyBar s={s} now={now} onCancel={onCancel} disabled={disabled} /></div>
       <button className="hud-sheet" onClick={onSheet}>Ficha</button>
+      <button className="hud-sheet primary" disabled={disabled} onClick={onQuick} title="Una misión o un trabajo al azar, de los que podés hacer ahora">Actividad rápida</button>
     </div>
   );
 }

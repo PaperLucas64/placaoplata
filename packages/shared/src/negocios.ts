@@ -7,13 +7,13 @@ export interface Prop { id: PropId; name: string; lvl: number; price: number; pe
 export const PROPS: Prop[] = [
   { id: "kiosco24", name: "Maxikiosco 24 horas", lvl: 4,  price: 2500,  perHour: 25,  place: "Once y Medio", who: "el kiosco",
     help: "Golosinas, cigarrillos y lo que no está en la vidriera." },
-  { id: "taxi",     name: "Licencia de taxi",    lvl: 8,  price: 6000,  perHour: 50,  place: "San Telmón", who: "el taxi",
+  { id: "taxi",     name: "Licencia de taxi",    lvl: 8,  price: 6000,  perHour: 50,  place: "Almagrito", who: "el taxi",
     help: "Un chofer trabaja el auto por vos. A veces aparece un pasajero raro." },
   { id: "terraza",  name: "Plantación en una terraza", lvl: 12, price: 12000, perHour: 110, place: "Palermo Soja", heat: 2, who: "la terraza",
     help: "Cien macetas bajo media sombra. Cada cobro sube tu nivel de búsqueda." },
-  { id: "lavadero", name: "Lavadero de autos",   lvl: 16, price: 22000, perHour: 180, place: "Barrancas", who: "el lavadero",
+  { id: "lavadero", name: "Lavadero de autos",   lvl: 16, price: 22000, perHour: 180, place: "Floreros", who: "el lavadero",
     help: "Se lavan autos. Y plata." },
-  { id: "taller",   name: "Taller mecánico",     lvl: 20, price: 35000, perHour: 260, place: "Mataderos", who: "el taller",
+  { id: "taller",   name: "Taller mecánico",     lvl: 20, price: 35000, perHour: 260, place: "Villa Lurio", who: "el taller",
     help: "Los arreglos de tu moto o tu auto salen 30% menos." },
   { id: "boliche",  name: "Boliche en Palermo Soja", lvl: 25, price: 60000, perHour: 420, place: "Palermo Soja", who: "el boliche",
     help: "La noche de Maires pasa por tu puerta." }
@@ -34,22 +34,22 @@ export const PROP_OBJECTIVES: Record<PropId, PropObjective[]> = {
   ],
   taxi: [
     { text: "Llevar a un pasajero que no quiere decir su nombre", stat: "lab" }, { text: "Perder a un auto que te sigue desde Retiro", stat: "ref" },
-    { text: "Llevar un bolso cerrado a Mar del Plato", stat: "ref", place: "Mar del Plato" }, { text: "Recuperar el taxi que te robaron en la parada", stat: "fue" }
+    { text: "Llevar un bolso cerrado a la terminal de Salida", stat: "ref", place: "Salida" }, { text: "Recuperar el taxi que te robaron en la parada", stat: "fue" }
   ],
   terraza: [
     { text: "Cosechar antes de que llegue la tormenta", stat: "dur" }, { text: "Esconder las macetas antes del allanamiento", stat: "ref" },
-    { text: "Vender la cosecha en Rosarito", stat: "lab", place: "Rosarito" }, { text: "Echar al vecino que sube a sacar fotos", stat: "fue" }
+    { text: "Vender la cosecha en las facultades de Agromanía", stat: "lab", place: "Agromanía" }, { text: "Echar al vecino que sube a sacar fotos", stat: "fue" }
   ],
   lavadero: [
     { text: "Lavar la plata de un cliente nervioso", stat: "lab" }, { text: "Hacer desaparecer un auto con manchas raras", stat: "ref" },
-    { text: "Llevar efectivo a una financiera de La Plata Dulce", stat: "dur", place: "La Plata Dulce" }, { text: "Convencer al contador de que no pregunte", stat: "lab" }
+    { text: "Llevar efectivo a una financiera de San Nicolasito", stat: "dur", place: "San Nicolasito" }, { text: "Convencer al contador de que no pregunte", stat: "lab" }
   ],
   taller: [
     { text: "Cambiarle el motor a un auto robado", stat: "fue" }, { text: "Buscar repuestos en un desarmadero", stat: "lab", place: "Liniers Sur" },
-    { text: "Probar un auto preparado en la ruta a Cordobita", stat: "ref", place: "Cordobita" }, { text: "Aguantar la inspección municipal", stat: "dur" }
+    { text: "Probar un auto preparado en la General Paz", stat: "ref", place: "Saavedrita" }, { text: "Aguantar la inspección municipal", stat: "dur" }
   ],
   boliche: [
     { text: "Sacar a un patovica que trabaja para otros", stat: "fue" }, { text: "Arreglar con el inspector de habilitaciones", stat: "lab" },
-    { text: "Traer a un DJ famoso desde Mar del Plato", stat: "lab", place: "Mar del Plato" }, { text: "Esconder a un famoso que se metió en problemas", stat: "ref" }
+    { text: "Traer a un DJ famoso desde Aeroparque", stat: "lab", place: "Palermo Soja" }, { text: "Esconder a un famoso que se metió en problemas", stat: "ref" }
   ]
 };

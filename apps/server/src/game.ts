@@ -3,7 +3,7 @@
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
   ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
-  startChase, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  startChase, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -19,7 +19,15 @@ const onTrip = (b: PlayerState["busy"]): OnTrip | null =>
   b?.kind === "mision" && b.trip ? { since: Number(b.since), until: Number(b.until), trip: b.trip }
   : b?.kind === "vuelta" && !b.safe ? returnTrip(b) : null;
 /* El camino por las cuadras entre dos puntos (OSRM de OpenStreetMap). Si no contesta, se sigue con la estimación. */
+const pathCache = new Map<string, Pt[]>();
 async function streetPath(a: Pt, b: Pt, profile: "foot" | "car"): Promise<Pt[] | undefined> {
+  const key = `${profile}:${a[0].toFixed(4)},${a[1].toFixed(4)}:${b[0].toFixed(4)},${b[1].toFixed(4)}`;
+  if (pathCache.has(key)) return pathCache.get(key);
+  const p = await fetchPath(a, b, profile);
+  if (p) { if (pathCache.size > 3000) pathCache.clear(); pathCache.set(key, p); }
+  return p;
+}
+async function fetchPath(a: Pt, b: Pt, profile: "foot" | "car"): Promise<Pt[] | undefined> {
   try {
     const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`;
     const r = await fetch(url, { signal: AbortSignal.timeout(4000), headers: { "User-Agent": "Maires (juego de navegador)" } });
@@ -28,6 +36,15 @@ async function streetPath(a: Pt, b: Pt, profile: "foot" | "car"): Promise<Pt[] |
     const pts = j.routes?.[0]?.geometry.coordinates.map(([lng, lat]) => [Math.round(lat * 1e5) / 1e5, Math.round(lng * 1e5) / 1e5] as Pt);
     return pts && pts.length > 1 ? pts : undefined;
   } catch { return undefined; }
+}
+
+/* el camino de vuelta a casa por las cuadras (se calcula una vez y queda guardado) */
+async function returnPath(s: PlayerState) {
+  const b = s.busy;
+  if (b?.kind !== "vuelta" || b.path) return;
+  const a = placePt(b.place), h = homePt(s);
+  if (!a) return;
+  b.path = (await streetPath(a, h, b.mode === "pie" ? "foot" : "car")) ?? [a, h];
 }
 
 /* la misma pelea vista desde el otro lado */
@@ -108,6 +125,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
       for (const r of rows.values()) { const g = gangOf(r.state); r.state.turf = g ? map.owned[g] : 0; }
       for (const r of rows.values()) catchUp(r.state, now);
       for (const r of rows.values()) if (r.state.coop) await coopProgress(q, r.state.coop.id, rows, now);
+      for (const r of rows.values()) await returnPath(r.state);
       const out = await fn(q, rows, now);
       for (const r of rows.values()) { await territory.drain(q, r.state, now); await saveRow(q, r.id, r.state); }
       return out;
@@ -143,20 +161,25 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
         result = otherId ? await chase(q, id, s, rows.get(otherId), a.mode, now) : { error: "Ese jugador ya no está." };
       } else {
         const wasChase = s.busy?.kind === "caza";
-        /* si venías volviendo a casa y arrancás otra cosa, salís desde donde estás: el camino se calcula por las cuadras */
-        let from: FromPoint | undefined;
-        if (s.busy?.kind === "vuelta" && (a.type === "mstart" || a.type === "guardia" || a.type === "heal" || a.type === "encargo")) {
-          const here = wherePlayer(RUTAS, s, now);
-          const m = a.type === "mstart" ? findMission(s, a.id) : undefined;
-          const dest = m ? missionPlace(m) : a.type === "encargo" ? HOME_BARRIO[a.gang] : nearestCare(s, a.type === "heal" ? "clinica" : "guardia").place;
-          const pt = dest ? placePt(dest) : null;
-          if (pt) {
+        /* todos los viajes van por las cuadras: desde tu casa, o desde donde estés si venías volviendo */
+        let from: FromPoint | undefined, place: string | undefined;
+        if (a.type === "mstart" || a.type === "guardia" || a.type === "heal" || a.type === "encargo" || (a.type === "job" && isGolpe(a.id))) {
+          const here = s.busy?.kind === "vuelta" ? wherePlayer(RUTAS, s, now) : homePt(s);
+          let dest: Pt | null = null;
+          if (a.type === "mstart") { const m = findMission(s, a.id); const pl = m ? missionPlace(m) : undefined; dest = pl ? placePt(pl) : null; }
+          else if (a.type === "encargo") dest = placePt(HOME_BARRIO[a.gang]);
+          else if (a.type === "job") {
+            const spot = a.at ? lugarOf(a.at) : undefined;
+            if (spot) dest = [spot.lat, spot.lng];
+            else { const gp = golpePlace(s, rng); place = gp; dest = placePt(gp); }
+          } else { const care = nearestCare(s, a.type === "heal" ? "clinica" : "guardia"); dest = placePt(care.place); }
+          if (dest && kmBetween(here, dest) > 0.05) {
             const foot = a.type === "guardia" || (a.type === "mstart" && a.mode === "pie");
-            const path = await streetPath(here, pt, foot ? "foot" : "car");
-            from = { km: Math.max(0.2, path ? kmOf(path) : kmBetween(here, pt) * 1.3), path: path ?? [here, pt] };
+            const path = await streetPath(here, dest, foot ? "foot" : "car");
+            from = { km: Math.max(0.2, path ? kmOf(path) : kmBetween(here, dest) * 1.3), path: path ?? [here, dest] };
           }
         }
-        result = applyAction(s, a, { now, rng, from });
+        result = applyAction(s, a, { now, rng, from, place });
         if (!result.error && a.type === "mstart") await findCrossing(q, id, s, now);
         if (!result.error && a.type === "cancel" && wasChase) await q.query(`UPDATE chases SET resolved = true WHERE attacker_id = $1 AND kind = 'caza' AND NOT resolved`, [id]);
         if (!result.error && (a.type === "scout" || a.type === "claimTut" || (a.type === "duel" && !s.targets.length))) await fillTargets(q, id, s);

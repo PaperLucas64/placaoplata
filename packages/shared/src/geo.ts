@@ -1,4 +1,4 @@
-/* GPS y transporte. Cada misión pasa en un lugar: tu personaje sale de la pensión (San Telmón), viaja, hace el trabajo y vuelve.
+/* GPS y transporte. Cada misión pasa en un lugar: tu personaje sale de su casa, viaja, hace el trabajo y vuelve.
    Los recorridos son reales (OpenStreetMap, ver tools/geo/build.py) y el tiempo de viaje sale de la distancia y del medio:
    a pie es gratis pero lento; con auto o moto vas rápido pero te pueden parar. El viaje pasa más rápido que en la vida real. */
 import { GEO_HOME, GEO_PLACES, GEO_ROUTES } from "./geo-data.js";
@@ -47,8 +47,22 @@ export const TRAVEL: Record<TravelMode, { name: string; verb: string }> = {
 /* líneas de colectivo de verdad, para la crónica */
 const BUS_LINES = ["29", "152", "60", "39", "10", "64", "86", "24", "33", "130", "168", "17"];
 
-/* el recorrido de un lugar a otro (desde tu casa); si es el mismo barrio, no hay viaje */
-export const routeTo = (from: string, place?: string) => (place && place !== from ? GEO_ROUTES[from]?.[place] : undefined);
+/* el recorrido de un lugar a otro (desde tu casa); si es el mismo barrio, no hay viaje.
+   Si no hay uno guardado, se estima por la distancia (el servidor después lo calcula por las cuadras). */
+export const kmAir = (a: string, b: string) => {
+  const p = GEO_PLACES[a], q = GEO_PLACES[b];
+  if (!p || !q) return 0;
+  const R = 6371, r = Math.PI / 180;
+  const h = Math.sin((q.lat - p.lat) * r / 2) ** 2 + Math.cos(p.lat * r) * Math.cos(q.lat * r) * Math.sin((q.lng - p.lng) * r / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+export const routeTo = (from: string, place?: string): GeoRoute | undefined => {
+  if (!place || place === from || !GEO_PLACES[place] || !GEO_PLACES[from]) return undefined;
+  const saved = GEO_ROUTES[from]?.[place];
+  if (saved) return saved;
+  const km = Math.round(kmAir(from, place) * 1.3 * 100) / 100;
+  return { calle: km, ...(km < 20 ? { pie: km } : {}) };
+};
 export const isFar = (place: string) => !!GEO_PLACES[place]?.interior;
 
 /* desde un punto cualquiera de la calle (volviendo de algo) no hay subte ni tren: el recorrido es por las calles */
@@ -116,20 +130,20 @@ export const TRAVEL_RISK: Record<TravelMode, string> = {
 /* ---------- dónde te curan ---------- */
 /* guardias de hospitales públicos (gratis, vas caminando) y clínicas privadas (pagás y te busca una ambulancia) */
 export const HOSPITALS: { place: string; name: string }[] = [
-  { place: "La Bocota", name: "Hospital Argerico" }, { place: "Once y Medio", name: "Hospital Ramos Mejido" },
-  { place: "Palermo Soja", name: "Hospital Fernandito" }, { place: "Pompeya Chica", name: "Hospital Penita" },
+  { place: "Once y Medio", name: "Hospital Ramos Mejido" }, { place: "Palermo Soja", name: "Hospital Fernandito" },
   { place: "Liniers Sur", name: "Hospital Santojanito" }, { place: "Reloquita", name: "Hospital Rivadavio" },
-  { place: "Barrancas", name: "Hospital de Barrancas" }, { place: "San Isidrón", name: "Hospital Central de San Isidrón" },
-  { place: "Avellanada", name: "Hospital Fiorito Chico" }, { place: "Moronga", name: "Hospital Posadito" }
+  { place: "Coglán", name: "Hospital Pirovanito" }, { place: "Caballote", name: "Hospital Durandito" },
+  { place: "Villa Devota", name: "Hospital Zubizarretita" }, { place: "Floreros", name: "Hospital Álvarez Chico" },
+  { place: "Villa Ortuzán", name: "Hospital Tornucito" }
 ];
 export const CLINICS: { place: string; name: string }[] = [
   { place: "Reloquita", name: "Sanatorio Reloquita" }, { place: "Palermo Soja", name: "Clínica Palermo Soja" },
-  { place: "Puerto Mareo", name: "Clínica del Puerto" }, { place: "San Isidrón", name: "Sanatorio de la Costa" }
+  { place: "Puerto Mareo", name: "Clínica del Puerto" }, { place: "Belgranito", name: "Sanatorio Belgranito" }
 ];
 /* el más cerca de tu casa (o de un punto, si ya andás por la calle) */
 export function nearestCare(s: PlayerState, kind: "guardia" | "clinica", kmFrom?: (place: string) => number) {
   const list = kind === "guardia" ? HOSPITALS : CLINICS, home = homePlace(s);
-  const km = kmFrom ?? ((p: string) => (p === home ? 0 : GEO_ROUTES[home]?.[p]?.calle ?? 999));
+  const km = kmFrom ?? ((p: string) => (p === home ? 0 : kmAir(home, p)));
   return [...list].sort((a, b) => km(a.place) - km(b.place))[0];
 }
 

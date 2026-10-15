@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
+import { allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
@@ -96,6 +96,19 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
   const [lugar, setLugar] = useState<string | null>(null);
   const [sheet, setSheet] = useState(false);
+  /* actividad rápida: una misión o un trabajo al azar, de los que podés hacer ahora */
+  const quick = () => {
+    if (s.busy && s.busy.kind !== "vuelta") { setToast({ text: "Estás ocupado: esperá a que termine lo que estás haciendo." }); return; }
+    const okHp = s.hp >= maxHp(s) * 0.5;
+    const missions = okHp ? [...allStory(), ...s.board].filter(m => canStart(s, m) && meetsReq(s, m) && s.energy >= missionEnergy(m) && !m.hours) : [];
+    const golpes = s.tutDone && okHp ? GOLPES.filter(j => j.lvl <= s.lvl && s.energy >= j.cost) : [];
+    const jobs = JOBS.filter(j => j.lvl <= s.lvl && s.energy >= j.cost);
+    const pickOne = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+    if (missions.length) { const m = pickOne(missions); setToast({ text: `Actividad rápida: «${m.title}».`, good: true }); act({ type: "mstart", id: m.id }); return; }
+    if (golpes.length) { const j = pickOne(golpes); setToast({ text: `Actividad rápida: ${j.name}.`, good: true }); act({ type: "job", id: j.id }); return; }
+    if (jobs.length) { const j = pickOne(jobs); act({ type: "job", id: j.id }); return; }
+    setToast({ text: okHp ? "No te alcanza la energía para nada: esperá un rato." : "Estás muy golpeado: curate primero." });
+  };
   const cancel = () => (s.coop && s.busy?.kind === "mision"
     ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
     : act({ type: "cancel" }));
@@ -125,7 +138,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       {/* el mapa es el juego: ocupa la pantalla; arriba, tu barra; al tocar un lugar, se abre encima */}
       <div className="world">
         <CityMap {...ui} />
-        <Hud s={s} now={now} disabled={busy} onSheet={() => setSheet(v => !v)} onCancel={cancel} />
+        <Hud s={s} now={now} disabled={busy} onSheet={() => setSheet(v => !v)} onQuick={quick} onCancel={cancel} />
         {(lugar || sheet) && <aside className="drawer" aria-label={sheet ? "Tu ficha" : "Lugar"}>
           {sheet ? <>
             <div className="drawer-head"><h2>Tu ficha</h2><button className="link" onClick={() => setSheet(false)}>Cerrar</button></div>

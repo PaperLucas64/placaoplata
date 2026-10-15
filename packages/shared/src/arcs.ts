@@ -30,7 +30,7 @@ export const ARCS: Arc[] = [
   { id: "clasico", title: "La semana del clásico",
     blurb: "Bocota Juniors contra Ríver Plateado. Toda la ciudad apuesta, viaja, cuelga trapos o cobra por mirar para otro lado.",
     chapters: [
-      { name: "Trapos y apuestas", place: "La Bocota", rank: 0, diff: 6, mins: 15, reward: { gold: 200, xp: 80, resp: 35, heat: 10 }, povs: {
+      { name: "Trapos y apuestas", place: "Ñuñez", rank: 0, diff: 6, mins: 15, reward: { gold: 200, xp: 80, resp: 35, heat: 10 }, povs: {
         familia: { title: "El libro de apuestas",
           intro: "La Señora toma las apuestas del clásico en el bar de la esquina de la cancha. «Hay un apostador grande que se hace el distraído. Cobrale.»",
           a: ["lab", "Anotar las apuestas sin que el mozo nuevo se avive.", "El mozo cree que anotás pedidos.", "El mozo te mira la libreta. Tuviste que cambiar de mesa."],
@@ -94,7 +94,7 @@ export const ARCS: Arc[] = [
           foe: ["Un matón de la barra", "Un matón de la barra viene a dejar un mensaje.", "El mensaje no llegó. El matón tampoco.", "El matón te pasa por arriba."],
           back: "Funes cobra el segundo sobre y te da una parte.", outro: "«Mientras todos se odien, nosotros cobramos.»" }
       } },
-      { name: "La revancha en Rosarito", place: "Rosarito", rank: 2, diff: 15, mins: 45, reward: { gold: 1500, xp: 550, resp: 250, heat: 30 }, povs: {
+      { name: "La revancha en Rosarito", place: "Salida", rank: 2, diff: 15, mins: 45, reward: { gold: 1500, xp: 550, resp: 250, heat: 30 }, povs: {
         familia: { title: "El casino de Rosarito",
           intro: "La revancha se juega en Rosarito. La Señora quiere aprovechar: «Lo que juntamos en apuestas, lo lavamos en el casino. Viajá.»",
           a: ["lab", "Entrar a la sala VIP del casino.", "El de la puerta te confunde con un empresario.", "Te piden la tarjeta de socio. No tenés."],
@@ -162,7 +162,7 @@ export const ARCS: Arc[] = [
           foe: ["El capitán del Río Bravo", "El capitán se da cuenta de lo que hiciste.", "El capitán vuelve a su camarote.", "El capitán te tira por la escalerilla."],
           back: "Funes lee el manifiesto y se pone pálido.", outro: "«Esto no son electrodomésticos. Esto es dinamita política.»" }
       } },
-      { name: "Lo que había adentro", place: "Barrancas", rank: 2, diff: 13, mins: 30, reward: { gold: 1100, xp: 380, resp: 170, heat: 25 }, povs: {
+      { name: "Lo que había adentro", place: "La Paterna", rank: 2, diff: 13, mins: 30, reward: { gold: 1100, xp: 380, resp: 170, heat: 25 }, povs: {
         familia: { title: "La caja del intendente",
           intro: "Adentro del contenedor había una caja fuerte con los libros del intendente Ramírez. «Eso vale más que el puerto. Guardala donde nadie la encuentre.»",
           a: ["fue", "Cargar una caja fuerte de doscientos kilos.", "La subiste a la camioneta con la espalda sana.", "Se te cayó en el pie."],
@@ -170,7 +170,7 @@ export const ARCS: Arc[] = [
           foe: ["Un ladrón de El Sindicato", "Uno del Sindicato entra al depósito de noche.", "El del Sindicato sale sin la caja.", "El del Sindicato se lleva la mitad de los papeles."],
           back: "La Señora guarda la llave colgada del cuello.", outro: "«Con esto, el intendente trabaja para nosotros.»" },
         sindicato: { title: "El robo del depósito",
-          intro: "«La Familia tiene la caja en un depósito de Barrancas. Nuestro barrio. Es nuestra.»",
+          intro: "«La Familia tiene la caja en un depósito de La Paterna. A dos cuadras de nuestros galpones. Es nuestra.»",
           a: ["ref", "Entrar por los techos del depósito.", "Bajaste por la claraboya sin ruido.", "La chapa crujió y despertó a medio barrio."],
           b: ["fue", "Romper el candado de la jaula.", "El candado cede.", "El candado aguanta más que vos."],
           foe: ["El sereno del depósito", "El sereno tiene una escopeta y poco sueño.", "El sereno se queda dormido de golpe.", "El sereno te saca a escopetazos al aire."],

@@ -55,6 +55,7 @@ export interface Home {
   closet: string[];    // (versión vieja: el armario; ahora todo va al inventario)
   obra: { part: "cama" | "caja" | "armario"; since: number; until: number } | null; // mejora en construcción
   house?: string;      // qué casa tenés (si no está, la pieza de pensión)
+  spawn?: string;      // el barrio donde naciste (ahí está tu pieza de pensión)
 }
 
 export interface PlayerState {

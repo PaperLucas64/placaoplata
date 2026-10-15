@@ -110,6 +110,21 @@ emboscadas rechazadas (+2/+3). Perder una pelea que iniciaste: −2.
 6 encargos que destraban Trabajos, Gimnasio, Feria, Ring, Clínica y Misiones, más la misión «La valija».
 Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los encargos de las pandillas. Dura ~32 de energía.
 
+### 5.2 Maires = Capital (por ahora)
+El mapa es la Capital del sur de las autopistas 25 de Mayo y Perito Moreno hacia el norte, hasta la General Paz y el río
+(con la Reserva y Aeroparque): **34 barrios oficiales pegados**, cada uno con su nombre de parodia y su contorno:
+Agromanía, Almagrito, Once y Medio, Belgranito, Caballote, Chacarota, Coglán, Colegas, Floreros, Florestita, Liniers Sur,
+Monsefrat, Monte Castrito, Ñuñez, Palermo Soja, Parque Chau, La Paterna, Puerto Mareo, Reloquita, Salida (Retiro),
+Saavedrita, San Nicolasito, Vélez Sarsfeel, Versalles Chico, Villa Crespa, Villa del Charque, Villa Devota, Villa Mitrecito,
+Villa Lurio, Villa Ortuzán, Villa Puerredón, Villa Realeza, Villa Santa Rata y Villa Urquisa. El sur, el conurbano y el
+interior quedan para más adelante.
+- **Naciste en un barrio al azar** (ahí está tu pieza de pensión) y después te mudás.
+- **Barrio de cada pandilla:** La Familia, Puerto Mareo · El Sindicato, Chacarota · La Barra, Ñuñez · Los Amarillos, Once y Medio.
+- **Los viajes van por las cuadras:** el servidor calcula el camino real (OpenStreetMap) desde donde estés, cada vez que
+  salís; la vuelta a casa también. Por ahora sin subte ni tren (hay que rearmarlos para Capital).
+- **Actividad rápida** (al lado de «Ficha»): te manda a una misión o a un golpe al azar de los que podés hacer ahora.
+- **Las misiones que no podés hacer ahora no se muestran** (ni en los contactos, ni en el tablón, ni en el mapa).
+
 ### 5.2a El mapa es el juego (lugares, como en GTA)
 El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al tocar uno se abre lo que podés hacer ahí:
 - **Contactos** (los «Lester» de Maires): Bar La Esquina (Marga: tutorial y La valija) · la casona de La Señora (Puerto Mareo) ·

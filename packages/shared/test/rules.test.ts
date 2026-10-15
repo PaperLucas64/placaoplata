@@ -21,7 +21,7 @@ function veteran(name: string, gang: Gang | null = null): PlayerState {
   const s = newPlayer(name, T0);
   Object.assign(s, { lvl: 6, gold: 500, tut: 6, tutDone: true, stats: { fue: 9, dur: 9, ref: 9, agu: 9, lab: 9 } });
   if (gang) s.aff[gang] = 20;
-  s.c.valija = 1; s.hp = maxHp(s);
+  s.c.valija = 1; s.hp = maxHp(s); s.home.spawn = "Almagrito";
   return s;
 }
 
@@ -335,14 +335,16 @@ describe("territorio", () => {
     expect(decayed(100, 2 * TURF_HALF_LIFE)).toBeCloseTo(25);
   });
   it("una misión de calle suma influencia en su barrio para la pandilla que la da", () => {
-    let s: PlayerState, seed = 1;
+    let s: PlayerState, seed = 1, place = "";
     do {
       s = veteran("Ana"); s.stats = { fue: 40, dur: 40, ref: 40, agu: 40, lab: 40 }; s.hp = maxHp(s);
       newBoard(s, seeded(seed), T0);
+      place = s.board[0].place!;
       applyAction(s, { type: "mstart", id: s.board[0].id }, ctx());
       missionCatchUp(s, ctx(T0 + 60 * 60_000, seed++));
     } while (!s.influence?.length && seed < 20);
-    expect(s.influence![0].barrio).toBe(BARRIOS.find(b => s.log.some(l => l.msg.includes(b))));
+    expect(BARRIOS).toContain(place);
+    expect(s.influence![0].barrio).toBe(place);
   });
   it("cada barrio de tu pandilla paga un 2% más", () => {
     const s = veteran("Ana", "barra"); s.turf = 3;
@@ -388,33 +390,32 @@ describe("viajes y GPS", () => {
     applyAction(a, { type: "mstart", id: m.id, mode: "pie" }, ctx());
     applyAction(b, { type: "mstart", id: m.id, mode: "colectivo" }, ctx());
     const ba = a.busy!, bb = b.busy!;
-    expect(ba.kind === "mision" && ba.trip?.place).toBe("Barrancas");
+    expect(ba.kind === "mision" && ba.trip?.place).toBe("Chacarota");
     expect(ba.until - ba.since).toBeGreaterThan(bb.until - bb.since);
-    expect(b.gold).toBe(500 - tripCost(b, "colectivo", "Barrancas"));
+    expect(b.gold).toBe(500 - tripCost(b, "colectivo", "Chacarota"));
     const go = ba.kind === "mision" ? ba.trip!.go : 0;
     missionCatchUp(a, ctx(T0 + go - 1000));
     expect(ba.kind === "mision" && ba.done).toBe(0);              // todavía viajando
     missionCatchUp(a, ctx(T0 + go + 1000));
-    expect(a.log.some(l => l.msg.includes("Llegaste a Barrancas"))).toBe(true);
+    expect(a.log.some(l => l.msg.includes("Llegaste a Chacarota"))).toBe(true);
   });
-  it("al interior no se va a pie ni en colectivo; los Amarillos no pagan el taxi", () => {
-    const s = veteran("Ana");
-    expect(travelModes(s, "Rosarito")).not.toContain("pie");
-    expect(travelModes(s, "Rosarito")).toContain("micro");
-    expect(tripMins(s, "micro", "Rosarito")).toBeGreaterThan(tripMins(s, "colectivo", "Barrancas"));
+  it("más lejos, más tiempo; los Amarillos no pagan el taxi", () => {
+    const s = veteran("Ana"); // vive en Almagrito
+    expect(travelModes(s, "Saavedrita")).toContain("colectivo");
+    expect(tripMins(s, "colectivo", "Saavedrita")).toBeGreaterThan(tripMins(s, "colectivo", "Caballote"));
     const y = veteran("Yami", "amarillos");
-    expect(tripCost(y, "taxi", "Barrancas")).toBe(0);
-    expect(tripCost(s, "taxi", "Barrancas")).toBeGreaterThan(0);
+    expect(tripCost(y, "taxi", "Chacarota")).toBe(0);
+    expect(tripCost(s, "taxi", "Chacarota")).toBeGreaterThan(0);
   });
   it("la moto pide nivel 15 y el motor preparado la hace más rápida", () => {
     const s = veteran("Ana"); s.gold = 20000;
     expect(applyAction(s, { type: "vehicle", v: "moto" }, ctx()).error).toMatch(/nivel 15/);
     s.lvl = 15;
     expect(applyAction(s, { type: "vehicle", v: "moto" }, ctx()).error).toBeUndefined();
-    expect(travelModes(s, "Mataderos")).toContain("moto");
-    const slow = tripMins(s, "moto", "Rosarito");
+    expect(travelModes(s, "Liniers Sur")).toContain("moto");
+    const slow = tripMins(s, "moto", "Saavedrita");
     applyAction(s, { type: "mod", v: "moto", mod: "motor" }, ctx());
-    expect(tripMins(s, "moto", "Rosarito")).toBeLessThan(slow);
+    expect(tripMins(s, "moto", "Saavedrita")).toBeLessThan(slow);
     expect(applyAction(s, { type: "mod", v: "moto", mod: "polarizado" }, ctx()).error).toBeTruthy(); // la moto no se polariza
   });
 });
@@ -517,7 +518,7 @@ describe("lugares del mapa y eventos", () => {
     const s = veteran("Ana"); s.lvl = 6;
     expect(applyAction(s, { type: "job", id: "celu", at: "desarmadero-tuerca" }, ctx()).error).toMatch(/ahí/);
     expect(applyAction(s, { type: "job", id: "desarme", at: "desarmadero-tuerca" }, ctx()).error).toBeUndefined();
-    expect(s.busy?.kind === "salida" && s.busy.place).toBe("Barrancas");
+    expect(s.busy?.kind === "salida" && s.busy.place).toBe("La Paterna");
   });
   it("Halloween dura del 24 de octubre al 2 de noviembre", () => {
     expect(activeEvents(Date.UTC(2026, 9, 15, 15))).toEqual([]);

@@ -23,7 +23,7 @@ import {
 import type { Action, ActionResult, Gang, Job, Mission, PlayerState, Rng, Target } from "./types.js";
 
 /* from: si venías volviendo de algo, desde dónde salís (el servidor lo calcula por las cuadras) */
-export interface Ctx { now: number; rng: Rng; from?: FromPoint }
+export interface Ctx { now: number; rng: Rng; from?: FromPoint; place?: string } // place: el barrio que eligió el servidor (golpes)
 const fail = (error: string): ActionResult => ({ error });
 
 
@@ -131,7 +131,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (!isGolpe(j.id)) { resolveJob(s, j, now, rng); return {}; }   // los laburos honestos, al instante
       const spot = a.at ? lugarOf(a.at) : undefined;
       if (a.at && spot?.job !== j.id) return fail("Eso no se hace ahí.");
-      startSalida(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
+      startSalida(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? ctx.place ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
       return {};
     }
 
@@ -292,8 +292,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.energy < missionEnergy(m)) return fail(`Te hacen falta ${missionEnergy(m)} de energía.`);
       if (s.hp < maxHp(s) * 0.5) return fail("Así de golpeado no te conviene salir. Curate primero.");
       const place = missionPlace(m);
-      const from = onTheWayHome(s) ? ctx.from : undefined;
-      if (onTheWayHome(s) && !from) return fail("Estás volviendo a casa: no se pudo calcular el camino desde donde estás. Probá de nuevo.");
+      const from = ctx.from; // el camino por las cuadras (lo calcula el servidor); si no está, se estima
       let mode: TravelMode | undefined;
       if (place && needsTrip(s, m, from)) {
         mode = a.mode ?? defaultMode(s, place, from);
@@ -437,7 +436,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (t.kind !== "npc") return fail("Los duelos contra jugadores los resuelve el servidor.");
       s.energy -= DUEL_COST;
       s.targets.splice(a.i, 1);
-      const fight = battle(rng, playerFighter(s), scaledEnemy(rng, t.name, t.lvl, 0.95));
+      const fight = battle(rng, playerFighter(s), scaledEnemy(rng, t.name, t.lvl, 0.97));
       s.hp = Math.max(1, fight.p.hp);
       duelOutcome(s, t, fight.won, now, t.gold);
       return { fight };
@@ -457,8 +456,8 @@ export function golpePlace(s: PlayerState, rng: Rng) {
 function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, name: string, place: string, ctx: Ctx) {
   const { now, rng } = ctx;
   const street = onTheWayHome(s);
-  const from = street ? ctx.from : undefined;
-  if (street && !from) place = s.busy?.kind === "vuelta" ? s.busy.place : place;  // ya andás por la calle: lo hacés ahí nomás
+  const from = ctx.from;
+  if (street && !from) place = s.busy?.kind === "vuelta" ? s.busy.place : place;  // sin camino calculado y en la calle: lo hacés ahí nomás
   const home = homePlace(s);
   const r = from ? { calle: from.km, pie: from.km } : !street ? routeTo(home, place) : undefined;
   let mode: TravelMode | undefined;
