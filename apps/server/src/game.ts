@@ -41,7 +41,7 @@ async function fillTargets(q: Queryable, id: number, s: PlayerState) {
       WHERE p.side = $1 AND p.id <> $2 AND p.lvl BETWEEN $3 AND $4
         AND NOT EXISTS (SELECT 1 FROM pvp_log l WHERE l.attacker_id = $2 AND l.defender_id = p.id AND l.at > now() - $5 * interval '1 millisecond')
       ORDER BY random() LIMIT 3`,
-    [foeSide(s.side), id, s.lvl - 3, s.lvl + 5, PVP_SAME_TARGET_EVERY]);
+    [foeSide(s.side), id, s.lvl - 3, s.lvl + (s.lvl < 8 ? 1 : 3), PVP_SAME_TARGET_EVERY]);
   const targets: Target[] = real.rows.map(r => ({ kind: "player", id: r.id, name: r.name, lvl: r.lvl, gold: Math.round(r.gold / 10) * 10 }));
   const used = new Set(targets.map(t => t.name));
   while (targets.length < TARGETS) {

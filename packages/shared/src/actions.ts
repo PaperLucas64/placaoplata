@@ -26,7 +26,7 @@ export function canStart(s: PlayerState, m: Mission) {
 }
 
 export const npcTarget = (rng: Rng, side: Side, lvl: number, name = pick(rng, FOES[foeSide(side)])): Target => {
-  const l = Math.max(1, lvl + rnd(rng, -2, 2));
+  const l = Math.max(1, lvl + rnd(rng, -2, lvl < 8 ? 1 : 2)); // a nivel bajo, un nivel pesa mucho
   return { kind: "npc", name, lvl: l, gold: rnd(rng, l * 20, l * 55) };
 };
 
@@ -52,8 +52,9 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (s.lvl < j.lvl) return fail(`Pide nivel ${j.lvl}.`);
       if (s.energy < j.cost) return fail("No te alcanza la energía.");
       s.energy -= j.cost;
-      if (s.side === "plata" && rng() < s.heat / 250 + j.risk * 0.02) {
-        const fine = Math.min(s.gold, Math.round(s.gold * 0.15) + s.lvl * 5);
+      /* la plata: con calor alto es más fácil que te agarren (con 50 de calor, ~1 de cada 7 golpes) */
+      if (s.side === "plata" && rng() < s.heat / 400 + j.risk * 0.01) {
+        const fine = Math.min(s.gold, Math.round(s.gold * 0.1) + s.lvl * 5);
         s.gold -= fine; addHeat(s, -35);
         log(s, now, `${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.`, "bad");
       } else if (rng() < [0, 0.06, 0.18, 0.3][j.risk]) {
@@ -61,7 +62,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
         s.hp = Math.max(1, s.hp - dmg);
         log(s, now, `${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
       } else {
-        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.03));
+        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015));
         const xp = rnd(rng, ...j.xp);
         s.gold += gold; gainXp(s, now, xp); s.c.jobs++;
         if (j.resp) addRespect(s, now, j.resp);

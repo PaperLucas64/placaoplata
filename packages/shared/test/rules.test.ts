@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, maxHp, MISSIONS, newPlayer, pvp, regen, type PlayerState, type Rng
+  applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, maxHp, MISSIONS, newPlayer, pvp, RANK_AT, regen, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -64,7 +64,7 @@ describe("bandos", () => {
     expect(canStart(s, ronda)).toBe(true);
     s.done.ronda = true;
     expect(canStart(s, allanamiento)).toBe(false); // falta rango Sargento
-    s.respect = 120;
+    s.respect = RANK_AT[allanamiento.rank];
     expect(canStart(s, allanamiento)).toBe(true);
   });
 });

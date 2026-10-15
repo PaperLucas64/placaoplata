@@ -7,13 +7,15 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -n server,web -c blue,yellow \"npm run dev -w apps/server\" \"npm run dev -w apps/web\"",
+    "dev": "concurrently -n server,web -c blue,yellow \"tsx tools/devserver.ts\" \"npm run dev -w apps/web\"",
     "build": "npm run build -w apps/web",
     "start": "npm run start -w apps/server",
     "typecheck": "tsc -p packages/shared && tsc -p apps/server && tsc -p apps/web",
     "test": "vitest run",
     "sim": "tsx tools/sim.ts",
-    "seed": "tsx tools/seed.ts"
+    "seed": "tsx tools/seed.ts",
+    "playthrough": "tsx tools/playthrough.ts",
+    "brief": "tsx tools/brief.ts"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

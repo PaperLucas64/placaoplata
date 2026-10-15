@@ -11,6 +11,7 @@ import { newPlayer, type Action } from "@pop/shared";
 import { openDb } from "./db.js";
 import { checkPassword, COOKIE, createSession, deleteSession, hashPassword, SESSION_DAYS, userFromToken, validPassword, validUsername } from "./auth.js";
 import { makeGame } from "./game.js";
+import { seedTestPlayers } from "./seed.js";
 
 const PROD = process.env.NODE_ENV === "production";
 /* en desarrollo siempre 3000 (Vite apunta ahí); en producción, el puerto que da el hosting */
@@ -106,5 +107,25 @@ if (existsSync(web)) {
   app.setNotFoundHandler((req, reply) => req.url.startsWith("/api") ? reply.code(404).send({ error: "No existe." }) : reply.sendFile("index.html"));
 }
 
+/* solo en desarrollo y desde la misma compu: crear jugadores de prueba (npm run seed) */
+if (!PROD) app.post("/api/dev/seed", async (req, reply) => {
+  if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) return reply.code(403).send({ error: "Solo local." });
+  return { created: await seedTestPlayers(db) };
+});
+
 await app.listen({ port: PORT, host: "0.0.0.0" });
 console.log(`Placa o Plata escuchando en http://localhost:${PORT}`);
+
+/* Cierre ordenado: termina las peticiones en curso y cierra la base sin dejarla a medio escribir.
+   En producción llega SIGTERM; en desarrollo, el mensaje "shutdown" de tools/devserver.ts. */
+let closing = false;
+export async function shutdown() {
+  if (closing) return; closing = true;
+  for (const set of sockets.values()) for (const ws of set) ws.close(1012, "reiniciando");
+  await app.close();
+  await db.close();
+  process.exit(0);
+}
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+process.on("message", m => { if (m === "shutdown") shutdown(); });

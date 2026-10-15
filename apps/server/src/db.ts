@@ -1,4 +1,6 @@
 /* Base de datos: Postgres de verdad si hay DATABASE_URL; si no, PGlite (Postgres embebido) en .data/
+   PGlite vive dentro del proceso: nunca abrir la misma carpeta desde dos procesos, y cerrar con db.close()
+   (tools/devserver.ts reinicia el servidor pidiéndole que se cierre en vez de matarlo).
    Las dos se usan igual: query(sql, params) y tx(fn). */
 import { readdirSync, readFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -30,7 +32,17 @@ async function openPglite(): Promise<Db> {
 
 async function openPg(url: string): Promise<Db> {
   const { default: pg } = await import("pg");
-  const pool = new pg.Pool({ connectionString: url, ssl: url.includes("localhost") ? undefined : { rejectUnauthorized: false } });
+  const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+  const pool = new pg.Pool({
+    connectionString: url,
+    ssl: local ? undefined : { rejectUnauthorized: false },
+    max: Number(process.env.DB_POOL_MAX ?? 10)
+  });
+  /* la base puede tardar unos segundos en arrancar (en desarrollo arranca al mismo tiempo que el servidor) */
+  for (let i = 1; ; i++) {
+    try { await pool.query("SELECT 1"); break; }
+    catch (e) { if (i >= 30) throw e; await new Promise(r => setTimeout(r, 500)); }
+  }
   return {
     query: (sql, params) => pool.query(sql, params as any[]) as any,
     async tx(fn) {

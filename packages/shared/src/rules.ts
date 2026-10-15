@@ -10,7 +10,7 @@ export const money = (n: number) => `$${n}`;
 
 export const maxHp = (s: Pick<PlayerState, "stats" | "lvl">) => 40 + s.stats.agu * 12 + s.lvl * 6;
 export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
-export const trainCost = (v: number) => Math.round(2 * Math.pow(v, 1.7));
+export const trainCost = (v: number) => Math.round(3 * Math.pow(v, 2));
 export const gearVal = (s: PlayerState, slot: "arma" | "armadura") => SHOP.find(i => i.id === s.gear[slot])?.val ?? 0;
 export const rankOf = (s: Pick<PlayerState, "respect">) => RANK_AT.filter(r => s.respect >= r).length - 1;
 export const foeSide = (side: Side): Side => (side === "placa" ? "plata" : "placa");
@@ -20,7 +20,7 @@ export const getMission = (id: string) => allMissions().find(m => m.id === id);
 export const salary = (s: PlayerState) => 30 + s.lvl * 12 + rankOf(s) * 25;
 export const salaryLeft = (s: PlayerState, now: number) => Math.max(0, SALARY_EVERY - (now - s.tSalary));
 export const lawyerCost = (s: PlayerState) => 20 + s.lvl * 8;
-export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * 0.6));
+export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * 0.25));
 export const itemLocked = (s: PlayerState, it: Item) => s.lvl < it.lvl || (!!it.rank && rankOf(s) < it.rank);
 
 export function newPlayer(name: string, now: number): PlayerState {
@@ -69,12 +69,15 @@ export function regen(s: PlayerState, now: number) {
 export function playerFighter(s: PlayerState): Fighter {
   return { name: s.name, hp: s.hp, max: maxHp(s), fue: s.stats.fue, dur: s.stats.dur, ref: s.stats.ref, arma: gearVal(s, "arma"), armadura: gearVal(s, "armadura") };
 }
+/* Golpes fuertes y con variación: las peleas duran pocos rounds y un rival un poco mejor no es imposible.
+   Curva medida con tools/playthrough.ts y docs/BALANCE.md. */
 function strike(rng: Rng, a: Fighter, d: Fighter) {
-  const chance = clamp(70 + (a.ref - d.ref) * 3, 20, 95);
+  const chance = clamp(62 + (a.ref - d.ref) * 1.5, 25, 92);
   if (rng() * 100 >= chance) return 0;
-  const crit = rng() < 0.08;
-  let dmg = a.fue * 1.6 + a.arma + rnd(rng, 0, 4) - d.dur * 0.7 - d.armadura;
-  dmg = Math.max(1, Math.round(dmg * (crit ? 1.8 : 1)));
+  const crit = rng() < 0.15;
+  const roll = 0.5 + rng();                       // entre 50% y 150% del golpe
+  let dmg = 3 * ((a.fue * 1.6 + a.arma) * roll - d.dur * 0.5 - d.armadura * 0.7);
+  dmg = Math.max(1, Math.round(dmg * (crit ? 1.6 : 1)));
   return crit ? -dmg : dmg;
 }
 const fLine = (r: number, who: string, d: number) =>
@@ -94,9 +97,9 @@ export function battle(rng: Rng, p: Fighter, e: Fighter): FightView {
 }
 /* Rival del juego escalado por nivel, al ritmo al que se puede entrenar en el gimnasio */
 export function scaledEnemy(rng: Rng, name: string, lvl: number, mult: number): Fighter {
-  const base = 4 + lvl * 0.95;
+  const base = Math.max(5, 0.5 + lvl * 1.4);   // lo que mide el bot en un jugador que entrena parejo
   const v = () => Math.max(3, Math.round(base * mult + rnd(rng, -2, 2)));
   const agu = v();
   const max = Math.round((40 + agu * 12 + lvl * 6) * (0.85 + mult * 0.15));
-  return { name, hp: max, max, fue: v(), dur: v(), ref: v(), arma: Math.round(lvl * 1.0 * mult), armadura: Math.round(lvl * 0.75 * mult) };
+  return { name, hp: max, max, fue: v(), dur: v(), ref: v(), arma: Math.round(Math.min(24, lvl * 1.4) * mult), armadura: Math.round(Math.min(24, lvl * 1.2) * mult) };
 }

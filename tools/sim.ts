@@ -1,28 +1,27 @@
-/* Simulador de balance: corre miles de peleas con las fórmulas reales del juego.
+/* Simulador de peleas: miles de peleas con las fórmulas reales del juego.
    Uso: npm run sim
-   Para probar un cambio, tocá packages/shared/src (rules.ts, data.ts) y volvé a correrlo. */
-import { battle, maxHp, scaledEnemy, type Fighter } from "@pop/shared";
+   El "jugador típico" sale de tools/playthrough.ts: el atributo de combate promedio es ~1,4 × nivel
+   y el equipo, el que se puede comprar a ese nivel. */
+import { battle, maxHp, RING, scaledEnemy, type Fighter } from "@pop/shared";
 
 const N = 4000;
-/* un jugador "típico" por nivel: atributos que se pueden pagar entrenando a ese nivel */
-function typical(lvl: number, stat: number, arma: number, armadura: number): Fighter {
-  const max = maxHp({ lvl, stats: { fue: stat, dur: stat, ref: stat, agu: stat, lab: stat } });
-  return { name: "Jugador", hp: max, max, fue: stat, dur: stat, ref: stat, arma, armadura };
+export function typical(lvl: number): Fighter {
+  const st = Math.max(5, Math.round(lvl * 1.4));
+  const max = maxHp({ lvl, stats: { fue: st, dur: st, ref: st, agu: st, lab: st } });
+  const arma = lvl < 3 ? 3 : lvl < 6 ? 7 : lvl < 9 ? 13 : lvl < 13 ? 20 : 21;
+  const armadura = lvl < 3 ? 2 : lvl < 6 ? 6 : lvl < 9 ? 11 : lvl < 13 ? 16 : 24;
+  return { name: "Jugador", hp: max, max, fue: st, dur: st, ref: st, arma, armadura };
 }
-const CASES: [string, Fighter, number, number][] = [
-  ["Ring: sparring (nv1)", typical(1, 5, 0, 0), 1, 0.6],
-  ["La valija (nv3)", typical(3, 6, 3, 2), 3, 0.9],
-  ["La protección / Ronda (nv6)", typical(6, 9, 7, 6), 6, 0.9],
-  ["La calle, rival parejo (nv6)", typical(6, 9, 7, 6), 6, 0.95],
-  ["La calle, rival +2 (nv6)", typical(6, 9, 7, 6), 8, 0.95],
-  ["Blindado / Allanamiento (nv10)", typical(10, 13, 13, 11), 10, 1.0],
-  ["Final de bando (nv16)", typical(16, 18, 20, 16), 16, 1.1]
-];
-
-console.log(`${"Pelea".padEnd(34)} gana`);
-for (const [name, p, lvl, mult] of CASES) {
+const winPct = (lvl: number, eLvl: number, mult: number) => {
   let w = 0;
-  for (let i = 0; i < N; i++) if (battle(Math.random, p, scaledEnemy(Math.random, "Rival", lvl, mult)).won) w++;
-  const pct = Math.round(w / N * 100);
-  console.log(`${name.padEnd(34)} ${String(pct).padStart(3)}%  ${"█".repeat(Math.round(pct / 5))}`);
+  for (let i = 0; i < N; i++) if (battle(Math.random, typical(lvl), scaledEnemy(Math.random, "Rival", eLvl, mult)).won) w++;
+  return Math.round(w / N * 100);
+};
+const bar = (p: number) => `${String(p).padStart(3)}%  ${"█".repeat(Math.round(p / 5))}`;
+
+console.log("La calle: nivel del rival comparado con el tuyo (jugador típico de nivel 5 / 12 / 20)");
+for (const d of [-2, -1, 0, 1, 2, 3]) {
+  console.log(`  ${d >= 0 ? "+" : ""}${d}`.padEnd(6), [5, 12, 20].map(l => `${String(winPct(l, l + d, 0.95)).padStart(3)}%`).join("   "));
 }
+console.log("\nRing (al nivel en que se destraba cada rival, y 3 niveles después)");
+for (const m of RING) console.log(`  ${m.name.padEnd(24)} nv${m.lvl}: ${bar(winPct(m.lvl, m.lvl, m.mult))}   nv${m.lvl + 3}: ${winPct(m.lvl + 3, m.lvl + 3, m.mult)}%`);

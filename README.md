@@ -26,7 +26,7 @@ npm run dev
 
 Abrí http://localhost:5173 y creá un personaje. La partida queda guardada en `.data/` (base local).
 
-Para probar La calle con rivales de verdad, creá jugadores de prueba (con el servidor apagado):
+Para probar La calle con rivales de verdad, creá jugadores de prueba (con `npm run dev` andando, en otra terminal):
 
 ```bash
 npm run seed
@@ -40,25 +40,27 @@ Crea `Cabo Prueba`, `Agente Test` (placa), `Rata Prueba` y `Turca Test` (plata).
 packages/shared/   datos y reglas del juego: misiones, ítems, combate, energía, acciones
 apps/server/       Node + Fastify + Postgres: cuentas, partidas, peleas entre jugadores, avisos en vivo
 apps/web/          React + Vite: la pantalla
-tools/             simulador de balance y jugadores de prueba
+tools/             bot de balance, simulador de peleas, jugadores de prueba y el modo desarrollo
+docs/BALANCE.md    cómo está calibrado el juego y por qué
 legacy/            la primera versión (un solo HTML) y los prototipos anteriores
 ```
 
 - **El servidor hace todas las cuentas.** La pantalla solo pide acciones, así nadie puede hacer trampa editando su partida.
 - **Las reglas están en un solo lugar** (`packages/shared`). Las usan el servidor, la pantalla y el simulador.
 - **Base de datos:** sin configurar nada usa PGlite (Postgres dentro de Node). Para publicarlo, se pone `DATABASE_URL` apuntando a un Postgres real.
+- **Balance:** ver [docs/BALANCE.md](docs/BALANCE.md). Si tocás números en `packages/shared`, corré `npm run brief` y `npm test`.
 
 ## Otras órdenes
 
 | Orden | Qué hace |
 |---|---|
-| `npm test` | Corre los tests de las reglas |
-| `npm run sim` | Simula miles de peleas y muestra qué tan difícil es cada una |
+| `npm test` | Tests de las reglas y guardia del balance |
+| `npm run brief` | Un bot juega 30 partidas por bando y resume el balance (ritmo, peleas, plata) |
+| `npm run sim` | Simula miles de peleas: la calle por diferencia de nivel y el Ring |
 | `npm run typecheck` | Revisa los tipos de todo el proyecto |
 | `npm run build` y `npm start` | Arma la versión de producción; el servidor entrega también la pantalla |
 
 ## Pendiente
 
-- Documento de balance (ingresos y gastos por nivel). La simulación muestra que un rival 2 niveles arriba es casi imposible.
 - Publicarlo online (hosting + Postgres).
 - Ideas: chat, clanes/bandas, mensajes entre jugadores, trabajo largo por horas, más misiones.
