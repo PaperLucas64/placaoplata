@@ -387,3 +387,6 @@ body{background:transparent}
 .world .gps-follow{bottom:122px}
 .world .gps-view{bottom:162px}
 @media (max-width:820px){.world .gps-status{left:8px;right:8px;max-width:none}}
+.gps-label span{transform:none}
+.gps-label{--owner:#cfc6b4}
+.gps-label span{color:var(--owner);opacity:.9}

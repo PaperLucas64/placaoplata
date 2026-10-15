@@ -130,6 +130,8 @@ El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al 
   estás haciendo (con «Ficha» para ver todo). Al tocar un lugar se abre encima del mapa (al costado en compu, desde abajo en el
   teléfono). Las pestañas quedan debajo, como menú, mientras todo pasa al mapa.
 - **Reloquita** (antes «Recoleta Bien»).
+- **Barrios con su contorno real** (de la Ciudad y Florida), pintados del color de la pandilla que los controla; el resto de la
+  ciudad con una línea tenue. El zoom es con la ruedita del mouse.
 
 ### 5.2b Pestañas
 Cinco pestañas con secciones: **Calle** (Trabajos, Misiones, Pelear, Negocios) · **Gimnasio** (Entrenar, Ring) ·

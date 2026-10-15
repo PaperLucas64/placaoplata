@@ -36,3 +36,5 @@ Si se agrega arte nuevo: anotar acá el pack, el autor y la licencia, y sumarlo 
 
 - **Noto Emoji** de Google (licencia Apache 2.0), en `apps/web/src/assets/lugares/`: los íconos de colores de los lugares.
   Son provisorios, hasta tener los propios.
+- **Contornos de los barrios:** datos abiertos del Gobierno de la Ciudad de Buenos Aires (licencia CC BY 2.5 AR) y, para
+  Florida, OpenStreetMap (ODbL). Se generan con `tools/geo/barrios.py`.

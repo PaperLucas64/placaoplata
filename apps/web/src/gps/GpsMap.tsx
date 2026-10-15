@@ -11,6 +11,12 @@ import {
 import type { Traveler } from "../api";
 
 let rutasCache: Promise<Rutas> | null = null;
+type Barrios = { type: "FeatureCollection"; features: { type: "Feature"; properties: { name: string; game: boolean; color?: string }; geometry: { type: "MultiPolygon"; coordinates: number[][][][] } }[] };
+let barriosCache: Promise<Barrios> | null = null;
+const loadBarrios = () => (barriosCache ??= import("@pop/shared/barrios.json").then(m => m.default as unknown as Barrios));
+/* los barrios con el color de su dueño (los del juego); el resto de la ciudad, sin color */
+const paintBarrios = (b: Barrios, owners?: Record<string, string | null>) => ({ ...b,
+  features: b.features.map(f => ({ ...f, properties: { ...f.properties, color: f.properties.game ? owners?.[f.properties.name] ?? "#8a8070" : "#3a3d46" } })) });
 export const loadRutas = () => (rutasCache ??= import("@pop/shared/rutas.json").then(m => m.default as unknown as Rutas));
 
 /* ---------- estilo oscuro a partir de «positron» de OpenFreeMap ---------- */
@@ -126,7 +132,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   const prev = useRef(new Map<number, Pt>());
   const latest = useRef({ others, now, attack });
   latest.current = { others, now, attack };
-  const [data, setData] = useState<{ rutas: Rutas; style: StyleSpecification } | null>(null);
+  const [data, setData] = useState<{ rutas: Rutas; style: StyleSpecification; barrios: Barrios } | null>(null);
   const [failed, setFailed] = useState(false);
   const self = others?.find(o => o.id < 0);
   const traveling = !!place || !!self;
@@ -136,7 +142,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   const followRef = useRef(follow);
   followRef.current = follow;
   useEffect(() => {
-    Promise.all([loadRutas(), loadStyle()]).then(([rutas, style]) => setData({ rutas, style })).catch(() => setFailed(true));
+    Promise.all([loadRutas(), loadStyle(), loadBarrios()]).then(([rutas, style, barrios]) => setData({ rutas, style, barrios })).catch(() => setFailed(true));
   }, []);
 
   /* armar el mapa y el recorrido */
@@ -145,7 +151,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME];
     const map = new maplibregl.Map({
       container: box.current, style: sat ? satellite(data.style) : data.style, center: [home.lng, home.lat], zoom: 12, locale: LOCALE,
-      attributionControl: { compact: true }, cooperativeGestures: true, dragRotate: false, pitchWithRotate: false
+      attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false // la ruedita acerca y aleja
     });
     map.touchZoomRotate.disableRotation();
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
@@ -158,12 +164,9 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     /* barrios de la ciudad (con el color de su dueño, si hay) y el conurbano; el interior solo si vas para allá */
     for (const [name, p] of Object.entries(GEO_PLACES)) {
       if (p.interior && name !== place) continue;
-      const dot = document.createElement("div");
-      const color = owners?.[name] ?? "#8a8070";
-      dot.className = `gps-dot${owners ? " big" : ""}`;
-      dot.style.background = color; dot.style.borderColor = color;
-      new maplibregl.Marker({ element: dot }).setLngLat([p.lng, p.lat]).addTo(map);
-      new maplibregl.Marker({ element: labelEl(name, name === place ? "dest" : name === homeName ? "home" : ""), anchor: "bottom", offset: [0, -6] })
+      const lbl = labelEl(name, name === place ? "dest" : name === homeName ? "home" : "");
+      if (owners?.[name]) lbl.style.setProperty("--owner", owners[name]);
+      new maplibregl.Marker({ element: lbl, anchor: "center" })
         .setLngLat([p.lng, p.lat]).addTo(map);
       if (!place && !p.zone) bounds.extend([p.lng, p.lat]);
     }
@@ -172,6 +175,12 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     for (const l of legs) for (const p of l.pts) bounds.extend(ll(p));
     if (place && !legs.length && GEO_PLACES[place]) bounds.extend([GEO_PLACES[place].lng, GEO_PLACES[place].lat]);
     map.on("load", () => {
+      /* contornos de los barrios, del color de la pandilla que los controla */
+      map.addSource("barrios", { type: "geojson", data: paintBarrios(data.barrios, owners) as never });
+      map.addLayer({ id: "barrios-fill", type: "fill", source: "barrios", filter: ["==", ["get", "game"], true],
+        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.13 } });
+      map.addLayer({ id: "barrios-line", type: "line", source: "barrios",
+        paint: { "line-color": ["get", "color"], "line-width": ["case", ["get", "game"], 2.2, 0.7], "line-opacity": ["case", ["get", "game"], 0.9, 0.6] } });
       legs.forEach((l, i) => {
         map.addSource(`leg${i}`, { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: l.pts.map(ll) } } });
         map.addLayer({ id: `leg${i}`, type: "line", source: `leg${i}`, layout: { "line-cap": "round", "line-join": "round" },
