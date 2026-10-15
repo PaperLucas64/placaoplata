@@ -66,13 +66,13 @@ export function startTimedMission(s: PlayerState, m: Mission, now: number, mode?
 }
 
 /* volver a casa: estás en la calle (salvo en ambulancia) hasta llegar */
-export function startReturn(s: PlayerState, mode: TravelMode, place: string, at: number, rng: Rng, safe = false) {
+export function startReturn(s: PlayerState, mode: TravelMode, place: string, at: number, rng: Rng, safe = false, label?: string, ok?: boolean) {
   const home = homePlace(s);
   const r = routeTo(home, place);
   if (!r) { s.busy = null; return; }
   const m: TravelMode = mode === "riel" && !r.riel ? "colectivo" : mode === "pie" && !r.pie ? "colectivo" : mode;
   const mins = tripMins(s, m, place);
-  s.busy = { kind: "vuelta", since: at, until: at + mins * MIN, mode: m, place, home, ...(safe ? { safe } : {}) };
+  s.busy = { kind: "vuelta", since: at, until: at + mins * MIN, mode: m, place, home, ...(safe ? { safe } : {}), ...(label ? { label } : {}), ...(ok !== undefined ? { ok } : {}) };
   if (!safe) tripEvent(s, m, place, true, at, rng);
 }
 
@@ -121,7 +121,7 @@ export function missionCatchUp(s: PlayerState, { now, rng }: { now: number; rng:
   if (b.done >= m.steps.length && now >= b.until) {
     if (t && t.back && !(t.ev & 2)) { t.ev |= 2; tripEvent(s, t.mode, t.place, true, b.until, rng); } // misiones de antes: la vuelta ya estaba incluida
     s.busy = null; finishMission(s, m, b.ok, b.until, rng); changed = true;
-    if (t && !t.back) { startReturn(s, t.mode, t.place, b.until, rng); finishBusyLater(s, now); }
+    if (t && !t.back) { startReturn(s, t.mode, t.place, b.until, rng, false, `«${m.title}»`, b.ok >= missionNeed(m)); finishBusyLater(s, now); }
   }
   return changed;
 }
@@ -143,7 +143,7 @@ function careCatchUp(s: PlayerState, b: Extract<PlayerState["busy"], { kind: "gu
   if (now >= b.until) {
     s.hp = maxHp(s); s.c.heal++; s.tHeal = b.until; s.busy = null; changed = true;
     log(s, b.until, b.clinic ? "Te dieron el alta en la clínica. Vida al máximo. La ambulancia te lleva a casa." : "Te dieron el alta en la guardia. Vida al máximo. Volvés caminando.", "good");
-    startReturn(s, b.clinic ? "ambulancia" : "pie", t.place, b.until, rng, b.clinic);
+    startReturn(s, b.clinic ? "ambulancia" : "pie", t.place, b.until, rng, b.clinic, b.clinic ? "la clínica" : "la guardia", true);
     finishBusyLater(s, now);
   }
   return changed;

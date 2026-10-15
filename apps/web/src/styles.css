@@ -467,3 +467,16 @@ body{background:transparent}
   .gm .gps-view{bottom:280px}
 }
 .panel .lugar-close{display:none}
+
+/* la leyenda del mapa */
+.gps-status{display:grid;gap:3px}
+.lg-top{display:flex;align-items:center;gap:8px;min-width:0}
+.lg-who{flex:none;border:1px solid;border-radius:10px;padding:0 7px;font:700 .68rem/1.5 var(--mono);text-transform:uppercase}
+.lg-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-line{color:var(--muted)}
+.lg-line b{color:var(--fg)}
+.lg-steps{display:inline-flex;gap:3px;margin-right:6px;vertical-align:middle}
+.lg-steps span{width:9px;height:9px;border-radius:50%;border:1px solid var(--line);display:inline-block}
+.lg-steps .ok{background:#7fc8a9;border-color:#7fc8a9}
+.lg-steps .ko{background:#e0524f;border-color:#e0524f}
+.lg-steps .now{border-color:var(--sodium);box-shadow:0 0 6px var(--sodium)}

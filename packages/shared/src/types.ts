@@ -91,7 +91,8 @@ export type Busy =
   /* un golpe o un encargo: vas al barrio, lo hacés y volvés (el resultado se sabe al llegar) */
   | { kind: "salida"; since: number; until: number; what: "golpe" | "encargo"; ref: string; place: string; trip?: TripState | null }
   /* volviendo a casa después de algo: estás en la calle y podés arrancar otra cosa desde donde estés */
-  | { kind: "vuelta"; since: number; until: number; mode: TravelMode; place: string; home: string; path?: [number, number][]; safe?: boolean }
+  | { kind: "vuelta"; since: number; until: number; mode: TravelMode; place: string; home: string; path?: [number, number][]; safe?: boolean;
+      label?: string; ok?: boolean } // de qué venís (y si salió bien), para la leyenda del mapa
   | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[]; // etapas resueltas, cuántas salieron bien y cuáles
       trip?: TripState | null }                                                                           // el viaje: medio, destino, ida y vuelta
   /* saliste a cruzar a alguien: vas hasta donde lo alcanzás (meet), pelean y volvés */

@@ -484,7 +484,8 @@ export function salidaCatchUp(s: PlayerState, { now, rng }: { now: number; rng: 
     s.busy = null; changed = true;
     if (b.what === "golpe") { const j = jobList(s).find(x => x.id === b.ref); if (j) resolveJob(s, j, b.until, rng, b.place); }
     else resolveEncargo(s, b.ref as Gang, b.until, rng);
-    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng);
+    const label = b.what === "golpe" ? jobList(s).find(x => x.id === b.ref)?.name ?? "un golpe" : `un encargo para ${GANGS[b.ref as Gang].name}`;
+    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng, false, label);
     const v = s.busy as PlayerState["busy"];
     if (v?.kind === "vuelta" && now >= v.until) { s.busy = null; log(s, v.until, "Llegaste a casa."); }
   }

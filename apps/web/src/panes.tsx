@@ -58,19 +58,7 @@ export function CityMap(ui: Ui & { filter?: string | null }) {
         chase: { meet: b.meet, from: b.from, at: b.at, targetName: b.targetName, path: b.path } }]
     : people;
   const km = trip ? (trip.path ? kmOf(trip.path) : tripKm(trip.from ?? GEO_HOME, trip.place, trip.mode)) : 0;
-  const status = b?.kind === "guardia" && ph ? (ph.phase === "ida"
-      ? <>{b.clinic ? "La ambulancia te lleva" : "Caminando"} a {b.clinic ? "la clínica" : "la guardia"} en <b>{trip!.place}</b> · llegás en {minTxt(ph.left)} · nadie te puede tocar</>
-      : <>{b.clinic ? "Te están curando en la clínica" : "En la guardia, esperando que te atiendan"} · alta en {minTxt(b.until - now)} · nadie te puede tocar</>)
-    : b?.kind === "vuelta" && ph ? <>{b.safe ? "La ambulancia te lleva a casa" : `Volviendo a casa ${TRAVEL[b.mode].verb}`} · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(b.until - now)}{!b.safe && " · si querés, arrancá otra cosa desde acá"}</>
-    : b?.kind === "salida" ? (ph?.phase === "ida"
-      ? <>{TRAVEL[trip!.mode].name} a <b>{b.place}</b> para {b.what === "golpe" ? "un golpe" : "un encargo"} · llegás en {minTxt(ph.left)}</>
-      : <>En <b>{b.place}</b>, {b.what === "golpe" ? "en el golpe" : "haciendo el encargo"} · {minTxt(b.until - now)}</>)
-    : trip && ph ? tripLine(trip, ph, km)
-    : b?.kind === "caza" ? (now < b.meet
-      ? <>Vas {CHASE_NAMES[b.mode].toLowerCase()} a cruzar a <b>{b.targetName}</b> cerca de {b.place} · faltan {minTxt(b.meet - now)}</>
-      : <>Volviendo a casa · {minTxt(b.until - now)}</>)
-    : people.length ? <>{people.length} {people.length === 1 ? "persona anda" : "personas andan"} por la calle. Tocalos para ver a dónde van{s.tutDone ? " y salir a buscarlos" : ""}.</>
-    : <>La ciudad está tranquila. Vos estás en tu {houseOf(s).name.toLowerCase()} de {homePlace(s)}.</>;
+  const status = <Legend s={s} now={now} km={km} />;
   const crowd = <span className="crowd"><span className="live on" /> {online} en línea · {people.length} en la calle</span>;
   return <section className="city" aria-label="Mapa de Maires">
     <Suspense fallback={<div className="gps city-map" />}>
@@ -512,6 +500,56 @@ function streetFrom(s: Ui["s"], now: number, dest?: string): FromPoint | undefin
   const to = dest ? placePt(dest) : null;
   return { km: to ? Math.max(0.2, kmBetween(here, to) * 1.3) : 1 };
 }
+/* La leyenda del mapa: qué estás haciendo, de quién es, a dónde vas, cómo te va y cuánto falta */
+function Legend({ s, now, km }: { s: Ui["s"]; now: number; km: number }) {
+  const b = s.busy;
+  const left = b ? minTxt(b.until - now) : "";
+  const who = (name: string, color: string) => <span className="lg-who" style={{ color, borderColor: color }}>{name}</span>;
+  if (!b) return <>Estás en tu {houseOf(s).name.toLowerCase()} de {homePlace(s)}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>;
+  if (b.kind === "mision") {
+    const m = findMission(s, b.id);
+    if (!m) return <>En una misión · {left}</>;
+    const c = clientOf(m), t = b.trip, ph = t ? tripPhase(b, now) : null, n = m.steps.length, res = b.res ?? [], need = missionNeed(m);
+    const bad = res.filter(x => !x).length, good = b.ok;
+    const doing = ph?.phase === "ida" ? <>{TRAVEL[t!.mode].name} a <b>{t!.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</>
+      : <>En <b>{m.place ?? t?.place ?? "el lugar"}</b>, etapa {Math.min(b.done + 1, n)} de {n}</>;
+    const mood = bad > n - need ? "Se está cayendo" : good >= need ? "Ya salió bien: falta terminar" : b.done === 0 ? "Recién empieza" : good >= bad ? "Va bien" : "Viene complicada";
+    return <>
+      <span className="lg-top">{who(c.name, c.color)}<b className="lg-title">{m.title}</b></span>
+      <span className="lg-line">{doing}</span>
+      <span className="lg-line"><span className="lg-steps">{m.steps.map((_, i) => <span key={i} className={i < b.done ? (res[i] ? "ok" : "ko") : i === b.done ? "now" : ""} />)}</span>
+        {mood} · necesitás {need} de {n} · termina en {left}</span>
+    </>;
+  }
+  if (b.kind === "salida") {
+    const g = b.what === "encargo" ? GANGS[b.ref as Gang] : null;
+    const name = b.what === "golpe" ? [...JOBS, ...GOLPES].find(j => j.id === b.ref)?.name ?? "Golpe" : ENCARGOS[b.ref as Gang]?.name ?? "Encargo";
+    const ph = b.trip ? tripPhase(b, now) : null;
+    return <>
+      <span className="lg-top">{who(g ? g.name : "Golpe", g ? g.color : "#e0524f")}<b className="lg-title">{name}</b></span>
+      <span className="lg-line">{ph?.phase === "ida" ? <>{TRAVEL[b.trip!.mode].name} a <b>{b.place}</b> · llegás en {minTxt(ph.left)}</> : <>En <b>{b.place}</b>, haciéndolo · {left}</>}</span>
+    </>;
+  }
+  if (b.kind === "vuelta") return <>
+    <span className="lg-top">{who(b.safe ? "Ambulancia" : "Vuelta", b.safe ? "#ff6b6b" : "#e8e1d2")}<b className="lg-title">{b.label ? `Volviendo de ${b.label}` : "Volviendo a casa"}</b></span>
+    <span className="lg-line">{b.ok === true && b.label?.startsWith("«") ? "Salió bien · " : b.ok === false ? "Se cayó · " : ""}{TRAVEL[b.mode].name} desde {b.place} · faltan {kmTxt(km * Math.max(0, (b.until - now) / Math.max(1, b.until - b.since)))} · {left}
+      {!b.safe && " · podés arrancar otra cosa desde acá"}</span>
+  </>;
+  if (b.kind === "guardia") return <>
+    <span className="lg-top">{who(b.clinic ? "Clínica" : "Guardia", "#ff6b6b")}<b className="lg-title">{b.clinic ? "Te están curando" : "En la guardia"}</b></span>
+    <span className="lg-line">Vida {Math.round(s.hp)} de {maxHp(s)} · alta en {left} · nadie te puede tocar</span>
+  </>;
+  if (b.kind === "caza") return <>
+    <span className="lg-top">{who("Caza", "#e0524f")}<b className="lg-title">Buscando a {b.targetName}</b></span>
+    <span className="lg-line">{now < b.meet ? <>{CHASE_NAMES[b.mode]} · lo cruzás cerca de {b.place} en {minTxt(b.meet - now)}</> : <>Volviendo a casa · {left}</>}</span>
+  </>;
+  if (b.kind === "gym") return <>
+    <span className="lg-top">{who("Gimnasio", "#5bc0de")}<b className="lg-title">Entrenando {STAT_NAMES[b.stat].toLowerCase()}</b></span>
+    <span className="lg-line">Sube a {s.stats[b.stat] + 1} en {left}</span>
+  </>;
+  return <>{left}</>;
+}
+
 /* una línea con dónde va tu personaje */
 function tripLine(t: { mode: TravelMode; place: string; back: number }, ph: NonNullable<ReturnType<typeof tripPhase>>, km: number) {
   return ph.phase === "ida" ? <>{TRAVEL[t.mode].name} a <b>{t.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</>
