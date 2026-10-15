@@ -1,4 +1,4 @@
-import type { Action, ActionResult, Gang, Mission, PlayerState, TravelerView } from "@pop/shared";
+import type { Action, ActionResult, Gang, Mission, PlayerState, StatKey, TravelerView } from "@pop/shared";
 
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
@@ -31,7 +31,13 @@ export interface FriendsView {
 /* alguien que está en la calle ahora (para el mapa) */
 export type Traveler = TravelerView;
 /* un mensaje del chat de la ciudad (me: lo mandaste vos) */
-export interface ChatMsg { id: number; t: number; name: string; gang: Gang | null; msg: string; me?: boolean }
+export interface ChatMsg { id: number; t: number; pid: number; name: string; gang: Gang | null; msg: string; me?: boolean }
+/* el perfil público de otro jugador (y qué relación tenés con él) */
+export interface Profile {
+  id: number; name: string; lvl: number; avatar: number; gang: Gang | null; aff: Record<Gang, number>; rank: number; respect: number;
+  stats: Record<StatKey, number>; wins: number; losses: number; story: { gang: Gang; done: number; of: number }[]; side: number;
+  since: number; online: boolean; friend: "me" | "none" | "friend" | "sent" | "received";
+}
 export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean; bot?: boolean }
 
 export const api = {
@@ -42,6 +48,7 @@ export const api = {
   act: (a: Action) => call<Snapshot & { result: ActionResult }>("/api/action", a),
   ranking: () => call<RankRow[]>("/api/ranking"),
   chat: () => call<ChatMsg[]>("/api/chat"),
+  profile: (id: number) => call<Profile>(`/api/profile/${id}`),
   say: (msg: string) => call<ChatMsg>("/api/chat", { msg }),
   news: () => call<{ t: number; msg: string }[]>("/api/news"),
   travelers: () => call<{ now: number; people: Traveler[]; online?: number }>("/api/travelers"),

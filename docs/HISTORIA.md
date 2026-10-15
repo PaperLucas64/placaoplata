@@ -160,7 +160,7 @@ Aparecen como **contactos en el mapa** cuando cumplís su condición. Cada histo
 ## 6. Eventos y cosas que aparecen solas (ya empezado)
 
 - **Misiones temporales:** una «Urgente» por tablón, que paga más y dura dos horas. **Ya está.**
-- **Encuentros raros:** gente extraña que aparece un rato en un barrio (Batman con la Zanella, la vidente, el del futuro, la estatua viviente…). Hay 14 y aparece uno cada hora y cuarto. **Ya está.**
+- **Encuentros raros:** gente extraña que aparece un rato en un barrio (el hombre murciélago con su 110, la vidente, el del futuro, la estatua viviente…). Hay 14 y aparece uno cada hora y cuarto. **Ya está.**
 - **Eventos del calendario**, con misiones y premios propios:
   - Noche de Brujas (ya está).
   - Semana del Clásico, que se puede atar a la historia de La Barra.

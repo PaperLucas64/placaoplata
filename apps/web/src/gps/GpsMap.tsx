@@ -121,6 +121,7 @@ interface Props {
   onPin?: (id: string) => void;
   onBarrio?: (name: string) => void; // tocar un barrio (como el mapa de Helldivers)
   onMe?: () => void;         // tocarte a vos
+  onProfile?: (id: number) => void; // ver el perfil de otro jugador (desde su tarjeta)
   focus?: string | null;     // barrio al que acercarse
   selected?: string | null;
 }
@@ -128,7 +129,9 @@ interface Props {
 export interface Pin { id: string; name: string; icon: string; color: string; lat: number; lng: number; badge?: string; near?: boolean; deep?: boolean } // near: de cerca; deep: de muy cerca
 const PIN_ICONS = import.meta.glob("../assets/lugares/*.svg", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 const pinIcon = (k: string) => PIN_ICONS[`../assets/lugares/${k}.svg`] ?? PIN_ICONS["../assets/lugares/mision.svg"];
-export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus, onMe, homeAt }: Props) {
+export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus, onMe, homeAt, onProfile }: Props) {
+  const onProfileRef = useRef(onProfile);
+  onProfileRef.current = onProfile;
   const homeKey = homeAt ? homeAt.join(",") : "";
   const homeLL = () => homeAt ? { lat: homeAt[0], lng: homeAt[1] } : GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME];
   const onBarrioRef = useRef(onBarrio);
@@ -305,6 +308,13 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     const line = (cls: string, text: string) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; el.appendChild(d); return d; };
     line("name", o.name);
     line("tag", `nivel ${o.lvl} · ${o.gang ? GANGS[o.gang].name : "suelto"}`);
+    if (onProfileRef.current) {
+      const prof = document.createElement("button");
+      prof.className = "link";
+      prof.textContent = "Ver perfil y agregar de amigo";
+      prof.addEventListener("click", () => { popup.remove(); onProfileRef.current?.(o.id); });
+      el.appendChild(prof);
+    }
     if (o.chase) line("where", `Salió a buscar a ${o.chase.targetName}`);
     else if (o.trip) {
       const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, t);

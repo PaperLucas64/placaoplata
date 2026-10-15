@@ -444,7 +444,7 @@ export function longMission(rng: Rng, lvl: number, hours: number, id: string): M
 /* Gente extraña que aparece un rato en algún barrio y te pide algo. Duran poco: si no vas, se van. */
 type OddStep = [StatKey, string, string, string]; // atributo, qué hacés, si sale bien, si sale mal
 const RAROS: { who: string; text: string; steps: [OddStep, OddStep]; ok: string }[] = [
-  { who: "un hombre disfrazado de Batman", text: "Recuperar la batimoto (una Zanella robada)", ok: "Batman se sube a la Zanella y se va sin decir gracias, como corresponde.",
+  { who: "un hombre disfrazado de murciélago", text: "Recuperar la murcimoto (una 110 robada)", ok: "El hombre murciélago se sube a la 110 y se va sin decir gracias, como corresponde.",
     steps: [["ref", "Seguir por los techos al pibe que se la llevó", "Lo alcanzaste en la tercera terraza.", "Te quedaste colgado de una antena."],
             ["fue", "Recuperar la moto sin rayarla", "La moto vuelve impecable.", "Le dejaste un rayón del largo de una cuadra."]] },
   { who: "una vidente de la feria", text: "Encontrar el gato que vio en su bola de cristal", ok: "La vidente te lee la mano gratis. Dice que vas a ser rico. Ya veremos.",

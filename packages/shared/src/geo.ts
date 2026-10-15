@@ -24,7 +24,7 @@ export const TRAVEL_SCALE = 4, TRAVEL_SCALE_FAR = 8, FAR_KM = 50;
 
 export const VEHICLES: Record<Vehicle, { name: string; lvl: number; price: number; city: number; road: number; help: string }> = {
   moto: { name: "Moto 150 usada", lvl: 15, price: 6000, city: 32, road: 100, help: "Rápida en la ciudad. Te paran seguido." },
-  auto: { name: "Falcon con historia", lvl: 25, price: 25000, city: 28, road: 110, help: "El más rápido en la ruta. Se puede polarizar." }
+  auto: { name: "Sedán del 79 con historia", lvl: 25, price: 25000, city: 28, road: 110, help: "El más rápido en la ruta. Se puede polarizar." }
 };
 export type ModKey = "motor" | "papeles" | "polarizado";
 export const MODS: Record<ModKey, { name: string; help: string; price: Partial<Record<Vehicle, number>> }> = {

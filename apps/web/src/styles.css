@@ -426,6 +426,26 @@ body{background:transparent}
 .rail .dot{position:absolute;top:6px;right:14px}
 .rail-badge{position:absolute;top:4px;right:12px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--sodium);color:#1b1206;font-size:.66rem;line-height:17px;font-weight:700}
 
+/* el perfil de otro jugador */
+.profile{display:grid;gap:10px}
+.profile header{display:flex;gap:14px;align-items:center}
+.profile header > div{display:grid;gap:4px;min-width:0}
+.profile header h2{margin:0;overflow-wrap:anywhere}
+.profile .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.profile h3{margin:6px 0 0;font-size:.95rem}
+.profile p{margin:0}
+.profile-friend{display:flex}
+.profile-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}
+.profile-stats div,.profile-story div{display:flex;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:.9rem}
+.profile-story{display:grid;gap:6px}
+.profile-aff{display:grid;gap:6px}
+.profile-aff > div{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;font-size:.85rem}
+.profile-aff .track{height:7px;background:#0d0e10;border:1px solid var(--line);border-radius:4px;overflow:hidden;display:block}
+.profile-aff .fill{display:block;height:100%}
+.chat li .who.link{padding:0;text-align:left;text-decoration:none;font-weight:700}
+.chat li .who.link:hover{text-decoration:underline}
+.gps-card .link{display:block;padding:2px 0;margin:2px 0 4px;text-align:left;color:var(--sodium)}
+
 /* el chat de la ciudad */
 /* el chat ocupa todo el panel: los mensajes se scrollean y la caja para escribir queda siempre abajo, a la vista */
 .panel:has(> .chat){grid-template-rows:auto minmax(0,1fr);align-content:stretch;overflow:hidden}

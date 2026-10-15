@@ -6,7 +6,7 @@ import {
   startChase, stillOnTrip, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, spotIn, LUGARES, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
-  type Rng, type Target
+  type Rng, type Target, MISSIONS, rankOf, eff, type StatKey
 } from "@pop/shared";
 import { readFileSync } from "node:fs";
 import type { Db, Queryable } from "./db.js";
@@ -410,6 +410,28 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     };
   }
 
+  /* El perfil de otro jugador, como en BiteFight: quién es, cómo está de fuerte y cuánto avanzó.
+     No muestra plata, casa ni dónde está: eso queda para él. Los bots se ven igual que cualquiera. */
+  async function profile(userId: number, otherId: number) {
+    const id = await idOf(userId);
+    const r = await db.query<{ id: number; name: string; state: PlayerState; created: string }>(
+      `SELECT p.id, p.name, p.state, extract(epoch from u.created_at) * 1000 AS created FROM players p JOIN users u ON u.id = p.user_id WHERE p.id = $1`, [otherId]);
+    const p = r.rows[0];
+    if (!p) throw new GameError("No hay nadie así en Maires.");
+    const s = p.state;
+    const f = await db.query<{ a_id: number; accepted: boolean }>(
+      `SELECT a_id, accepted FROM friends WHERE (a_id = $1 AND b_id = $2) OR (a_id = $2 AND b_id = $1)`, [id, otherId]);
+    const link = f.rows[0];
+    const friend = otherId === id ? "me" : !link ? "none" : link.accepted ? "friend" : link.a_id === id ? "sent" : "received";
+    const story = GANG_KEYS.map(g => ({ gang: g, done: MISSIONS[g].filter(m => s.diary?.[m.id]).length, of: MISSIONS[g].length }));
+    return {
+      id: p.id, name: p.name, lvl: s.lvl, avatar: s.avatar ?? 1, gang: gangOf(s), aff: s.aff, rank: rankOf(s), respect: s.respect,
+      stats: Object.fromEntries((Object.keys(s.stats) as StatKey[]).map(k => [k, eff(s, k)])) as Record<StatKey, number>,
+      wins: s.wins + (s.c?.duelW ?? 0), losses: s.losses + (s.c?.duelL ?? 0),
+      story, side: Object.keys(s.secundarias ?? {}).length, since: Number(p.created), online: isOnline(p.id), friend
+    };
+  }
+
   async function addFriend(userId: number, name: unknown) {
     const id = await idOf(userId);
     if (typeof name !== "string" || !name.trim()) throw new GameError("Escribí el nombre de tu amigo.");
@@ -526,5 +548,5 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   const touch = (playerId: number, fn: (s: PlayerState, now: number) => void) =>
     session([playerId], async (_q, rows, now) => { const r = rows.get(playerId); if (r) fn(r.state, now); });
 
-  return { me, act, ranking, travelers, resolveChases, idOf, touch, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
+  return { me, act, ranking, travelers, resolveChases, idOf, touch, territory: () => territory.snapshot(), friends, profile, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
 }

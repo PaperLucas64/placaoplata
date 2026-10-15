@@ -6,7 +6,8 @@ import { api, type ChatMsg } from "./api";
 export const CHAT_MAX = 280;
 const hhmm = (t: number) => new Date(t).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function Chat({ msgs, myName, onSent, toast }: { msgs: ChatMsg[]; myName: string; onSent: (m: ChatMsg) => void; toast: (text: string) => void }) {
+export function Chat({ msgs, myName, onSent, toast, onName }: { msgs: ChatMsg[]; myName: string; onSent: (m: ChatMsg) => void; toast: (text: string) => void;
+  onName?: (playerId: number) => void }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const list = useRef<HTMLOListElement>(null);
@@ -27,7 +28,10 @@ export function Chat({ msgs, myName, onSent, toast }: { msgs: ChatMsg[]; myName:
       {msgs.map(m => {
         const mine = m.me || m.name === myName;
         return <li key={m.id} className={mine ? "mine" : ""}>
-          <span className="who" style={{ color: m.gang ? GANGS[m.gang].color : undefined }}>{m.name}</span>
+          {/* tocar un nombre abre su perfil (desde ahí se lo agrega de amigo) */}
+          {!mine && m.pid && onName
+            ? <button className="who link" style={{ color: m.gang ? GANGS[m.gang].color : undefined }} onClick={() => onName(m.pid)} title="Ver perfil">{m.name}</button>
+            : <span className="who" style={{ color: m.gang ? GANGS[m.gang].color : undefined }}>{m.name}</span>}
           <time className="num">{hhmm(m.t)}</time>
           <span className="msg">{m.msg}</span>
         </li>;

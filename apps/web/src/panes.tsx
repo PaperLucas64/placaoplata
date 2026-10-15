@@ -66,7 +66,7 @@ export function CityMap(ui: Ui & { filter?: string | null }) {
       <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} homeAt={!trip?.from || trip.from === homePlace(s) ? homePt(s) : undefined} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
         at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} sprite={b?.kind === "caza" ? undefined : playerSprite(s.avatar)}
         others={others} now={now} spriteOf={travelerSprite} pins={pins} onPin={id => ui.setLugar(id === ui.lugar ? null : id)} selected={ui.lugar}
-        onBarrio={b => ui.setLugar(`barrio:${b}`)} onMe={() => ui.openMe?.()} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
+        onBarrio={b => ui.setLugar(`barrio:${b}`)} onMe={() => ui.openMe?.()} onProfile={id => ui.openProfile?.(id)} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
         attack={s.tutDone ? { s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) } : undefined} />
     </Suspense>
     <div className="gps-status num">{status}{crowd}</div>

@@ -16,6 +16,7 @@ import { makeRing } from "./ring.js";
 import { ensureBots, makeBots } from "./bots.js";
 import { seedTestPlayers } from "./seed.js";
 import { ChatError, makeChat } from "./chat.js";
+import { isBlocked } from "./moderation.js";
 
 const PROD = process.env.NODE_ENV === "production";
 /* en desarrollo siempre 3000 (Vite apunta ahí); en producción, el puerto que da el hosting */
@@ -76,6 +77,7 @@ app.get("/api/health", async () => ({ ok: true }));
 app.post("/api/auth/register", authLimit, async (req, reply) => {
   const { username, password, avatar } = (req.body ?? {}) as Record<string, unknown>;
   if (!validUsername(username)) return reply.code(400).send({ error: "El nombre va de 3 a 20 letras, números o espacios." });
+  if (isBlocked(username as string)) return reply.code(400).send({ error: "Ese nombre no va: en Maires no se discrimina a nadie." });
   if (!validPassword(password)) return reply.code(400).send({ error: "La contraseña necesita al menos 6 caracteres." });
   const taken = await db.query(`SELECT 1 FROM users WHERE lower(username) = lower($1)`, [username]);
   if (taken.rows.length) return reply.code(409).send({ error: "Ese nombre ya está en uso en Maires." });
@@ -157,6 +159,12 @@ const num = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : 
 app.get("/api/friends", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;
   return game.friends(uid);
+});
+app.get("/api/profile/:id", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  const id = Number((req.params as { id?: string }).id);
+  if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: "Jugador inválido." });
+  return game.profile(uid, id);
 });
 app.post("/api/friends/add", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;

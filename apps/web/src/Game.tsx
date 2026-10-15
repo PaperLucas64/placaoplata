@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { money, xpNeed, energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type ChatMsg, type Snapshot } from "./api";
 import { Chat } from "./chat";
+import { ProfilePanel } from "./profile";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
 import { CityMap, Pane, PlacePanel, SearchPanel, Street } from "./panes";
@@ -15,6 +16,7 @@ export interface Ui {
   refresh: () => Promise<void>; toast: (text: string, good?: boolean) => void;
   lugar: string | null; setLugar: (id: string | null) => void; // el lugar del mapa que tocaste
   openMe?: () => void;                                          // abrir tu panel (al tocarte en el mapa)
+  openProfile?: (id: number) => void;                           // ver el perfil de otro jugador
 }
 
 /* todos los fondos, para cambiar de uno a otro con un fundido */
@@ -109,6 +111,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const [filter, setFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState(false);
+  const [profileId, setProfileId] = useState<number | null>(null);
   /* actividad rápida: una misión o un trabajo al azar, de los que podés hacer ahora */
   const quick = () => {
     if (s.busy && s.busy.kind !== "vuelta") { setToast({ text: "Estás ocupado: esperá a que termine lo que estás haciendo." }); return; }
@@ -127,7 +130,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     : act({ type: "cancel" }));
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }), lugar,
     setLugar: id => { setLugar(id); setPanel(null); setFight(null); setLiveFight(null); },
-    openMe: () => { setLugar(null); setPanel("me"); } };
+    openMe: () => { setLugar(null); setPanel("me"); },
+    openProfile: id => { setLugar(null); setProfileId(id); setPanel("perfil"); } };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
   const tabs: TabKey[] = withEquipo(s.tutDone ? withNewTabs(s.tabs) : s.tabs);
   /* cinco pestañas grandes; adentro, sus secciones (solo las que ya destrabaste) */
@@ -153,7 +157,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     <div className={`gm ${shown ? "with-panel" : ""}`}>
       <CityMap {...ui} filter={filter} />
 
-      <News />
+      <News chat={chat} now={now} />
       <nav className="rail" aria-label="Menú">
         <div className="rail-logo">Malan<span className="o">dro</span></div>
         <button className={shown === "me" ? "on" : ""} onClick={() => openPanel("me")}><span className="ri" aria-hidden="true">🧍</span><span>Vos</span></button>
@@ -202,7 +206,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       {shown && <aside className="panel" aria-label="Panel">
         <div className="panel-head">
           <b>{shown === "me" ? s.name : shown === "lugar" ? "" : shown === "cronica" ? "Crónica" : shown === "buscar" ? "Buscar"
-            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : shown === "chat" ? "Chat" : shown === "pvp" ? "Pelear" : groups.find(g => g.id === shown)?.name}</b>
+            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : shown === "chat" ? "Chat" : shown === "perfil" ? "Perfil" : shown === "pvp" ? "Pelear" : groups.find(g => g.id === shown)?.name}</b>
           <button className="link" onClick={() => { setLugar(null); setPanel(null); }}>Cerrar</button>
         </div>
         {fight && <Fight f={fight} s={s} />}
@@ -219,7 +223,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         {shown === "amigos" && <section className="pane"><Pane tab="amigos" {...ui} /></section>}
         {shown === "pvp" && <section className="pane"><Street {...ui} /></section>}
         {shown === "clan" && <div className="soon"><h2>Clanes</h2><p>Próximamente: armá tu propio clan con amigos, con chat, territorio y misiones de clan.</p></div>}
-        {shown === "chat" && <Chat msgs={chat} myName={s.name} onSent={addChat} toast={text => setToast({ text })} />}
+        {shown === "chat" && <Chat msgs={chat} myName={s.name} onSent={addChat} toast={text => setToast({ text })} onName={id => ui.openProfile?.(id)} />}
+        {shown === "perfil" && profileId !== null && <ProfilePanel id={profileId} toast={(text, good) => { setToast({ text, good }); setPing(p => p + 1); }} />}
         {shown === "buscar" && <SearchPanel {...ui} query={query} />}
         {groups.some(g => g.id === shown) && (() => {
           const g = groups.find(x => x.id === shown)!;
@@ -283,7 +288,9 @@ const AMBIENT = [
   "Ola de robos de estéreos en Palermo Soja: los dueños ya no compran estéreos.",
   "El kiosquero de Mosecraft cumple 40 años detrás del mostrador."
 ];
-function News() {
+/* lo último del chat (de la última media hora) también pasa por las noticias */
+const CHAT_IN_NEWS = 5, CHAT_NEWS_MS = 30 * 60_000;
+function News({ chat, now }: { chat: ChatMsg[]; now: number }) {
   const [items, setItems] = useState<string[]>([]);
   useEffect(() => {
     let alive = true;
@@ -293,7 +300,10 @@ function News() {
     return () => { alive = false; clearInterval(t); };
   }, []);
   /* si pasó poco, se completa con noticias del barrio */
-  const list = items.length >= 6 ? items.slice(0, 15) : [...items, ...AMBIENT.slice(0, 8 - items.length)];
+  const said = chat.filter(m => now - m.t < CHAT_NEWS_MS).slice(-CHAT_IN_NEWS).reverse().map(m => `💬 ${m.name}: «${m.msg}»`);
+  const city = items.length >= 6 ? items.slice(0, 15) : [...items, ...AMBIENT.slice(0, 8 - items.length)];
+  /* los mensajes del chat, intercalados con las noticias para que no tapen todo */
+  const list = said.length ? city.flatMap((n, i) => (said[i] ? [said[i], n] : [n])) : city;
   return <div className="news" aria-label="Noticias locales">
     <b className="news-tag">Noticias locales</b>
     <div className="news-roll"><div className="news-track" style={{ animationDuration: `${list.length * 9}s` }}>

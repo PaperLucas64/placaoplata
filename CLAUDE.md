@@ -47,6 +47,12 @@ docs/             GDD, HISTORIA (modo historia), BALANCE, AUDITORIA, CREDITOS, N
 
 ## Reglas que no se rompen
 
+- **Regla de oro (la puso Lucas): NINGÚN NOMBRE REAL, NINGUNA MARCA REAL. PERO TODAS LAS PROVINCIAS, PAÍSES Y CIUDADES CON SU NOMBRE ORIGINAL.**
+  - Nada de personas reales (políticos, famosos, escritores, deportistas), ni vivas ni muertas.
+  - Nada de marcas, modelos de auto, empresas, clubes, medios ni personajes con dueño (superhéroes, dibujos): siempre una versión genérica o inventada.
+  - Provincias, países y ciudades van con su nombre de verdad (Córdoba, Mendoza, Rosario, Uruguay…).
+  - **Chat:** los insultos discriminatorios se frenan con la lista de `apps/server/src/moderation.ts` (también en los nombres de personaje).
+
 - **Secretos:** nunca escribir contraseñas, tokens ni la `DATABASE_URL` en el repo ni en el chat. Van en GitHub Secrets o en Render. Si alguien pega uno en el chat, no usarlo y recomendar cambiarlo.
 - **El repo es privado.** Los sprites de ゆうひな (Yuhina) prohíben redistribuirlos. Al repo van solo los assets procesados, en `apps/web/src/assets`. Créditos en `docs/CREDITOS.md`.
 - **Osein/BiteFight** es solo referencia de mecánicas: no se copia código ni arte.
