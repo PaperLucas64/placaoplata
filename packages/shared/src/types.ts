@@ -42,8 +42,14 @@ export interface PlayerState {
   mis: { id: string; step: number } | null;
   side: Side | null; respect: number; heat: number; done: Record<string, boolean>; targets: Target[];
   tEnergy: number; tHeal: number; tSalary: number; tAttack: number; tHeat: number;
+  /* algo que lleva tiempo de verdad: mientras dura no se puede trabajar ni pelear */
+  busy?: Busy | null;
   log: LogEntry[];
 }
+
+export type Busy =
+  | { kind: "gym"; since: number; until: number; stat: StatKey }
+  | { kind: "guardia"; since: number; until: number; hpFrom: number };
 
 export interface Fighter { name: string; hp: number; max: number; fue: number; dur: number; ref: number; arma: number; armadura: number }
 export interface FightView { p: Fighter; e: Fighter; rounds: { who: "p" | "e"; txt: string }[]; won: boolean }
@@ -58,7 +64,9 @@ export type Action =
   | { type: "train"; stat: StatKey }
   | { type: "buy"; id: string }
   | { type: "kit" }
-  | { type: "heal" }
+  | { type: "heal" }      // clínica: paga y es al instante
+  | { type: "guardia" }   // hospital público: gratis, pero esperás
+  | { type: "cancel" }    // cortar lo que estés haciendo
   | { type: "spar"; i: number }
   | { type: "mstart"; id: string }
   | { type: "mstep" }

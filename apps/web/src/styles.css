@@ -188,3 +188,8 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .credits > div{background:var(--panel);border:1px solid var(--line);padding:20px;max-width:620px;max-height:85vh;overflow:auto;display:grid;gap:12px}
 .credits ul{margin:0;padding-left:18px;display:grid;gap:8px;color:var(--muted)}
 .credits b{color:var(--fg)}
+
+/* ---- ocupado: entrenando o internado ---- */
+.busy{border:1px solid var(--sodium);background:#241d13;padding:12px 16px;display:grid;gap:8px}
+.busy .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.busy .fill{background:var(--sodium)}

@@ -3,7 +3,7 @@
 import { AMBUSH_CHANCE, AMBUSH_MAX_CATCHUP, ATTACK_EVERY, DUEL_COST, MIN_HP_TO_FIGHT, SALARY_EVERY, SCOUT_COST } from "./config.js";
 import { FOES, MISSIONS, RANKS, RING, SHOP, STAT_NAMES, TUT, VALIJA } from "./data.js";
 import {
-  addHeat, battle, clamp, foeSide, gainXp, getMission, healCost, itemLocked, jobList, lawyerCost, log, maxHp, money,
+  addHeat, battle, clamp, finishBusy, foeSide, gainXp, getMission, guardiaTime, healCost, trainTime, itemLocked, jobList, lawyerCost, log, maxHp, money,
   pick, playerFighter, rankOf, rnd, salary, salaryLeft, scaledEnemy, trainCost
 } from "./rules.js";
 import type { Action, ActionResult, Mission, PlayerState, Rng, Side, Target } from "./types.js";
@@ -30,7 +30,13 @@ export const npcTarget = (rng: Rng, side: Side, lvl: number, name = pick(rng, FO
   return { kind: "npc", name, lvl: l, gold: rnd(rng, l * 20, l * 55) };
 };
 
+/* Mientras entrenás o estás internado no podés hacer estas cosas */
+const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "train", "spar", "mstart", "mstep", "duel", "scout", "guardia", "heal"]);
+const busyText = (s: PlayerState) => s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : "Estás internado en la guardia.";
+
 export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): ActionResult {
+  finishBusy(s, now);
+  if (s.busy && BLOCKED_WHEN_BUSY.has(a.type)) return fail(`${busyText(s)} Esperá a que termine o cancelalo.`);
   switch (a.type) {
     case "seen": { s.seenTab[a.tab] = true; return {}; }
 
@@ -76,9 +82,11 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (!(a.stat in s.stats)) return fail("Ese atributo no existe.");
       const c = trainCost(s.stats[a.stat]);
       if (s.gold < c) return fail("No te alcanza la plata.");
-      s.gold -= c; s.stats[a.stat]++; s.c.train++;
-      if (a.stat === "agu") s.hp += 12;
-      log(s, now, `Entrenaste ${STAT_NAMES[a.stat].toLowerCase()} hasta ${s.stats[a.stat]} (−${money(c)}).`);
+      /* se paga ahora y el punto llega cuando termina el entrenamiento (tiempo de verdad) */
+      const t = trainTime(s.stats[a.stat]);
+      s.gold -= c;
+      s.busy = { kind: "gym", since: now, until: now + t, stat: a.stat };
+      log(s, now, `Empezaste a entrenar ${STAT_NAMES[a.stat].toLowerCase()} (−${money(c)}). Termina en ${Math.round(t / 60_000)} min.`);
       return {};
     }
 
@@ -107,7 +115,29 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (!c) return fail("Estás entero.");
       if (s.gold < c) return fail("No te alcanza la plata.");
       s.gold -= c; s.hp = maxHp(s); s.c.heal++;
-      log(s, now, `En la guardia te pusieron puntos y gasas (−${money(c)}).`);
+      log(s, now, `En la clínica te atendieron al toque (−${money(c)}).`);
+      return {};
+    }
+
+    case "guardia": {
+      if (s.hp >= maxHp(s)) return fail("Estás entero.");
+      const t = guardiaTime(s);
+      s.busy = { kind: "guardia", since: now, until: now + t, hpFrom: s.hp };
+      log(s, now, `Entraste a la guardia del hospital. Es gratis, pero te dan el alta en ${Math.max(1, Math.round(t / 60_000))} min.`);
+      return {};
+    }
+
+    case "cancel": {
+      const b = s.busy;
+      if (!b) return fail("No estás haciendo nada.");
+      s.busy = null;
+      if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
+      else {
+        /* te vas antes: te llevás la parte de la curación que alcanzaste */
+        const done = (now - b.since) / Math.max(1, b.until - b.since);
+        s.hp = Math.min(maxHp(s), Math.round(b.hpFrom + (maxHp(s) - b.hpFrom) * done)); s.tHeal = now;
+        log(s, now, "Te fuiste de la guardia antes del alta.");
+      }
       return {};
     }
 
@@ -219,6 +249,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
 }
 
 export function checkDuel(s: PlayerState, i: number): string | null {
+  if (s.busy) return `${busyText(s)} Esperá a que termine o cancelalo.`;
   if (!s.side || !s.targets[i]) return "Ese rival ya no está.";
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
   if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
@@ -276,7 +307,7 @@ export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
   s.tAttack += windows * ATTACK_EVERY;
   let hits = 0;
   for (let i = 0; i < Math.min(windows, AMBUSH_MAX_CATCHUP); i++) {
-    if (rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT) continue;
+    if (rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT || s.busy?.kind === "guardia") continue;
     hits++;
     const name = pick(rng, FOES[foeSide(s.side)]);
     const fight = battle(rng, scaledEnemy(rng, name, Math.max(1, s.lvl + rnd(rng, -1, 2)), 0.9), playerFighter(s));

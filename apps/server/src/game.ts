@@ -104,7 +104,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const def = other.state;
     catchUp(def, now);
     if (def.side !== foeSide(s.side!)) { drop(); return { error: "Ese rival ya no está." }; }
-    if (def.hp < maxHp(def) * MIN_HP_TO_FIGHT) { drop(); await saveRow(q, other.id, def); return { error: `${def.name} está en la guardia. Buscá a otro.` }; }
+    if (def.hp < maxHp(def) * MIN_HP_TO_FIGHT || def.busy?.kind === "guardia") { drop(); await saveRow(q, other.id, def); return { error: `${def.name} está internado en la guardia. Buscá a otro.` }; }
     const err = checkDuel(s, i);
     if (err) return { error: err };
     drop();

@@ -1,6 +1,6 @@
 /* Fórmulas: progreso, combate y recarga. Funciones puras: el azar entra como parámetro. */
-import { ENERGY_EVERY, ENERGY_MAX, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, SALARY_EVERY } from "./config.js";
-import { JOBS, MISSIONS, RANK_AT, SHOP, SIDE_JOBS, VALIJA } from "./data.js";
+import { CLINIC_PER_HP, ENERGY_EVERY, ENERGY_MAX, GUARDIA_FULL, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, SALARY_EVERY, TRAIN_MAX, TRAIN_MIN, TRAIN_PER_POINT } from "./config.js";
+import { JOBS, MISSIONS, RANK_AT, SHOP, SIDE_JOBS, STAT_NAMES, VALIJA } from "./data.js";
 import type { Fighter, FightView, Item, LogEntry, Mission, PlayerState, Rng, Side } from "./types.js";
 
 export const rnd = (rng: Rng, a: number, b: number) => Math.floor(rng() * (b - a + 1)) + a;
@@ -20,7 +20,14 @@ export const getMission = (id: string) => allMissions().find(m => m.id === id);
 export const salary = (s: PlayerState) => 30 + s.lvl * 12 + rankOf(s) * 25;
 export const salaryLeft = (s: PlayerState, now: number) => Math.max(0, SALARY_EVERY - (now - s.tSalary));
 export const lawyerCost = (s: PlayerState) => 20 + s.lvl * 8;
-export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * 0.25));
+export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * CLINIC_PER_HP));
+const MIN = 60_000;
+/* minutos de verdad que lleva entrenar un atributo que hoy vale `v` */
+export const trainTime = (v: number) => Math.round(Math.min(TRAIN_MAX, TRAIN_MIN + v * TRAIN_PER_POINT) * MIN);
+/* minutos en la guardia según cuánta vida falta (mínimo 1 minuto) */
+export const guardiaTime = (s: Pick<PlayerState, "hp" | "stats" | "lvl">) =>
+  Math.max(MIN, Math.round((1 - s.hp / maxHp(s)) * GUARDIA_FULL * MIN));
+export const busyLeft = (s: PlayerState, now: number) => (s.busy ? Math.max(0, s.busy.until - now) : 0);
 export const itemLocked = (s: PlayerState, it: Item) => s.lvl < it.lvl || (!!it.rank && rankOf(s) < it.rank);
 
 export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
@@ -49,7 +56,23 @@ export function gainXp(s: PlayerState, now: number, n: number) {
 export const addHeat = (s: PlayerState, n: number) => { s.heat = clamp(s.heat + n, 0, 100); };
 
 /* Energía, vida y calor se recargan solos con el paso del tiempo (sin cron: se calcula al leer) */
+/* Termina lo que estaba en curso si ya pasó el tiempo */
+export function finishBusy(s: PlayerState, now: number) {
+  const b = s.busy;
+  if (!b || now < b.until) return;
+  s.busy = null;
+  if (b.kind === "gym") {
+    s.stats[b.stat]++; s.c.train++;
+    if (b.stat === "agu") s.hp += 12;
+    log(s, b.until, `Terminaste de entrenar: ${STAT_NAMES[b.stat].toLowerCase()} sube a ${s.stats[b.stat]}.`, "good");
+  } else {
+    s.hp = maxHp(s); s.c.heal++; s.tHeal = b.until;
+    log(s, b.until, "Te dieron el alta en la guardia. Vida al máximo.", "good");
+  }
+}
+
 export function regen(s: PlayerState, now: number) {
+  finishBusy(s, now);
   if (s.energy < ENERGY_MAX) {
     const g = Math.floor((now - s.tEnergy) / ENERGY_EVERY);
     if (g > 0) { s.energy = Math.min(ENERGY_MAX, s.energy + g); s.tEnergy += g * ENERGY_EVERY; }

@@ -12,6 +12,7 @@ for (const side of ["placa", "plata"] as Side[]) {
   console.log(" rangos   ", Object.entries(r.ranks).map(([k, v]) => `${k}:${v ?? "-"}`).join("  "));
   console.log(" misiones ", Object.entries(r.events).filter(([k]) => k.startsWith("misión")).map(([k, v]) => `${k.slice(7)}:${v}`).join("  "));
   console.log(" victorias", Object.entries(r.fights).map(([k, v]) => `${k}:${v}%`).join("  "));
+  console.log(" horas    ", Object.entries(r.hours).map(([k, v]) => `${k}:${v}h`).join("  "), `  | entrenando ~${r.gymShare}% del tiempo`);
   console.log(" entra    ", share(r.goldIn));
   console.log(" sale     ", share(r.goldOut));
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  canStart, DUEL_COST, getMission, healCost, itemLocked, jobList, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, RANKS,
+  canStart, DUEL_COST, guardiaTime, trainTime, getMission, healCost, itemLocked, jobList, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, RANKS,
   rankOf, RING, SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, type Mission, type StatKey, type TabKey
 } from "@pop/shared";
 import { api, type RankRow } from "./api";
@@ -10,13 +10,15 @@ import { ItemIcon } from "./icons";
 
 const riskTxt = ["", "bajo", "medio", "alto"];
 
-export function Pane({ tab, ...ui }: Ui & { tab: TabKey }) {
+export function Pane({ tab, ...rest }: Ui & { tab: TabKey }) {
+  /* mientras entrenás o estás internado, todo lo que lleva energía o pelea queda bloqueado */
+  const ui = { ...rest, busy: rest.busy || !!rest.s.busy };
   switch (tab) {
     case "laburos": return <Jobs {...ui} />;
     case "gimnasio": return <Gym {...ui} />;
-    case "feria": return <Shop {...ui} />;
+    case "feria": return <Shop {...rest} />;
     case "ring": return <Ring {...ui} />;
-    case "guardia": return <Hospital {...ui} />;
+    case "guardia": return <Hospital {...rest} />;
     case "misiones": return <Missions {...ui} />;
     case "calle": return <Street {...ui} />;
     case "ranking": return <Ranking {...ui} />;
@@ -45,13 +47,13 @@ function Gym({ s, act, busy }: Ui) {
   return <>
     <div className="with-art">
       <Portrait src={img("retratos/tito")} size={72} />
-      <div><h2>Gimnasio de Don Tito</h2><p className="say">«Cada punto cuesta más que el anterior, pibe. Así es la vida.»</p></div>
+      <div><h2>Gimnasio de Don Tito</h2><p className="say">«Cada punto cuesta más que el anterior, pibe, y lleva más tiempo. Mientras entrenás, no hacés otra cosa.»</p></div>
     </div>
     <div className="list">{(Object.keys(STAT_NAMES) as StatKey[]).map(k => {
       const c = trainCost(s.stats[k]);
       return <div className="item" key={k}>
         <div><h3>{STAT_NAMES[k]} <span className="num">{s.stats[k]}</span></h3><div className="meta">{STAT_HELP[k]}</div></div>
-        <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)}</span></button></div>
+        <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)} · {Math.round(trainTime(s.stats[k]) / 60000)} min</span></button></div>
       </div>;
     })}</div>
   </>;
@@ -89,13 +91,15 @@ function Ring({ s, act, busy }: Ui) {
 }
 
 function Hospital({ s, act, busy }: Ui) {
-  const c = healCost(s);
+  const c = healCost(s), full = s.hp >= maxHp(s), occupied = !!s.busy;
   return <>
-    <h2>Guardia del hospital</h2>
-    <p>La vida se recupera sola de a poco. Si no querés esperar, acá te curan.</p>
+    <h2>Clínica y guardia</h2>
+    <p>La vida se recupera sola de a poco (de cero a lleno en media hora). Si no querés esperar, tenés dos opciones.</p>
     <div className="list">
-      <div className="item"><div><h3>Que me curen</h3><div className="meta num">{c ? money(c) : "Estás entero"}</div></div>
-        <div className="act"><button disabled={busy || !c || s.gold < c} onClick={() => act({ type: "heal" })}>Curarme</button></div></div>
+      <div className="item"><div><h3>Clínica privada</h3><div className="meta num">{full ? "Estás entero" : `${money(c)} · al instante`}</div></div>
+        <div className="act"><button disabled={busy || occupied || full || s.gold < c} onClick={() => act({ type: "heal" })}>Pagar y curarme</button></div></div>
+      <div className="item"><div><h3>Guardia del hospital</h3><div className="meta num">{full ? "Estás entero" : `Gratis · te dan el alta en ${Math.max(1, Math.round(guardiaTime(s) / 60000))} min`} · mientras estás internado nadie te puede atacar</div></div>
+        <div className="act"><button disabled={busy || occupied || full} onClick={() => act({ type: "guardia" })}>Internarme</button></div></div>
       <div className="item"><div><h3>Usar un botiquín</h3><div className="meta num">Tenés {s.potions} · +50% de vida</div></div>
         <div className="act"><button disabled={busy || !s.potions} onClick={() => act({ type: "kit" })}>Usar</button></div></div>
     </div>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Choice, Faction } from "./cards";
-import { Chronicle, Fight, Sheet } from "./parts";
+import { BusyBar, Chronicle, Fight, Sheet } from "./parts";
 import { Pane } from "./panes";
 import { sceneFor } from "./art";
 
@@ -38,6 +38,12 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       refresh();
     }
   }, setLive), [refresh]);
+  /* cuando termina el entrenamiento o la guardia, traer el estado del servidor */
+  useEffect(() => {
+    if (!server.busy) return;
+    const t = setTimeout(refresh, Math.max(0, server.busy.until - (Date.now() + offset)) + 800);
+    return () => clearTimeout(t);
+  }, [server.busy, offset, refresh]);
   /* cada tanto, traer novedades (emboscadas de personajes del juego) */
   useEffect(() => { const t = setInterval(refresh, 60_000); return () => clearInterval(t); }, [refresh]);
 
@@ -72,6 +78,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       <div className="game">
         <Sheet s={s} now={now} />
         <main className="board">
+          <BusyBar s={s} now={now} disabled={busy} onCancel={() => act({ type: "cancel" })} />
           {s.tutDone && !s.side ? <Choice act={act} busy={busy} /> : s.side ? <Faction {...ui} /> : <Boss {...ui} />}
           <nav className="tabs" role="tablist">
             {s.tabs.map(k => (

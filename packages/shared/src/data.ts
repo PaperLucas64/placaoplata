@@ -207,7 +207,7 @@ export const TUT: TutStep[] = [
     say:"Si te vas a quedar en Bahía Gris, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
     goal:s=>s.c.jobs>=2, prog:s=>`Laburos hechos: ${Math.min(s.c.jobs,2)} de 2`, reward:{gold:15,xp:6} },
   { id:"t2", tab:"gimnasio", title:"Ponerse en forma",
-    say:"Así como estás no durás una semana. En el gimnasio de Don Tito pagás y entrenás. Subí cualquier atributo.",
+    say:"Así como estás no durás una semana. En el gimnasio de Don Tito pagás y entrenás; lleva unos minutos, pero vale la pena. Subí cualquier atributo.",
     goal:s=>s.c.train>=1, prog:s=>`Atributos entrenados: ${Math.min(s.c.train,1)} de 1`, reward:{gold:20,xp:6} },
   { id:"t3", tab:"feria",    title:"Algo para defenderte",
     say:"La calle no perdona. En la feria de usados conseguís algo para pegar o algo para que no te peguen. Comprá una cosa.",
@@ -216,10 +216,10 @@ export const TUT: TutStep[] = [
     say:"Abajo del gimnasio hay un ring. Ahí aprendés a pelear sin que nadie termine preso. Ganale al sparring.",
     goal:s=>s.c.spar>=1, prog:s=>`Peleas ganadas: ${Math.min(s.c.spar,1)} de 1`, reward:{gold:25,xp:10} },
   { id:"t5", tab:"guardia",  title:"Puntos y gasas",
-    say:"Te dejaron la cara como un mapa. En la guardia del hospital te curan por unos pesos. Si estás entero, pasá igual a conocerla.",
-    goal:s=>s.c.heal>=1 || !!s.seenTab.guardia, prog:()=>`Visitar la guardia`, reward:{gold:10,xp:6} },
+    say:"Te dejaron la cara como un mapa. En la clínica te curan al toque si pagás; en la guardia del hospital es gratis, pero te comés la espera. Si estás entero, pasá igual a conocerlas.",
+    goal:s=>s.c.heal>=1 || !!s.seenTab.guardia, prog:()=>`Visitar la clínica`, reward:{gold:10,xp:6} },
   { id:"t6", tab:"misiones", title:"Un encargo de confianza",
     say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
     goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.mis ? `etapa ${s.mis.step+1} de ${VALIJA.steps.length}` : "sin empezar"}`, reward:{gold:40,xp:15} }
 ];
-export const TAB_NAMES: Record<TabKey, string> = { laburos:"Laburos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Guardia", misiones:"Misiones", calle:"La calle", ranking:"Ranking" };
+export const TAB_NAMES: Record<TabKey, string> = { laburos:"Laburos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", ranking:"Ranking" };

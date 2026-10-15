@@ -26,6 +26,11 @@ El ritmo se ajusta en `packages/shared/src/config.ts`:
 | Vida | +2% cada 10 s | **+2% cada 36 s** | De cero a lleno en ~30 min |
 | Sueldo de la placa | cada 10 min | **cada 1 hora** | Mantiene la proporción con la energía (~40 de energía por sueldo) |
 | Calor | −1 cada 20 s | **−1 cada 1,5 min** | Baja al mismo ritmo que sube la energía |
+| Entrenar | instantáneo | **2 + 0,4 × valor minutos** (máx. 30) | Tiempo humano: planificar el entrenamiento como en BiteFight |
+| Curarse | guardia paga | **clínica paga al instante o guardia gratis hasta 15 min** | La guardia es la opción del que no tiene plata |
+
+Con los tiempos del gimnasio, un jugador muy activo llega a nivel 10 en ~27 horas de reloj y a la misión final en ~65–70;
+pasa ~37% del tiempo entrenando (la energía se carga mientras tanto, por eso el progreso por energía casi no cambia).
 
 **Pasado a días** (jugador casual ≈ 150 de energía por día, activo ≈ 400):
 

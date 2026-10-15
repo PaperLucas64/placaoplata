@@ -86,6 +86,17 @@ equipo del rango → cumplir la misión del bando → escalar en el ranking.
 | Sueldo de la placa | cada 1 hora |
 | Calor de la plata | −1 cada 1,5 min |
 | Emboscadas de personajes | chance del 30% cada 6 min; si no estabas, como mucho 1 |
+| Entrenar en el gimnasio | `2 + 0,4 × valor` minutos (de 10 a 11: 6 min; de 30 a 31: 14 min; máximo 30 min) |
+| Guardia del hospital | gratis; hasta 15 min según la vida que falte |
+
+### 4.3b Tiempo humano ("estás ocupado")
+Algunas cosas llevan **minutos de verdad**, como en BiteFight. Mientras duran, el personaje está **ocupado**: no puede
+trabajar, pelear, entrenar ni hacer misiones (sí puede comprar, cobrar el sueldo, llamar al abogado o usar un botiquín).
+La energía se sigue cargando. Se puede **cancelar**:
+- **Gimnasio:** se paga al empezar y el punto llega al terminar. Si cancelás, perdés la plata y el punto.
+- **Guardia:** gratis; al alta, vida al máximo. Si te vas antes, te llevás la parte de la curación que alcanzaste.
+  **Mientras estás internado nadie te puede atacar** (ni jugadores ni emboscadas).
+Un jugador muy activo pasa ~37% del tiempo entrenando; como la energía se carga mientras tanto, el ritmo total casi no cambia.
 
 ### 4.4 Respeto y rangos (después de elegir bando)
 | Rango | Respeto | Placa | Plata | Destraba |
@@ -108,7 +119,7 @@ Respeto se gana con trabajos (+1 a +5), peleas en la calle (+1 a +12; +2 extra c
 ### 5.1 Tutorial (Marga)
 6 encargos, cada uno destraba una pestaña y paga plata + XP:
 1. Recién llegado — 2 laburos → Gimnasio · 2. Ponerse en forma — entrenar 1 vez → Feria · 3. Algo para defenderte — comprar algo → Ring
-4. Primer round — ganarle al sparring → Guardia · 5. Puntos y gasas — visitar la guardia → Misiones · 6. Un encargo de confianza — misión «La valija».
+4. Primer round — ganarle al sparring → Guardia · 5. Puntos y gasas — visitar la clínica → Misiones · 6. Un encargo de confianza — misión «La valija».
 Después aparece la **elección de bando** (definitiva). Dura ~32 de energía: entra en la primera sesión.
 
 ### 5.2 Trabajos ("caza" de BiteFight)
@@ -170,8 +181,10 @@ Peleas de práctica: 3 de energía, si perdés no perdés plata (ganás un terci
 Sparring (nv 1) · El Toro Medina (nv 3) · La Zurda Paz (nv 5) · Kid Cemento (nv 8) · El campeón del barrio (nv 12).
 Ganar: bolsa de plata y XP según el rival.
 
-### 5.5 Guardia
-Curarse completo cuesta $0,25 por punto de vida faltante. Botiquín: +50% de vida, se compra en la feria.
+### 5.5 Clínica y guardia (pestaña "Clínica")
+- **Clínica privada:** al instante, $0,25 por punto de vida faltante.
+- **Guardia del hospital:** gratis, pero quedás internado hasta 15 min (proporcional a la vida que falta) y no podés hacer otra cosa; te protege de ataques.
+- **Botiquín:** +50% de vida al instante, se compra en la feria.
 
 ### 5.6 Misiones por etapas
 Cada etapa gasta energía y es una **prueba de atributo** (chance `50% + (atributo − dificultad) × 7%`, entre 15% y 95%),
@@ -234,7 +247,8 @@ Pelea por rounds (hasta 12), ataca primero quien inicia. Cada golpe:
 | Energía | Máximo 40; no hay forma de recargarla salvo esperar |
 | Equipo | 1 arma + 1 protección; comprar reemplaza; no se vende ni se guarda |
 | Botiquines | Sin tope de compra ni de cantidad guardada |
-| Curarse en la guardia | Sin tope (solo cuesta plata) |
+| Curarse | Clínica sin tope (cuesta plata); guardia gratis pero lleva tiempo |
+| Entrenar | De a un atributo por vez; cada punto lleva minutos de verdad |
 | Plata | Sin tope ni banco; toda la plata está expuesta a robos y fianzas |
 | Duelos contra un mismo jugador | 1 por hora; **sin tope diario total** |
 | Misiones | 1 vez cada una; 3 por bando |
@@ -282,7 +296,7 @@ UptimeRobot para que no se duerma. Herramientas: bot de balance (`npm run brief`
   trabajos y rivales de ring para niveles 15–30, recompensa por llegar a Comisario / Capo.
 - **Nivel máximo o curva de fin de juego:** decidir si hay tope (por ejemplo 50) o prestigio/reinicio.
 - **Más misiones** por bando (hoy 3) y **misiones repetibles** (diarias o semanales).
-- **Turno largo** (como el cementerio de BiteFight): trabajo de horas que se cobra al volver.
+- **Turno largo** (como el cementerio de BiteFight): trabajo de horas que se cobra al volver. Ya existe el sistema de "ocupado" para montarlo.
 - **Inventario:** guardar equipo, vender lo viejo a la feria, más de un consumible.
 - **Banco o caja fuerte** (con comisión) para proteger parte de la plata.
 - **Contrapeso de la placa:** la plata tiene calor; la placa no tiene riesgo propio (idea: sospecha de corrupción, asuntos internos).

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, maxHp, MISSIONS, newPlayer, pvp, RANK_AT, regen, type PlayerState, type Rng
+  applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, guardiaTime, maxHp, MISSIONS, newPlayer, pvp, RANK_AT, regen, trainCost, trainTime,
+  type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -85,5 +86,50 @@ describe("peleas entre jugadores", () => {
     pvp(a, d, ctx());
     expect(d.log[0].msg).toContain("Ana");
     expect(d.seenTab.calle).toBe(false);
+  });
+});
+
+describe("tiempo humano", () => {
+  it("entrenar cobra al empezar, bloquea y el punto llega al terminar", () => {
+    const s = newPlayer("Ana", T0); s.gold = 500;
+    const cost = trainCost(5), t = trainTime(5);
+    expect(applyAction(s, { type: "train", stat: "fue" }, ctx()).error).toBeUndefined();
+    expect(s.gold).toBe(500 - cost);
+    expect(s.stats.fue).toBe(5);
+    expect(applyAction(s, { type: "job", id: "bici" }, ctx(T0 + 1000)).error).toMatch(/entrenando/);
+    regen(s, T0 + t);
+    expect(s.stats.fue).toBe(6);
+    expect(s.busy).toBeNull();
+    expect(applyAction(s, { type: "job", id: "bici" }, ctx(T0 + t)).error).toBeUndefined();
+  });
+  it("cortar el entrenamiento pierde la plata y el punto", () => {
+    const s = newPlayer("Ana", T0); s.gold = 500;
+    applyAction(s, { type: "train", stat: "ref" }, ctx());
+    applyAction(s, { type: "cancel" }, ctx(T0 + 1000));
+    regen(s, T0 + trainTime(5) * 2);
+    expect(s.stats.ref).toBe(5);
+    expect(s.gold).toBe(500 - trainCost(5));
+  });
+  it("la guardia es gratis, cura todo al alta y te protege de emboscadas", () => {
+    const s = veteran("Ana", "plata"); s.hp = 10;
+    const gold = s.gold, t = guardiaTime(s);
+    applyAction(s, { type: "guardia" }, ctx());
+    expect(s.gold).toBe(gold);
+    regen(s, T0 + t);
+    expect(s.hp).toBe(maxHp(s));
+  });
+  it("irse antes de la guardia cura en proporción", () => {
+    const s = veteran("Ana", "plata"); s.hp = 10;
+    const t = guardiaTime(s);
+    applyAction(s, { type: "guardia" }, ctx());
+    applyAction(s, { type: "cancel" }, ctx(T0 + t / 2));
+    expect(s.hp).toBeGreaterThan(10);
+    expect(s.hp).toBeLessThan(maxHp(s));
+  });
+  it("la clínica cura al instante pagando", () => {
+    const s = veteran("Ana", "placa"); s.hp = 20; const gold = s.gold;
+    applyAction(s, { type: "heal" }, ctx());
+    expect(s.hp).toBe(maxHp(s));
+    expect(s.gold).toBeLessThan(gold);
   });
 });

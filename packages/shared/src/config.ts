@@ -11,6 +11,13 @@ export const AMBUSH_CHANCE = 0.3;
 export const AMBUSH_MAX_CATCHUP = 1;   // si estuviste afuera, como mucho te emboscan una vez
 export const HEAT_EVERY = 1.5 * MIN;   // -1 de calor (al mismo ritmo que la energía)
 
+/* Tiempo humano: cosas que llevan minutos de verdad (estás ocupado mientras tanto) */
+export const TRAIN_MIN = 2;            // entrenar: 2 min + 0,4 min por punto que ya tenés (de 10 a 11: 6 min; de 30 a 31: 14 min)
+export const TRAIN_PER_POINT = 0.4;
+export const TRAIN_MAX = 30;           // ningún entrenamiento dura más de media hora
+export const GUARDIA_FULL = 15;        // guardia gratis: de cero a lleno en 15 min (proporcional a lo que falta)
+export const CLINIC_PER_HP = 0.25;     // clínica: $ por punto de vida, al instante
+
 /* La calle */
 export const DUEL_COST = 3;
 export const SCOUT_COST = 1;

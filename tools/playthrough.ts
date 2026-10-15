@@ -23,6 +23,8 @@ export interface Run {
   fights: Record<string, { w: number; n: number }>;
   goldIn: Record<string, number>; goldOut: Record<string, number>;
   final: { lvl: number; respect: number; gold: number; stats: Record<StatKey, number>; energy: number };
+  /* horas de reloj (jugador muy activo: vuelve apenas se llena la energía o termina lo que estaba haciendo) */
+  hoursAt: Record<string, number>; gymHours: number;
   statsAtLvl: Record<number, number>; // promedio de fue/dur/ref/agu por nivel
 }
 
@@ -32,7 +34,7 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
   const rng = seeded(seed);
   let now = 0, spent = 0;
   const s = newPlayer("Bot", now);
-  const run: Run = { side, lvlAt: { 1: 0 }, rankAt: {}, events: {}, fights: {}, goldIn: {}, goldOut: {}, final: null!, statsAtLvl: {} };
+  const run: Run = { side, lvlAt: { 1: 0 }, rankAt: {}, events: {}, fights: {}, goldIn: {}, goldOut: {}, final: null!, statsAtLvl: {}, hoursAt: {}, gymHours: 0 };
   const fight = (k: string, won: boolean) => { const f = (run.fights[k] ??= { w: 0, n: 0 }); f.n++; if (won) f.w++; };
   const avgCombat = () => COMBAT.reduce((a, k) => a + s.stats[k], 0) / COMBAT.length;
 
@@ -47,8 +49,9 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
     if (dg < 0) run.goldOut[tag] = (run.goldOut[tag] ?? 0) - dg;
     if (res.fight) fight(tag, res.fight.won);
     else if (res.mission && a.type === "mstep") fight(`prueba ${tag.slice(7)}`, res.mission.ok);
-    for (let l = l0 + 1; l <= s.lvl; l++) { run.lvlAt[l] = spent; run.statsAtLvl[l] = avgCombat(); }
-    if (s.side && rankOf(s) > r0) for (let r = r0 + 1; r <= rankOf(s); r++) run.rankAt[r] = spent;
+    for (let l = l0 + 1; l <= s.lvl; l++) { run.lvlAt[l] = spent; run.statsAtLvl[l] = avgCombat(); run.hoursAt[`nv${l}`] = now / 3_600_000; }
+    if (a.type === "train" && s.busy) run.gymHours += (s.busy.until - s.busy.since) / 3_600_000;
+    if (s.side && rankOf(s) > r0) for (let r = r0 + 1; r <= rankOf(s); r++) { run.rankAt[r] = spent; run.hoursAt[`rango${r}`] = now / 3_600_000; }
     return true;
   };
   const refill = () => { while (s.side && s.targets.length < TARGETS) s.targets.push(npcTarget(rng, s.side, s.lvl)); };
@@ -56,6 +59,7 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
 
   for (let guard = 0; guard < 200_000 && spent < maxEnergy; guard++) {
     regen(s, now);
+    if (s.busy) { now = s.busy.until; continue; } // entrenando o internado: esperar
     const g0 = s.gold; ambushCatchUp(s, { now, rng });
     if (s.gold < g0) run.goldOut.emboscadas = (run.goldOut.emboscadas ?? 0) + g0 - s.gold;
     refill();
@@ -70,7 +74,8 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
     /* curarse */
     if (s.hp <= maxHp(s) * 0.5) {
       if (s.potions && act({ type: "kit" })) continue;
-      if (healCost(s) <= s.gold * 0.5 && act({ type: "heal" }, "guardia")) continue;
+      if (healCost(s) <= s.gold * 0.5 && act({ type: "heal" }, "clinica")) continue;
+      if (act({ type: "guardia" }, "guardia")) continue; // gratis, pero lleva tiempo
     }
 
     /* gastar plata: primero el siguiente escalón de equipo (ahorrando si hace falta), después entrenar lo más bajo */
@@ -143,7 +148,9 @@ export function summarize(runs: Run[]) {
     ranks: Object.fromEntries([1, 2, 3, 4, 5].map(k => [k, rk(k)])),
     events: Object.fromEntries([...new Set(runs.flatMap(r => Object.keys(r.events)))].map(k => [k, ev(k)])),
     fights, goldIn: sum("goldIn"), goldOut: sum("goldOut"),
-    final: { lvl: median(runs.map(r => r.final.lvl)), respect: median(runs.map(r => r.final.respect)) }
+    final: { lvl: median(runs.map(r => r.final.lvl)), respect: median(runs.map(r => r.final.respect)) },
+    hours: Object.fromEntries(["nv5", "nv10", "nv15", "nv20", "rango1", "rango2", "rango4", "rango5"].map(k => [k, Math.round(median(runs.map(r => r.hoursAt[k])) * 10) / 10])),
+    gymShare: Math.round(median(runs.map(r => r.gymHours / Math.max(1e-9, r.hoursAt.nv15 ?? r.hoursAt.nv10 ?? 1))) * 100)
   };
 }
 

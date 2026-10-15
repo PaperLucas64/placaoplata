@@ -104,3 +104,21 @@ export function Credits({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+
+const mmss = (ms: number) => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+
+/* Lo que estás haciendo en tiempo real (entrenar, guardia): cuenta regresiva y opción de cortarlo */
+export function BusyBar({ s, now, onCancel, disabled }: { s: PlayerState; now: number; onCancel: () => void; disabled: boolean }) {
+  const b = s.busy;
+  if (!b) return null;
+  const total = Math.max(1, b.until - b.since), left = Math.max(0, b.until - now);
+  const label = b.kind === "gym" ? `Entrenando ${STAT_NAMES[b.stat].toLowerCase()} en lo de Don Tito` : "Internado en la guardia del hospital";
+  const note = b.kind === "gym" ? "Si cortás ahora, perdés la plata y el punto." : "Si te vas antes, te llevás la parte de la curación que alcanzaste. Mientras estás acá, nadie te puede atacar.";
+  return (
+    <section className="busy" aria-live="polite">
+      <div className="row"><b>{label}</b><span className="num">faltan {mmss(left)}</span></div>
+      <div className="track"><div className="fill" style={{ width: `${clamp((1 - left / total) * 100, 0, 100)}%` }} /></div>
+      <div className="row"><span className="tag">{note}</span><button className="link" disabled={disabled} onClick={onCancel}>Cancelar</button></div>
+    </section>
+  );
+}
