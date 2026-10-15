@@ -243,8 +243,7 @@ con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · 
 Premios: $150 / $500 / $1.800 · 60 / 180 / 600 XP · 30 / 90 / 300 respeto · +10 / +20 / +35 calor · +10 / +20 / +40 afinidad.
 
 **Tablón de la calle (misiones generadas):** 4 misiones de pandilla a tu nivel (de 1 a 50 y más), una por dificultad, cada una de una
-pandilla al azar, **más una de los vecinos, una de la policía (desde nivel 5) y hasta dos de tus negocios** (ver abajo). Se arman combinando **12 barrios de Maires** (La Bocota, Puerto Mareo, San Telmón, Palermo Soja,
-Villa Crespa, Barrancas, Florida Vieja, Once y Medio, Mataderos, Reloquita, Liniers Sur, Pompeya Chica), **6 objetivos
+pandilla al azar, **más una de los vecinos, una de la policía (desde nivel 5) y hasta dos de tus negocios** (ver abajo). Se arman combinando **los 34 barrios de Maires** (Capital, entre la General Paz, el Riachuelo y el río), **6 objetivos
 por pandilla**, etapas por atributo y un rival (pandillero o policía): cientos de combinaciones. Se renueva cada 6 horas o
 pagando 2 de energía.
 
@@ -367,19 +366,19 @@ siga, y cuántos hay en línea y en la calle.
 - Las peleas se avisan en vivo (con la pelea entera) y quedan en la crónica.
 
 ### 5.8a Vecinos que juegan solos (bots)
-- 8 vecinos (Tincho Ferreyra, La Colorada Paz, Pocho Benítez, Yésica Ramos, Nacho del Once, Juanca Godoy, Lali Torres,
-  El Chino Acuña), dos por pandilla, de nivel 3 a 9. Son jugadores con las mismas reglas: suben de nivel, entrenan,
+- 18 vecinos con nicks de usuario (Malickud, Bondiabera, Pochoclo22, Yesiquita, Nachuflo, Juancarlitox, Lalitrona,
+  ChinoLoco_, Ferneteitor, Guadalupita_ok, Mostrito, Rulo_xd, Kchorro, Tatabombo, Milanesauria, Facu_Ganzua, Bichito77
+  y Morochaza), de nivel 2 a 10, cada uno con su muñequito. Son jugadores con las mismas reglas: suben de nivel, entrenan,
   compran, hacen misiones (con viaje), compran negocios, salen a buscar gente y se anotan en el torneo del Ring.
 - Cada uno tiene su horario (en hora de Argentina) y su carácter (unos salen a buscar pelea más que otros). Despiertos,
   entran cada 2 a 7 minutos y hacen un par de cosas; antes de dormir salen a un trabajo largo.
 - Aceptan solicitudes de amistad y misiones de a dos (si están despiertos y tienen energía). Aparecen «en línea» cuando
-  están despiertos. Llevan la marca **vecino** en el ranking, en La calle, en Amigos y en el mapa.
+  están despiertos. Se ven como cualquier jugador (sin marca de «vecino»).
 - No se puede entrar con sus cuentas. Se apagan con la variable `BOTS=0` en el servidor.
 
 ### 5.8b Territorio (pestaña Ciudad)
-- **12 barrios:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,
-  Mataderos, Reloquita, Liniers Sur y Pompeya Chica. Barrio de cada pandilla: Familia → Puerto Mareo, Sindicato →
-  Barrancas, Barra → La Bocota, Amarillos → Once y Medio.
+- **34 barrios** de Capital (los de `packages/shared/data/barrios.json`). Barrio de cada pandilla: Familia → Puerto Mareo,
+  Sindicato → Chacarota, Barra → Ñuñez, Amarillos → Once y Medio.
 - **Influencia:** cada barrio tiene la de las cuatro pandillas. Se gana trabajando para una:
 
 | Qué | Influencia | Para quién | Dónde |
@@ -532,3 +531,11 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 - **Temporales:** una misión «Urgente» por tablón (2 horas, paga más) y encuentros raros que aparecen un rato y se van.
 - **Noticias locales:** abajo del mapa pasa lo que hace la gente (golpes, niveles, mudanzas, negocios). Si pasó poco, se completa con noticias de ambiente.
 - **Modo historia:** propuesta en `docs/HISTORIA.md`.
+
+## Auditoría (15/10/2026)
+
+Arreglos de la auditoría de Tomi (ver `docs/AUDITORIA.md`): las acciones se validan antes de tocar la partida;
+salir a buscar a alguien cuesta 3 de energía y al que vuelve a su casa se lo alcanza; las emboscadas miran cada ventana
+a su hora (aunque cierres la pantalla); La valija pide la pestaña Misiones; solo te mudás a casas que vende el barrio;
+los recuerdos de eventos no se venden; la crónica se ordena por hora. Las misiones de cada pandilla son ahora la
+historia de 15 (ver `docs/HISTORIA.md`).

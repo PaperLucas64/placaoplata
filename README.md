@@ -38,6 +38,8 @@ apps/web/          React + Vite: la pantalla
 tools/             bot de balance, simulador de peleas, jugadores de prueba y el modo desarrollo
 docs/GDD.md        documento de diseño: qué tiene el juego, límites y qué falta
 docs/BALANCE.md    cómo está calibrado el juego y por qué
+docs/AUDITORIA.md  la auditoría de Tomi: 18 bugs, cómo quedaron y qué falta decidir
+docs/HISTORIA.md   el modo historia: Episodio 01, las 60 misiones y el hilo de Marga
 legacy/            la primera versión (un solo HTML) y los prototipos anteriores
 ```
 

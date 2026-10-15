@@ -8,3 +8,8 @@ dist/
 tools/geo/cache/
 tools/geo/build.log
 __pycache__/
+
+# cookies de curl (sesiones locales): no se suben
+cp.txt
+*.cookies
+cookies*.txt
