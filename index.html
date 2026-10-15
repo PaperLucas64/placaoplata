@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Placa o Plata</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
@@ -72,6 +75,18 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .boss .say{font-style:italic}
 .boss .goal{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px dashed #5a4526;padding-top:10px}
 .goal .done{color:var(--good);font-weight:600}
+.boss.placa{border-color:var(--blue);background:#141c27}
+.boss.plata{border-color:var(--red);background:#271716}
+.boss.placa .goal{border-top-color:#2b405c}
+.boss.plata .goal{border-top-color:#5c2b2a}
+.heat .fill{background:linear-gradient(90deg,var(--sodium),var(--red))}
+.lock{color:var(--muted);font-size:.88rem;font-style:italic}
+.ranking{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ranking li{display:grid;grid-template-columns:2em 1fr auto 3.5em;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);background:#191b1e}
+.ranking li.me{border-color:var(--sodium);background:#241d13}
+.ranking .pos{font-family:var(--mono);color:var(--muted)}
+.ranking li > .num:last-child{text-align:right}
+.ranking .badge{margin-left:6px}
 .tabs{display:flex;flex-wrap:wrap;gap:6px}
 .tabs button{position:relative}
 .tabs button[aria-selected="true"]{border-color:var(--sodium);color:var(--sodium);background:var(--panel)}
@@ -180,11 +195,152 @@ const VALIJA = {
       ok:"Le mostraste el papel, le hablaste del tiempo y de fútbol. Te dio la valija sin preguntar más.", ko:"No te creyó y te pidió que vuelvas con otra cara." },
     { text:"Cruzar la ciudad en hora pico. Hay un control en la avenida y la valija pesa como un muerto.", stat:"ref", diff:6, energy:2, dmg:.1,
       ok:"Doblaste justo antes del control, por una calle que nadie usa.", ko:"Te metiste en un embotellamiento, bajaste corriendo y te llevaste por delante un poste." },
-    { text:"Dos tipos te vienen siguiendo desde el puerto. En un pasaje sin salida te cierran el paso.", fight:{ name:"Los dos del puerto", mult:.9 }, energy:3 },
+    { text:"Dos tipos te vienen siguiendo desde el puerto. En un pasaje sin salida te cierran el paso.", fight:{ name:"Los dos del puerto", mult:.9 }, energy:3,
+      win:"Los dos salieron corriendo. La valija sigue con vos.", lose:"Te tiraron al piso, pero no soltaste la valija. Vas a tener que volver a pasar por ese pasaje." },
     { text:"Entregar la valija en el bar de Marga.", energy:1, auto:true,
       ok:"Llegaste. Marga deja la valija sobre la barra y la abre delante tuyo." }
   ],
   outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Hay dos personas afuera que quieren hablar con vos.»"
+};
+VALIJA.id = "valija";
+
+/* ---------- parte 2: cada bando ---------- */
+const RANK_AT = [0,40,120,300,700,1500];
+const RANKS = {
+  placa:["Agente","Cabo","Sargento","Subinspector","Inspector","Comisario"],
+  plata:["Campana","Soldadito","Puntero","Lugarteniente","Mano derecha","Capo"]
+};
+const SALARY_EVERY = 600000, ATTACK_EVERY = 90000, HEAT_EVERY = 20000;
+
+/* Patrullaje y golpes: la caza de BiteFight para cada bando.
+   La placa cobra menos pero tiene sueldo; la plata cobra más pero junta calor y la pueden agarrar. */
+const SIDE_JOBS = {
+  placa:[
+    { id:"esquina",  name:"Parada en la esquina",            cost:1, risk:1, gold:[5,12],    xp:[4,6],   resp:1, lvl:1,  fail:"Un borracho te vomitó los zapatos y encima te empujó." },
+    { id:"control",  name:"Control vehicular",               cost:2, risk:1, gold:[12,26],   xp:[8,12],  resp:1, lvl:3,  fail:"Uno sin registro aceleró y te pasó por arriba del pie." },
+    { id:"centro",   name:"Patrullaje en el centro",         cost:3, risk:2, gold:[25,50],   xp:[14,20], resp:2, lvl:5,  fail:"Quisiste separar una pelea y te llevaste la peor parte." },
+    { id:"cancha",   name:"Operativo en la cancha",          cost:4, risk:2, gold:[45,90],   xp:[24,34], resp:3, lvl:8,  fail:"Volaron piedras desde la tribuna visitante." },
+    { id:"ruta",     name:"Persecución en la ruta",          cost:5, risk:3, gold:[80,150],  xp:[38,52], resp:4, lvl:11, fail:"El auto que perseguías frenó de golpe y te lo comiste." },
+    { id:"penal",    name:"Traslado de presos al penal",     cost:6, risk:3, gold:[130,240], xp:[55,75], resp:5, lvl:15, fail:"Un preso se soltó las esposas en el camino." }
+  ],
+  plata:[
+    { id:"celu",     name:"Arrebato de celulares",           cost:1, risk:1, gold:[8,18],    xp:[3,5],   resp:1, heat:3,  lvl:1,  fail:"La víctima resultó ser profesora de karate." },
+    { id:"estereo",  name:"Robar estéreos de autos",         cost:2, risk:1, gold:[18,38],   xp:[6,10],  resp:1, heat:4,  lvl:3,  fail:"Se te cerró la ventanilla en la mano." },
+    { id:"desarme",  name:"Laburo en el desarmadero",        cost:3, risk:2, gold:[38,75],   xp:[12,17], resp:2, heat:5,  lvl:5,  fail:"Se te cayó un motor arriba del pie." },
+    { id:"estacion", name:"Asalto a una estación de servicio", cost:4, risk:2, gold:[70,130], xp:[20,28], resp:3, heat:8,  lvl:8,  fail:"El playero tenía un matafuegos y buena puntería." },
+    { id:"contra",   name:"Contrabando en el puerto",        cost:5, risk:3, gold:[120,220], xp:[32,44], resp:4, heat:10, lvl:11, fail:"La carga se desarmó y te aplastó contra el contenedor." },
+    { id:"financ",   name:"Asalto a una financiera",         cost:6, risk:3, gold:[200,360], xp:[46,62], resp:5, heat:14, lvl:15, fail:"El de seguridad no estaba dormido." }
+  ]
+};
+/* Armería de la comisaría y mercado negro: se suman a la feria según el bando y piden rango */
+SHOP.push(
+  { id:"tonfa",     side:"placa", slot:"arma",     name:"Tonfa reglamentaria",       val:10, price:420,  lvl:1, rank:1 },
+  { id:"antibalas", side:"placa", slot:"armadura", name:"Chaleco antibalas",         val:16, price:1500, lvl:1, rank:2 },
+  { id:"pistola",   side:"placa", slot:"arma",     name:"Pistola reglamentaria",     val:20, price:2400, lvl:1, rank:3 },
+  { id:"escudo",    side:"placa", slot:"armadura", name:"Escudo antidisturbios",     val:24, price:4200, lvl:1, rank:4 },
+  { id:"manopla",   side:"plata", slot:"arma",     name:"Manopla de bronce",         val:10, price:380,  lvl:1, rank:1 },
+  { id:"placas",    side:"plata", slot:"armadura", name:"Campera con placas",        val:15, price:1350, lvl:1, rank:2 },
+  { id:"recortada", side:"plata", slot:"arma",     name:"Escopeta recortada",        val:21, price:2200, lvl:1, rank:3 },
+  { id:"negro",     side:"plata", slot:"armadura", name:"Chaleco del mercado negro", val:23, price:3900, lvl:1, rank:4 }
+);
+/* Gente del otro bando para los duelos de La calle (los "otros jugadores" de BiteFight) */
+const FOES = {
+  placa:["Agente Sosa","Cabo Ferreyra","Sargento Paredes","Oficial Benítez","Agente Quiroga","Cabo Ledesma","Oficial Romero","Agente Molina","Subinspectora Luna","Oficial Toledo"],
+  plata:["El Rengo Acosta","Chino Funes","El Pelado Godoy","Manco Suárez","La Gata Ibarra","Tito Bermúdez","El Ruso Olmedo","Nene Cabral","Pochi Villalba","La Turca"]
+};
+/* [nombre, bando, respeto, nivel] */
+const RIVALS = [
+  ["Comisario Arce","placa",2600,24], ["La Turca","plata",1900,21], ["Inspector Vidal","placa",1300,18], ["El Gallego","plata",980,16],
+  ["Subinspectora Luna","placa",720,14], ["Manco Suárez","plata",510,12], ["Sargento Paredes","placa",340,10], ["La Gata Ibarra","plata",220,8],
+  ["Cabo Ferreyra","placa",130,6], ["Chino Funes","plata",75,5], ["Agente Sosa","placa",30,3], ["Nene Cabral","plata",10,2]
+];
+
+/* Misiones de cada bando: se hacen en orden y piden rango */
+const MISSIONS = {
+  placa:[
+    { id:"ronda", rank:0, title:"Ronda nocturna", reward:{ gold:120, xp:60, resp:30 },
+      intro:"La comisaria te manda a la zona del mercado. «Hubo tres robos esta semana. Quiero saber quién es.»",
+      steps:[
+        { text:"Hablar con los puesteros del mercado. Nadie quiere hablar con la policía.", stat:"lab", diff:7, energy:2, dmg:0,
+          ok:"La del puesto de verduras te cuenta de un pibe con campera roja que pasa todas las noches.", ko:"Te bajan las persianas en la cara." },
+        { text:"El de campera roja te ve y sale corriendo entre los puestos.", stat:"ref", diff:7, energy:2, dmg:.1,
+          ok:"Lo agarrás antes de que llegue a la avenida.", ko:"Te tropezás con un cajón de tomates y lo perdés de vista." },
+        { text:"No estaba solo. Su hermano mayor te espera en el estacionamiento.", fight:{ name:"Los hermanos Vera", mult:.9 }, energy:3,
+          win:"Los dos terminan esposados contra el patrullero.", lose:"Te dejan en el piso y se escapan. Vas a tener que buscarlos de nuevo." },
+        { text:"Labrar el acta en la comisaría.", energy:1, auto:true, ok:"Escribís el acta con dos dedos. La comisaria la firma sin leerla." }
+      ],
+      outro:"«Buen trabajo. Pero esos pibes trabajaban para alguien. Y yo sé para quién.»" },
+    { id:"allanamiento", rank:2, title:"Allanamiento en el puerto", reward:{ gold:400, xp:180, resp:90 },
+      intro:"«Tenemos una orden para el depósito 7. Es de La Señora. Si encontramos algo, la tenemos.»",
+      steps:[
+        { text:"Conseguir que el juez firme la orden antes del amanecer.", stat:"lab", diff:10, energy:3, dmg:0,
+          ok:"El juez firma en pijama, todavía medio dormido.", ko:"El secretario del juzgado no te deja pasar. Volvé con mejores argumentos." },
+        { text:"Entrar al depósito antes de que alguien avise por radio.", stat:"ref", diff:10, energy:3, dmg:.12,
+          ok:"Cortás el candado y entran antes de que suene el primer celular.", ko:"Alguien gritó «¡la policía!» y terminaste corriendo detrás de un montacargas." },
+        { text:"El encargado del depósito y su perro no están de acuerdo con la orden.", fight:{ name:"El encargado del depósito", mult:1.0 }, energy:4,
+          win:"El encargado termina sentado sobre una caja, esposado. El perro te lame la mano.", lose:"Te encierran en un contenedor media hora. Hay que volver a intentarlo." },
+        { text:"Revisar contenedor por contenedor, con olor a pescado y el frío del puerto.", stat:"dur", diff:10, energy:3, dmg:.15,
+          ok:"En el último contenedor aparece una libreta con nombres y números.", ko:"Se te vino encima una pila de cajones." },
+        { text:"Llevar la libreta a la comisaría.", energy:1, auto:true, ok:"La comisaria hojea la libreta y sonríe por primera vez." }
+      ],
+      outro:"«Acá están todos. Los que cobran, los que pagan. Y una dirección: la casa de La Señora.»" },
+    { id:"senora", rank:4, title:"Detener a La Señora", reward:{ gold:1500, xp:600, resp:300 },
+      intro:"«Es esta noche. Si se nos escapa, no vuelve a aparecer en diez años.»",
+      steps:[
+        { text:"Convencer a un soplón de que te diga por dónde va a salir.", stat:"lab", diff:14, energy:3, dmg:0,
+          ok:"«Por el muelle viejo, a las tres. Y yo nunca te dije nada.»", ko:"El soplón se ríe y te pide más plata de la que tenés." },
+        { text:"Seguir el auto de La Señora sin que te vean, con las luces apagadas.", stat:"ref", diff:14, energy:4, dmg:.15,
+          ok:"Llegás al muelle viejo dos minutos antes que ella.", ko:"Te vieron. Frenaste de golpe y te comiste el volante." },
+        { text:"Su mano derecha, el Gallego, se pone entre vos y la lancha.", fight:{ name:"El Gallego", mult:1.1 }, energy:5,
+          win:"El Gallego queda tirado en el muelle. La lancha no arranca.", lose:"El Gallego te tira al agua helada. Hay que volver a intentarlo." },
+        { text:"La Señora no se entrega. Hay que sacarla de la lancha a la fuerza.", stat:"fue", diff:14, energy:3, dmg:.1,
+          ok:"Sale esposada, con el tapado mojado y la mirada clavada en vos.", ko:"Se te resbaló de las manos y casi te arrastra con ella." },
+        { text:"Llevarla a la comisaría con la sirena prendida.", energy:1, auto:true, ok:"Media Bahía Gris se asoma a la ventana para ver pasar el patrullero." }
+      ],
+      outro:"La comisaria te da la mano delante de todos. «Bahía Gris está un poco más limpia. Por ahora.»" }
+  ],
+  plata:[
+    { id:"kiosco", rank:0, title:"La protección", reward:{ gold:180, xp:60, resp:30, heat:15 },
+      intro:"La Señora te da una lista de comercios. «Todos pagan. El kiosco de Belgrano y Mitre dejó de pagar. Recordáselo.»",
+      steps:[
+        { text:"Entrar al kiosco sin que te vea el patrullero que siempre está estacionado enfrente.", stat:"ref", diff:7, energy:2, dmg:.1,
+          ok:"Esperás el cambio de turno y entrás por atrás.", ko:"El agente te miró raro. Diste la vuelta manzana y te chocaste un poste." },
+        { text:"Explicarle al kiosquero, con buenos modos, por qué le conviene pagar.", stat:"lab", diff:7, energy:2, dmg:0,
+          ok:"Te dice que paga, pero que antes hables con su sobrino.", ko:"Te dice que no tiene miedo y te saca con la escoba." },
+        { text:"El sobrino del kiosquero hace boxeo y te espera en la vereda.", fight:{ name:"El sobrino del kiosquero", mult:.9 }, energy:3,
+          win:"El sobrino queda sentado en el cordón. El kiosquero ya tiene el sobre listo.", lose:"El sobrino te saca a las piñas. Volvé cuando estés mejor." },
+        { text:"Llevarle el sobre a La Señora.", energy:1, auto:true, ok:"La Señora cuenta los billetes sin mirarlos." }
+      ],
+      outro:"«Bien. Sin escándalo. Así me gusta. Ahora te voy a dar algo más grande.»" },
+    { id:"blindado", rank:2, title:"El blindado", reward:{ gold:600, xp:180, resp:90, heat:25 },
+      intro:"«Todos los viernes sale un camión de caudales del banco del centro. Este viernes no llega.»",
+      steps:[
+        { text:"Conseguir el recorrido exacto con un custodio que debe plata.", stat:"lab", diff:10, energy:3, dmg:0,
+          ok:"Te lo anota en una servilleta, con la mano temblando.", ko:"El custodio se asusta y no quiere hablar. Dale tiempo." },
+        { text:"Cruzar un camión en la calle justo cuando dobla el blindado.", stat:"ref", diff:10, energy:3, dmg:.12,
+          ok:"El blindado frena a centímetros del camión.", ko:"Llegaste tarde y casi te lleva puesto." },
+        { text:"Los dos custodios bajan con bastones.", fight:{ name:"Los custodios del blindado", mult:1.0 }, energy:4,
+          win:"Los custodios terminan sentados en la vereda, atados con sus propios precintos.", lose:"Te reducen y tenés que escapar con las manos vacías." },
+        { text:"Abrir la puerta trasera del blindado con una barreta.", stat:"fue", diff:10, energy:3, dmg:.1,
+          ok:"La puerta cede con un chirrido. Adentro hay bolsas y más bolsas.", ko:"La barreta se te resbala y te pegás en la cara." },
+        { text:"Abandonar el camión y llevar las bolsas al depósito.", energy:1, auto:true, ok:"La Señora te sirve un whisky. Es la primera vez." }
+      ],
+      outro:"«Ahora la policía te conoce la cara. Eso tiene un precio. Y una ventaja.»" },
+    { id:"comisaria", rank:4, title:"La libreta de la 4ª", reward:{ gold:2200, xp:600, resp:300, heat:40 },
+      intro:"«La comisaria Ríos tiene una libreta con todos mis nombres, guardada en la comisaría. Quiero esa libreta. Y quiero que sepa que fui yo.»",
+      steps:[
+        { text:"Hacerte pasar por abogado para entrar a la comisaría.", stat:"lab", diff:14, energy:3, dmg:0,
+          ok:"El de la mesa de entradas te hace pasar sin mirar la credencial.", ko:"Te pide la matrícula y no tenés. Salís como si nada." },
+        { text:"Llegar al depósito de pruebas sin cruzarte a nadie.", stat:"ref", diff:14, energy:4, dmg:.12,
+          ok:"Pasás por detrás de un oficial que lee el diario.", ko:"Casi te ven. Te escondiste media hora en el baño y te golpeaste contra la puerta." },
+        { text:"Afuera prendieron fuego un auto para distraer. Hay que aguantar el humo y encontrar la caja.", stat:"dur", diff:14, energy:3, dmg:.15,
+          ok:"Con un pañuelo en la cara, encontrás la libreta.", ko:"El humo te tumba. Saliste tosiendo." },
+        { text:"La comisaria Ríos en persona te encuentra con la libreta en la mano.", fight:{ name:"Comisaria Inés Ríos", mult:1.1 }, energy:5,
+          win:"La dejás encerrada en su propia oficina, con la placa sobre el escritorio.", lose:"Te tumba de una piña y escapás por la ventana sin la libreta." },
+        { text:"Entregarle la libreta a La Señora.", energy:1, auto:true, ok:"La Señora quema la libreta en la estufa, hoja por hoja." }
+      ],
+      outro:"«Desde hoy, en Bahía Gris no se mueve nada sin que vos lo sepas.»" }
+  ]
 };
 
 /* Tutorial: cada encargo de Marga destraba una pestaña nueva */
@@ -208,28 +364,40 @@ const TUT = [
     say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
     goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.mis ? `etapa ${s.mis.step+1} de ${VALIJA.steps.length}` : "sin empezar"}`, reward:{gold:40,xp:15} }
 ];
-const TAB_NAMES = { laburos:"Laburos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Guardia", misiones:"Misiones" };
+const TAB_NAMES = { laburos:"Laburos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Guardia", misiones:"Misiones", calle:"La calle", ranking:"Ranking" };
 
-let S = load();
+let S = null;
 let tab = "laburos";
 let lastFight = null, misMsg = null;
 let confirmReset = false, pickSide = null;
+let lastSalaryMin = null;
 
 const $ = s => document.querySelector(s);
 const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const pick = a => a[rnd(0,a.length-1)];
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const now = () => Date.now();
 
-function load(){ try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch(e){} return null; }
+function load(){ try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return migrate(JSON.parse(raw)); } catch(e){} return null; }
+/* partidas guardadas con la parte 1 */
+function migrate(s){
+  s.respect ??= 0; s.heat ??= 0; s.done ??= {}; s.targets ??= [];
+  s.c.duelW ??= 0; s.c.duelL ??= 0;
+  s.tSalary ??= now() - SALARY_EVERY; s.tAttack ??= now(); s.tHeat ??= now();
+  if (s.mis && !s.mis.id) s.mis.id = "valija";
+  if (s.side) for (const k of ["calle","ranking"]) if (!s.tabs.includes(k)) s.tabs.push(k);
+  return s;
+}
 function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){} }
 
 function newChar(name){
   const s = { name, lvl:1, xp:0, gold:10, energy:ENERGY_MAX,
     stats:{ fue:5, dur:5, ref:5, agu:5, lab:5 },
     gear:{ arma:null, armadura:null }, potions:0, wins:0, losses:0,
-    tut:0, tutDone:false, tabs:["laburos"], seenTab:{}, c:{ jobs:0, train:0, buy:0, spar:0, heal:0, valija:0 },
-    mis:null, side:null, tEnergy:now(), tHeal:now(), log:[] };
+    tut:0, tutDone:false, tabs:["laburos"], seenTab:{}, c:{ jobs:0, train:0, buy:0, spar:0, heal:0, valija:0, duelW:0, duelL:0 },
+    mis:null, side:null, respect:0, heat:0, done:{}, targets:[],
+    tEnergy:now(), tHeal:now(), tSalary:now()-SALARY_EVERY, tAttack:now(), tHeat:now(), log:[] };
   s.hp = maxHp(s);
   return s;
 }
@@ -238,6 +406,16 @@ const xpNeed  = s => Math.round(40*Math.pow(s.lvl,1.55));
 const trainCost = v => Math.round(2*Math.pow(v,1.7));
 const gearVal = (s,slot) => { const g = SHOP.find(i=>i.id===s.gear[slot]); return g?g.val:0; };
 const money = n => `$${n}`;
+const rankOf = s => RANK_AT.filter(r => s.respect >= r).length - 1;
+const foeSide = () => S.side==="placa" ? "plata" : "placa";
+const jobList = () => S.side ? SIDE_JOBS[S.side] : JOBS;
+const tabName = k => k==="laburos" && S.side ? (S.side==="placa" ? "Patrullaje" : "Golpes") : TAB_NAMES[k];
+const allMissions = () => [VALIJA, ...MISSIONS.placa, ...MISSIONS.plata];
+const getMission = id => allMissions().find(m => m.id===id);
+const salary = () => 30 + S.lvl*12 + rankOf(S)*25;
+const salaryLeft = () => Math.max(0, SALARY_EVERY - (now()-S.tSalary));
+const lawyerCost = () => 20 + S.lvl*8;
+const addHeat = n => { S.heat = clamp(S.heat + n, 0, 100); };
 
 function log(msg, cls=""){
   const d = new Date();
@@ -271,8 +449,18 @@ function tick(){
     const h = Math.floor((t - S.tHeal)/HEAL_EVERY);
     if (h>0){ S.hp = Math.min(mh, S.hp + h*Math.ceil(mh*0.02)); S.tHeal += h*HEAL_EVERY; }
   } else S.tHeal = t;
+  let redraw = before !== S.energy;
+  if (S.side==="plata" && S.heat > 0){
+    const h = Math.floor((t - S.tHeat)/HEAT_EVERY);
+    if (h>0){ S.heat = Math.max(0, S.heat-h); S.tHeat += h*HEAT_EVERY; }
+  } else S.tHeat = t;
+  if (S.side && t - S.tAttack >= ATTACK_EVERY){
+    S.tAttack = t;
+    if (Math.random() < 0.3){ defend(); redraw = true; }
+  }
+  if (S.side==="placa"){ const m = Math.ceil(salaryLeft()/60000); if (m !== lastSalaryMin){ lastSalaryMin = m; redraw = true; } }
   save();
-  if (before !== S.energy) render(); else renderSheet();
+  if (redraw) render(); else renderSheet();
 }
 
 /* ---------- combate ---------- */
@@ -300,19 +488,23 @@ function battle(p, e){
   return { won, rounds, p, e };
 }
 function scaledEnemy(name, lvl, mult){
-  const base = 5 + lvl*1.6;
+  const base = 4 + lvl*0.95;   /* al ritmo al que se puede entrenar en el gimnasio */
   const v = () => Math.max(3, Math.round(base*mult + rnd(-2,2)));
   const agu = v();
   const max = Math.round((40 + agu*12 + lvl*6) * (0.85+mult*0.15));
-  return makeFighter({ name, hp:max, max, fue:v(), dur:v(), ref:v(), arma:Math.round(lvl*1.2*mult), armadura:Math.round(lvl*0.9*mult) });
+  return makeFighter({ name, hp:max, max, fue:v(), dur:v(), ref:v(), arma:Math.round(lvl*1.0*mult), armadura:Math.round(lvl*0.75*mult) });
 }
 
 /* ---------- acciones ---------- */
 function doJob(id){
-  const j = JOBS.find(x=>x.id===id);
-  if (S.energy < j.cost || S.lvl < j.lvl) return;
+  const j = jobList().find(x=>x.id===id);
+  if (!j || S.energy < j.cost || S.lvl < j.lvl) return;
   S.energy -= j.cost;
-  if (Math.random() < [0,0.06,0.18,0.3][j.risk]){
+  if (S.side==="plata" && Math.random() < S.heat/250 + j.risk*0.02){
+    const fine = Math.min(S.gold, Math.round(S.gold*0.15) + S.lvl*5);
+    S.gold -= fine; addHeat(-35);
+    log(`${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.`, "bad");
+  } else if (Math.random() < [0,0.06,0.18,0.3][j.risk]){
     const dmg = Math.round(maxHp(S)*0.14*j.risk);
     S.hp = Math.max(1, S.hp - dmg);
     log(`${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
@@ -320,9 +512,76 @@ function doJob(id){
     const gold = Math.round(rnd(...j.gold) * (1 + S.stats.lab*0.03));
     const xp = rnd(...j.xp);
     S.gold += gold; gainXp(xp); S.c.jobs++;
-    log(`${j.name}: +${money(gold)}, +${xp} XP.`, "good");
+    if (j.resp) addRespect(j.resp);
+    if (j.heat) addHeat(j.heat);
+    log(`${j.name}: +${money(gold)}, +${xp} XP${j.resp?`, +${j.resp} de respeto`:""}.`, "good");
   }
   save(); render();
+}
+function addRespect(n){
+  const before = rankOf(S);
+  S.respect = Math.max(0, S.respect + n);
+  const after = rankOf(S);
+  if (after > before) log(`Ascendiste: ahora sos ${RANKS[S.side][after]}.`, "gold");
+}
+function collectSalary(){
+  if (S.side!=="placa" || salaryLeft()) return;
+  const g = salary(); S.gold += g; S.tSalary = now();
+  log(`Cobraste el sueldo: ${money(g)}.`, "gold"); save(); render();
+}
+function lawyer(){
+  const c = lawyerCost();
+  if (S.side!=="plata" || !S.heat || S.gold < c) return;
+  S.gold -= c; addHeat(-40);
+  log(`El abogado de La Señora hizo unas llamadas (−${money(c)}). Bajó el calor.`); save(); render();
+}
+
+/* La calle: duelos contra el otro bando, como atacar a otros jugadores en BiteFight */
+function genTargets(){
+  const names = [...FOES[foeSide()]].sort(() => Math.random()-.5).slice(0,5);
+  S.targets = names.map(name => { const lvl = Math.max(1, S.lvl + rnd(-2,2)); return { name, lvl, gold:rnd(lvl*20, lvl*55) }; });
+}
+function scout(){ if (S.energy < 1) return; S.energy -= 1; genTargets(); lastFight = null; save(); render(); }
+function duel(i){
+  const t = S.targets[i];
+  if (!t || S.energy < 3 || S.hp < maxHp(S)*0.25) return;
+  S.energy -= 3;
+  const res = battle(playerFighter(), scaledEnemy(t.name, t.lvl, .95));
+  S.hp = Math.max(1, res.p.hp);
+  S.targets.splice(i,1); if (!S.targets.length) genTargets();
+  const p = S.side==="placa";
+  if (res.won){
+    const gold = p ? Math.round(t.gold*0.2) + t.lvl*6 : Math.round(t.gold*0.35);
+    const xp = 6 + t.lvl*2, r = clamp(4 + (t.lvl-S.lvl)*2, 1, 12);
+    S.gold += gold; gainXp(xp); addRespect(r); S.c.duelW++;
+    if (!p) addHeat(5);
+    log(p ? `Arrestaste a ${t.name}: ${money(gold)} de recompensa, +${xp} XP, +${r} de respeto.`
+          : `Le ganaste a ${t.name} y le sacaste ${money(gold)}. +${xp} XP, +${r} de respeto.`, "good");
+    lastFight = { ...res, reward:{ gold, xp } };
+  } else {
+    S.c.duelL++; addRespect(-2);
+    log(p ? `${t.name} se te escapó y te dejó en el piso. −2 de respeto.`
+          : `${t.name} te redujo; te soltaste y saliste corriendo. −2 de respeto.`, "bad");
+    lastFight = { ...res, reward:{ gold:0, xp:0 } };
+  }
+  save(); render();
+  const f = $(".fight"); if (f && !res.won) f.classList.add("shake");
+}
+/* A vos también te vienen a buscar */
+function defend(){
+  const name = pick(FOES[foeSide()]);
+  const res = battle(scaledEnemy(name, Math.max(1, S.lvl + rnd(-1,2)), .9), playerFighter());
+  S.hp = Math.max(1, res.e.hp);
+  if (res.won){
+    const lost = Math.round(S.gold*0.08); S.gold -= lost;
+    log(S.side==="placa" ? `${name} te emboscó a la salida de la comisaría y se llevó ${money(lost)}.`
+                         : `${name} te paró en la calle, te revisó y te sacó ${money(lost)}.`, "bad");
+  } else {
+    addRespect(2);
+    log(S.side==="placa" ? `${name} intentó emboscarte, pero lo redujiste. +2 de respeto.`
+                         : `${name} te quiso detener, pero te le escapaste a las piñas. +2 de respeto.`, "good");
+  }
+  S.seenTab.calle = false;
 }
 function spar(i){
   const m = RING[i];
@@ -345,9 +604,10 @@ function train(k){
   log(`Entrenaste ${STAT_NAMES[k].toLowerCase()} hasta ${S.stats[k]} (−${money(c)}).`);
   save(); render();
 }
+const itemLocked = it => S.lvl < it.lvl || (it.rank && rankOf(S) < it.rank);
 function buy(id){
   const it = SHOP.find(i=>i.id===id);
-  if (S.gold < it.price || S.lvl < it.lvl) return;
+  if (S.gold < it.price || itemLocked(it)) return;
   S.gold -= it.price; S.c.buy++;
   if (it.slot==="consumible"){ S.potions++; log(`Compraste un botiquín.`); }
   else { S.gear[it.slot] = it.id; log(`Te llevaste ${it.name.toLowerCase()} (−${money(it.price)}).`, "gold"); }
@@ -367,9 +627,20 @@ function heal(){
 }
 
 /* misión por etapas */
-function startMission(){ if (S.mis || S.c.valija) return; S.mis = { step:0 }; misMsg = null; lastFight = null; log("Empezaste la misión «La valija».", "gold"); save(); render(); }
+function canStart(m){
+  if (S.mis) return false;
+  if (m.id==="valija") return !S.c.valija && !S.side;
+  const list = S.side ? MISSIONS[S.side] : [], i = list.indexOf(m);
+  return i>=0 && !S.done[m.id] && rankOf(S) >= m.rank && list.slice(0,i).every(x => S.done[x.id]);
+}
+function startMission(id){
+  const m = getMission(id);
+  if (!m || !canStart(m)) return;
+  S.mis = { id, step:0 }; misMsg = null; lastFight = null;
+  log(`Empezaste la misión «${m.title}».`, "gold"); save(); render();
+}
 function missionStep(){
-  const st = VALIJA.steps[S.mis.step];
+  const M = getMission(S.mis.id), st = M.steps[S.mis.step];
   if (S.energy < st.energy || S.hp < 2) return;
   S.energy -= st.energy;
   let ok;
@@ -378,7 +649,7 @@ function missionStep(){
     const res = battle(playerFighter(), e);
     S.hp = Math.max(1, res.p.hp); lastFight = { ...res, reward:{ gold:0, xp:6 } };
     ok = res.won;
-    misMsg = { ok, text: ok ? "Los dos salieron corriendo. La valija sigue con vos." : "Te tiraron al piso, pero no soltaste la valija. Vas a tener que volver a pasar por ese pasaje." };
+    misMsg = { ok, text: ok ? st.win : st.lose };
   } else if (st.auto){
     ok = true; misMsg = { ok, text: st.ok };
   } else {
@@ -389,18 +660,27 @@ function missionStep(){
   }
   if (ok){
     gainXp(4); S.mis.step++;
-    if (S.mis.step >= VALIJA.steps.length){
-      S.mis = null; S.c.valija = 1;
-      misMsg = { ok:true, text:VALIJA.outro };
-      log("Terminaste la misión «La valija».", "gold");
+    if (S.mis.step >= M.steps.length){
+      S.mis = null;
+      log(`Terminaste la misión «${M.title}».`, "gold");
+      if (M.id==="valija"){ S.c.valija = 1; misMsg = { ok:true, text:M.outro }; }
+      else {
+        const r = M.reward;
+        S.done[M.id] = true; S.gold += r.gold; gainXp(r.xp); addRespect(r.resp);
+        if (r.heat) addHeat(r.heat);
+        misMsg = { ok:true, text:`${M.outro} Cobraste ${money(r.gold)}, +${r.xp} XP y +${r.resp} de respeto.` };
+      }
     }
   }
   save(); render();
 }
 
 function chooseSide(side){
-  S.side = side;
-  log(side==="placa" ? "Aceptaste la placa. Mañana te presentás en la comisaría." : "Aceptaste la plata. Ahora trabajás para La Señora.", "gold");
+  S.side = side; S.tSalary = now() - SALARY_EVERY; S.tAttack = now(); S.tHeat = now();
+  for (const k of ["calle","ranking"]) if (!S.tabs.includes(k)) S.tabs.push(k);
+  genTargets(); misMsg = null; lastFight = null; tab = "misiones";
+  log(side==="placa" ? "Aceptaste la placa. La comisaria Ríos te da una placa con tu nombre mal escrito y un escritorio que cojea."
+                     : "Aceptaste la plata. La Señora te da un celular viejo y una sola regla: nunca preguntes de dónde sale la plata.", "gold");
   save(); render();
 }
 
@@ -420,6 +700,8 @@ function renderSheet(){
     ${bar("hp","Vida",Math.round(S.hp),mh)}
     ${bar("en","Energía",S.energy,ENERGY_MAX, nextE?`+1 en ${nextE}s`:"")}
     ${bar("xp","Experiencia",S.xp,xpNeed(S))}
+    ${S.side==="plata" ? bar("heat","Calor policial",S.heat,100, S.heat>=60?"cuidado":"") : ""}
+    ${S.side ? `<div class="stat"><span>${RANKS[S.side][rankOf(S)]}</span><span class="num">${S.respect} de respeto</span></div>` : ""}
     <div class="money"><span>Plata</span><span class="num">${money(S.gold)}</span></div>
     ${S.tabs.includes("gimnasio") ? `<div class="stats">${Object.keys(STAT_NAMES).map(k=>`<div class="stat"><span>${STAT_NAMES[k]}</span><span class="num">${S.stats[k]}</span></div>`).join("")}</div>` : ""}
     ${S.tabs.includes("feria") ? `<div class="gear"><span>Mano: ${w?`${w.name} (+${w.val})`:"nada"}</span><span>Encima: ${a?`${a.name} (+${a.val})`:"ropa de calle"}</span>${S.potions?`<span>Botiquines: ${S.potions}</span>`:""}</div>` : ""}`;
@@ -438,14 +720,20 @@ function bossView(){
 
 function paneView(){
   const riskTxt = ["","bajo","medio","alto"];
-  if (tab==="laburos") return `
-    <h2>Laburos</h2>
-    <p>Trabajos de todo tipo. Más riesgo, más plata. La labia te ayuda a cobrar mejor.</p>
-    <div class="list">${JOBS.filter(j => j.lvl <= S.lvl + 2).map(j=>`
+  if (tab==="laburos"){
+    const p = S.side==="placa";
+    const intro = !S.side ? "Trabajos de todo tipo. Más riesgo, más plata. La labia te ayuda a cobrar mejor."
+      : p ? "Salís a la calle con el uniforme. Paga menos que el otro lado, pero suma respeto y cobrás sueldo cada diez minutos."
+          : "Cada golpe paga bien y suma respeto, pero también suma calor. Con mucho calor es más fácil que te agarren.";
+    return `
+    <h2>${tabName("laburos")}</h2>
+    <p>${intro}</p>
+    <div class="list">${jobList().filter(j => j.lvl <= S.lvl + 2).map(j=>`
       <div class="item"><div><h3>${j.name}<span class="risk r${j.risk}">riesgo ${riskTxt[j.risk]}</span></h3>
-        <div class="meta num">${money(j.gold[0])}–${money(j.gold[1])} · ${j.xp[0]}–${j.xp[1]} XP · ${j.cost} energía${S.lvl<j.lvl?` · desde nivel ${j.lvl}`:""}</div></div>
-        <div class="act"><button data-do="job:${j.id}" ${S.energy<j.cost||S.lvl<j.lvl?"disabled":""}>Trabajar</button></div></div>`).join("")}
+        <div class="meta num">${money(j.gold[0])}–${money(j.gold[1])} · ${j.xp[0]}–${j.xp[1]} XP${j.resp?` · +${j.resp} respeto`:""}${j.heat?` · +${j.heat} calor`:""} · ${j.cost} energía${S.lvl<j.lvl?` · desde nivel ${j.lvl}`:""}</div></div>
+        <div class="act"><button data-do="job:${j.id}" ${S.energy<j.cost||S.lvl<j.lvl?"disabled":""}>${!S.side?"Trabajar":p?"Salir":"Hacerlo"}</button></div></div>`).join("")}
     </div>`;
+  }
   if (tab==="gimnasio") return `
     <h2>Gimnasio de Don Tito</h2>
     <p>Cada punto cuesta más que el anterior.</p>
@@ -455,11 +743,11 @@ function paneView(){
     </div>`;
   if (tab==="feria") return `
     <h2>Feria de usados</h2>
-    <p>Una cosa en la mano y una encima. Lo nuevo reemplaza a lo viejo.</p>
-    <div class="list">${SHOP.filter(it => it.lvl <= S.lvl + 3).map(it=>{ const own = S.gear[it.slot]===it.id; return `
-      <div class="item"><div><h3>${it.name}</h3>
-        <div class="meta num">${it.slot==="consumible"?"Se usa desde la guardia":`${it.slot==="arma"?"golpe":"protección"} +${it.val}`} · ${money(it.price)}${S.lvl<it.lvl?` · desde nivel ${it.lvl}`:""}</div></div>
-        <div class="act"><button data-do="buy:${it.id}" ${own||S.gold<it.price||S.lvl<it.lvl?"disabled":""}>${own?"Lo tenés":"Comprar"}</button></div></div>`;}).join("")}
+    <p>Una cosa en la mano y una encima. Lo nuevo reemplaza a lo viejo.${S.side ? (S.side==="placa" ? " Al fondo está lo que te da la armería de la comisaría, según tu rango." : " Al fondo, lo del mercado negro de La Señora, según tu rango.") : ""}</p>
+    <div class="list">${SHOP.filter(it => it.lvl <= S.lvl + 3 && (!it.side || it.side===S.side)).map(it=>{ const own = S.gear[it.slot]===it.id; return `
+      <div class="item"><div><h3>${it.name}${it.side?`<span class="badge ${it.side}" style="margin-left:6px">${it.side==="placa"?"armería":"mercado negro"}</span>`:""}</h3>
+        <div class="meta num">${it.slot==="consumible"?"Se usa desde la guardia":`${it.slot==="arma"?"golpe":"protección"} +${it.val}`} · ${money(it.price)}${S.lvl<it.lvl?` · desde nivel ${it.lvl}`:""}${it.rank && rankOf(S)<it.rank?` · desde rango ${RANKS[it.side][it.rank]}`:""}</div></div>
+        <div class="act"><button data-do="buy:${it.id}" ${own||S.gold<it.price||itemLocked(it)?"disabled":""}>${own?"Lo tenés":"Comprar"}</button></div></div>`;}).join("")}
     </div>`;
   if (tab==="ring") return `
     <h2>El ring</h2>
@@ -479,21 +767,62 @@ function paneView(){
         <div class="act"><button data-do="kit" ${!S.potions?"disabled":""}>Usar</button></div></div>
     </div>`; }
   if (tab==="misiones"){
-    if (!S.mis && !S.c.valija) return `
+    if (S.mis) return missionRunView(getMission(S.mis.id));
+    if (!S.side){
+      if (S.c.valija) return missionRunView(VALIJA);
+      return `
       <h2>Misiones</h2>
       <p>Las misiones tienen varias etapas. Cada etapa gasta energía y pone a prueba un atributo distinto. Si una etapa sale mal, la podés volver a intentar.</p>
       <div class="item"><div><h3>${VALIJA.title}</h3><div class="meta">${esc(VALIJA.intro)}</div></div>
-        <div class="act"><button class="primary" data-do="mstart">Empezar</button></div></div>`;
-    const step = S.mis ? S.mis.step : VALIJA.steps.length;
-    const cur = VALIJA.steps[step];
+        <div class="act"><button class="primary" data-do="mstart:valija">Empezar</button></div></div>`;
+    }
+    const rk = rankOf(S);
+    return `
+      <h2>Misiones</h2>
+      <p>${S.side==="placa" ? "Operativos de la comisaría." : "Trabajos de La Señora."} Van en orden y algunos piden un rango mínimo. Cada etapa se puede reintentar.</p>
+      ${misMsg ? `<p class="result ${misMsg.ok?"good":"bad"}">${esc(misMsg.text)}</p>` : ""}
+      <div class="list">${MISSIONS[S.side].map(m => { const done = S.done[m.id], ok = canStart(m); return `
+        <div class="item"><div><h3>${m.title}</h3><div class="meta">${done ? "Hecha." : esc(m.intro)}</div>
+          ${!done && !ok ? `<div class="lock">${rk < m.rank ? `Pide rango ${RANKS[S.side][m.rank]}` : "Primero terminá la anterior"}</div>` : ""}</div>
+          <div class="act"><button class="${ok?"primary":""}" data-do="mstart:${m.id}" ${ok?"":"disabled"}>${done?"Hecha":"Empezar"}</button></div></div>`; }).join("")}
+      </div>`;
+  }
+  if (tab==="calle"){
+    const p = S.side==="placa", weak = S.hp < maxHp(S)*0.25;
+    return `
+    <h2>La calle</h2>
+    <p>${p ? "Delincuentes que andan por tu zona. Si ganás, cobrás la recompensa y decomisás parte de lo que llevan." : "Policías que andan por tu zona. Si ganás, te quedás con parte de lo que llevan encima."} Cada pelea gasta 3 de energía. Ojo: a vos también te pueden venir a buscar.</p>
+    ${weak ? `<p class="result bad">Estás muy golpeado para salir a pelear. Pasá por la guardia.</p>` : ""}
+    <div class="list">${S.targets.map((t,i) => { const d = t.lvl - S.lvl; return `
+      <div class="item"><div><h3>${esc(t.name)}<span class="risk r${d<0?1:d<2?2:3}">nivel ${t.lvl}</span></h3>
+        <div class="meta num">Lleva unos ${money(t.gold)}</div></div>
+        <div class="act"><button data-do="duel:${i}" ${S.energy<3||weak?"disabled":""}>${p?"Arrestar":"Atacar"}</button></div></div>`; }).join("")}
+    </div>
+    <div><button data-do="scout" ${S.energy<1?"disabled":""}>Buscar a otros · 1 energía</button></div>`;
+  }
+  if (tab==="ranking"){
+    const rows = RIVALS.map(([name,side,resp,lvl]) => ({ name, side, resp, lvl }))
+      .concat([{ name:S.name, side:S.side, resp:S.respect, lvl:S.lvl, me:true }])
+      .sort((a,b) => b.resp - a.resp);
+    return `
+    <h2>Ranking de Bahía Gris</h2>
+    <p>Quién manda en la ciudad, de los dos lados de la ley. Se ordena por respeto.</p>
+    <ol class="ranking">${rows.map((r,i) => `<li class="${r.me?"me":""}"><span class="pos">${i+1}</span>
+      <span>${esc(r.name)} <span class="badge ${r.side}">${r.side==="placa"?"Policía":"Delincuente"}</span></span>
+      <span class="tag num">nivel ${r.lvl}</span><span class="num">${r.resp}</span></li>`).join("")}</ol>`;
+  }
+  return "";
+}
+
+function missionRunView(M){
+    const step = S.mis && S.mis.id===M.id ? S.mis.step : M.steps.length;
+    const cur = M.steps[step];
     return `<div class="mission">
-      <h2>${VALIJA.title}</h2>
-      <ol class="steps">${VALIJA.steps.map((s,i)=>`<li class="${i<step?"ok":i===step?"now":""}"><span class="n">${i<step?"✓":i+1}</span><span>${esc(s.text)}${i===step ? `<br><span class="tag">${s.fight?"pelea":s.auto?"entrega":`prueba de ${STAT_NAMES[s.stat].toLowerCase()}`} · ${s.energy} energía</span>` : ""}</span></li>`).join("")}</ol>
+      <h2>${M.title}</h2>
+      <ol class="steps">${M.steps.map((s,i)=>`<li class="${i<step?"ok":i===step?"now":""}"><span class="n">${i<step?"✓":i+1}</span><span>${esc(s.text)}${i===step ? `<br><span class="tag">${s.fight?"pelea":s.auto?"entrega":`prueba de ${STAT_NAMES[s.stat].toLowerCase()}`} · ${s.energy} energía</span>` : ""}</span></li>`).join("")}</ol>
       ${misMsg ? `<p class="result ${misMsg.ok?"good":"bad"}">${esc(misMsg.text)}</p>` : ""}
       ${cur ? `<div><button class="primary" data-do="mstep" ${S.energy<cur.energy||S.hp<2?"disabled":""}>${cur.fight?"Pelear":cur.auto?"Entregar":"Intentarlo"}</button></div>` : ""}
     </div>`;
-  }
-  return "";
 }
 
 function fightView(f){
@@ -518,25 +847,36 @@ function choiceView(){
       <button class="side-card placa" data-side="placa" aria-pressed="${pickSide==="placa"}">
         <span class="tag">Comisaria Inés Ríos</span><h3>La placa</h3>
         <span class="say">«Necesito gente que conozca la calle. Vos la conocés.»</span>
-        <ul><li>Patrullajes en vez de laburos</li><li>Operativos y allanamientos como misiones</li><li>Duelos contra delincuentes de otros jugadores</li></ul>
+        <ul><li>Patrullajes en vez de laburos</li><li>Operativos y allanamientos como misiones</li><li>Arrestos de delincuentes en la calle</li></ul>
       </button>
       <button class="side-card plata" data-side="plata" aria-pressed="${pickSide==="plata"}">
         <span class="tag">La Señora</span><h3>La plata</h3>
         <span class="say">«Pagan poco por ser honesto. Yo pago bien.»</span>
-        <ul><li>Golpes y robos en vez de laburos</li><li>Atracos por etapas como misiones</li><li>Duelos contra policías de otros jugadores</li></ul>
+        <ul><li>Golpes y robos en vez de laburos</li><li>Atracos por etapas como misiones</li><li>Peleas contra policías en la calle</li></ul>
       </button>
     </div>
     ${pickSide ? `<div class="confirm">¿Seguro que elegís ${pickSide==="placa"?"la placa":"la plata"}? <button class="primary" data-do="side">Sí, elijo ${pickSide==="placa"?"la placa":"la plata"}</button><button data-do="unpick">Pensarlo</button></div>` : ""}
   </section>`;
 }
-function afterView(){
-  const p = S.side==="placa";
-  return `<section class="choice">
-    <div class="siren" aria-hidden="true"></div>
-    <div class="tag">${p ? "Comisaría 4ª de Bahía Gris" : "El depósito de La Señora"}</div>
-    <h2>${p ? "Bienvenido a la fuerza" : "Bienvenido a la familia"}</h2>
-    <p>${p ? "La comisaria Ríos te da una placa con tu nombre mal escrito y un escritorio que cojea." : "La Señora te da un celular viejo, una dirección y una sola regla: nunca preguntes de dónde sale la plata."}</p>
-    <p class="tag">La parte 2 está en construcción: misiones y laburos propios de cada bando.</p>
+/* Después de elegir, la jefa de cada bando reemplaza a Marga */
+function factionView(){
+  const p = S.side==="placa", rk = rankOf(S);
+  const next = MISSIONS[S.side].find(m => !S.done[m.id]);
+  let say;
+  if (S.mis) say = p ? "Terminá lo que empezaste. Te estoy esperando." : "No me gusta esperar. Terminá ese trabajo.";
+  else if (!next) say = p ? "Bahía Gris está más tranquila gracias a vos. Seguí patrullando: siempre aparece alguien nuevo." : "Bahía Gris es nuestra. Ahora hay que cuidarla.";
+  else if (rk >= next.rank) say = p ? `Tengo algo para vos: “${next.title}”. Está en Misiones.` : `Tengo un trabajo: “${next.title}”. Fijate en Misiones.`;
+  else say = p ? `Para lo que viene necesito a alguien con rango de ${RANKS.placa[next.rank]}. Ganate el respeto en la calle.`
+               : `Lo que viene es para un ${RANKS.plata[next.rank]}. Hacete respetar en la calle primero.`;
+  const nextAt = RANK_AT[rk+1];
+  const action = p
+    ? (salaryLeft() ? `<span class="tag num">Próximo sueldo en ${Math.ceil(salaryLeft()/60000)} min</span>`
+                    : `<button class="primary" data-do="salary">Cobrar sueldo · ${money(salary())}</button>`)
+    : `<button data-do="lawyer" ${!S.heat||S.gold<lawyerCost()?"disabled":""}>Llamar al abogado · −40 calor · ${money(lawyerCost())}</button>`;
+  return `<section class="boss ${S.side}" aria-live="polite">
+    <div class="head"><span class="tag">${p ? "Comisaria Inés Ríos · Comisaría 4ª" : "La Señora · el depósito del puerto"}</span><h3>${RANKS[S.side][rk]}</h3></div>
+    <p class="say">«${esc(say)}»</p>
+    <div class="goal"><span class="num">Respeto ${S.respect}${nextAt!==undefined ? ` · ${RANKS[S.side][rk+1]} a los ${nextAt}` : " · rango máximo"}</span>${action}</div>
   </section>`;
 }
 
@@ -544,17 +884,17 @@ function render(){
   const app = $("#app");
   if (!S){ app.innerHTML = createView(); bindCreate(); return; }
   if (!S.tabs.includes(tab)) tab = S.tabs[S.tabs.length-1];
-  const showFight = lastFight && (tab==="ring" || tab==="misiones");
+  const showFight = lastFight && (tab==="ring" || tab==="misiones" || tab==="calle");
   app.innerHTML = `
     <header class="top">
       <div><div class="tag">Bahía Gris · de noche</div><h1>Placa <span class="o">o</span> Plata</h1></div>
-      ${S.tabs.includes("ring") ? `<div class="tag num">Peleas ganadas ${S.wins} · perdidas ${S.losses}</div>` : ""}
+      ${S.tabs.includes("ring") ? `<div class="tag num">Peleas ganadas ${S.wins + S.c.duelW} · perdidas ${S.losses + S.c.duelL}</div>` : ""}
     </header>
     <div class="game">
       <aside class="sheet" id="sheet"></aside>
       <main class="board">
-        ${S.tutDone && !S.side ? choiceView() : S.side ? afterView() : bossView()}
-        <nav class="tabs" role="tablist">${S.tabs.map(k=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${TAB_NAMES[k]}${!S.seenTab[k] && tab!==k ? `<span class="dot" aria-label="nuevo"></span>` : ""}</button>`).join("")}</nav>
+        ${S.tutDone && !S.side ? choiceView() : S.side ? factionView() : bossView()}
+        <nav class="tabs" role="tablist">${S.tabs.map(k=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${tabName(k)}${!S.seenTab[k] && tab!==k ? `<span class="dot" aria-label="nuevo"></span>` : ""}</button>`).join("")}</nav>
         <section class="pane">${paneView()}</section>
         ${showFight ? fightView(lastFight) : ""}
       </main>
@@ -606,7 +946,11 @@ document.getElementById("app").addEventListener("click", e => {
     case "buy": buy(x); break;
     case "kit": useKit(); break;
     case "heal": heal(); break;
-    case "mstart": startMission(); break;
+    case "mstart": startMission(x || "valija"); break;
+    case "duel": duel(+x); break;
+    case "scout": scout(); break;
+    case "salary": collectSalary(); break;
+    case "lawyer": lawyer(); break;
     case "mstep": missionStep(); break;
     case "side": if (pickSide) chooseSide(pickSide); break;
     case "unpick": pickSide = null; render(); break;
@@ -616,6 +960,8 @@ document.getElementById("app").addEventListener("click", e => {
   }
 });
 
+S = load();
+if (S && S.side && !S.targets.length) genTargets();
 render();
 setInterval(tick, 1000);
 })();
