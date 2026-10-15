@@ -7,3 +7,4 @@ dist/
 # respuestas crudas de OpenStreetMap que usa tools/geo/build.py (se regeneran)
 tools/geo/cache/
 tools/geo/build.log
+__pycache__/
