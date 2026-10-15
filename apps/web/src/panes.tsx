@@ -504,7 +504,7 @@ function Legend({ s, now, km }: { s: Ui["s"]; now: number; km: number }) {
   const b = s.busy;
   const left = b ? minTxt(b.until - now) : "";
   const who = (name: string, color: string) => <span className="lg-who" style={{ color, borderColor: color }}>{name}</span>;
-  if (!b) return <>Estás en tu {houseOf(s).name.replace(/^w/, c => c.toLowerCase())}, en {homePlace(s)}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>;
+  if (!b) return <>Estás en tu {houseOf(s).name.replace(/^./, c => c.toLowerCase())}, en {homePlace(s)}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>;
   if (b.kind === "mision") {
     const m = findMission(s, b.id);
     if (!m) return <>En una misión · {left}</>;
