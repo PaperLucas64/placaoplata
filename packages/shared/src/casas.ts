@@ -18,10 +18,29 @@ export const HOUSE_TYPES: Record<string, HouseType> = {
 const OFFER: Record<Tier, string[]> = { humilde: ["depto", "ph", "casa"], medio: ["depto", "ph", "casa"], rico: ["depto", "chalet", "mansion"] };
 const MULT: Record<Tier, number> = { humilde: 0.7, medio: 1, rico: 1.5 };
 
-export interface House extends HouseType { id: string; type: string; place: string }
+/* un punto fijo adentro de un barrio para cada cosa (siempre el mismo para la misma clave) */
+export function spotIn(barrio: string, key: string): [number, number] {
+  const c = GEO_PLACES[barrio] ?? GEO_PLACES[GEO_HOME];
+  let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  const a = (h % 360) * Math.PI / 180, r = 0.0025 + ((h >>> 8) % 100) / 100 * 0.004;
+  return [c.lat + Math.sin(a) * r, c.lng + Math.cos(a) * r];
+}
+
+/* Las pensiones donde podés arrancar: naciste en una de estas, al azar */
+export const PENSIONES: Record<string, string> = {
+  "Once y Medio": "Pensión La Estrella", "Mosecraft": "Hotel Familiar Los Andes", "Floreros": "Pensión Doña Rosa",
+  "Villa Crespa": "Residencial El Ombú", "Liniers Sur": "Pensión San Cayetano", "San Nicolasito": "Hotel Familiar Paraná",
+  "La Paterna": "Pensión El Tablón", "Villa Mitrecito": "Residencial Mitrecito", "Almagrito": "Pensión Medrano",
+  "Villa Lurio": "Hotel Familiar El Trébol"
+};
+
+export interface House extends HouseType { id: string; type: string; place: string; lat: number; lng: number }
 const make = (type: string, barrio: string): House => {
   const t = HOUSE_TYPES[type];
-  return { ...t, id: type === "pieza" ? "pension" : `${type}@${barrio}`, type, place: barrio, price: Math.round(t.price * MULT[tierOf(barrio)] / 100) * 100 };
+  const id = type === "pieza" ? "pension" : `${type}@${barrio}`;
+  const [lat, lng] = spotIn(barrio, type === "pieza" ? `pension-${barrio}` : id); // cada casa tiene su dirección
+  return { ...t, ...(type === "pieza" && PENSIONES[barrio] ? { name: `Pieza en la ${PENSIONES[barrio]}` } : {}),
+    id, type, place: barrio, lat, lng, price: Math.round(t.price * MULT[tierOf(barrio)] / 100) * 100 };
 };
 /* las tres casas que se venden en un barrio */
 export const housesIn = (barrio: string): House[] => OFFER[tierOf(barrio)].map(t => make(t, barrio));

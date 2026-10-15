@@ -49,8 +49,8 @@ export const LUGARES: Lugar[] = [
       help: "El Sindicato. Don Ramón Ferrante, el diarero, atiende desde su kiosco de revistas entre grúas y bombos.", tutDone: true }),
   L({ id: "monumentito", name: "El Monumentito", kind: "contacto", icon: "barra", gang: "barra", barrio: "Ñuñez", lat: -34.5453, lng: -58.4498,
       help: "La Barra. El Tano Lucero vive en la tribuna, aunque no haya partido.", tutDone: true }),
-  L({ id: "remises-rita", name: "Radiotaxi El Tucu", kind: "contacto", icon: "amarillos", gang: "amarillos", barrio: "Once y Medio", lat: -34.6095, lng: -58.4045,
-      help: "Los Amarillos. El Tucu Medina, taxista, maneja la ciudad desde una radio.", tutDone: true }),
+  L({ id: "remises-rita", name: "Radiotaxi Rita", kind: "contacto", icon: "amarillos", gang: "amarillos", barrio: "Once y Medio", lat: -34.6095, lng: -58.4045,
+      help: "Los Amarillos. Rita «Taxi» Quiroga, taxista, maneja la ciudad desde una radio.", tutDone: true }),
   L({ id: "comisaria", name: "Comisaría 4ª", kind: "policia", icon: "policia", barrio: "San Nicolasito", lat: -34.6045, lng: -58.38,
       help: "El comisario Funes ofrece trabajos sucios. La comisaria Ríos no se tiene que enterar.", lvl: POLICE_LVL }),
   /* servicios */

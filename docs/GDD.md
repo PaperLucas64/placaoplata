@@ -55,7 +55,7 @@ avanzar en la historia de tu pandilla → mejorar la casa → escalar en el rank
 | **La Familia** | rojo | Elvira «La Señora» Santoro | el puerto | contrabando, extorsión | +10% de plata en los golpes |
 | **El Sindicato** | azul | Don Ramón Ferrante (diarero) | los galpones | aprietes, paros, robo de cargas | entrenás 25% más rápido |
 | **La Barra** | verde | El Tano Lucero | la cancha | reventa, peleas, territorio | +10% de fuerza en las peleas |
-| **Los Amarillos** | amarillo | El Tucu Medina (taxista) | las remiserías | autos, desarmaderos, picadas | juntás 30% menos de calor |
+| **Los Amarillos** | amarillo | Rita «Taxi» Quiroga (taxista) | las remiserías | autos, desarmaderos, picadas | juntás 30% menos de calor |
 
 Otros: **Marga** (bar La Esquina, guía del tutorial), **Don Tito** (gimnasio), **El Gallego** (mano derecha de La Señora),
 **Comisaria Inés Ríos** (la policía), pandilleros con nombre de cada pandilla y rivales del ring.
@@ -141,7 +141,7 @@ interior quedan para más adelante.
 ### 5.2a El mapa es el juego (lugares, como en GTA)
 El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al tocar uno se abre lo que podés hacer ahí:
 - **Contactos** (los «Lester» de Maires): Bar La Esquina (Marga: tutorial y La valija) · la casona de La Señora (Puerto Mareo) ·
-  Galpón 3 (Don Ramón Ferrante, Barrancas) · La Bombonerita (El Tano, La Bocota) · Radiotaxi El Tucu (Once y Medio) · Comisaría 4ª
+  Galpón 3 (Don Ramón Ferrante, Barrancas) · La Bombonerita (El Tano, La Bocota) · Radiotaxi Rita (Once y Medio) · Comisaría 4ª
   (Funes, desde nivel 5). Cada uno tiene su encargo, su historia, las historias de la ciudad desde su lado y sus pedidos.
   El número rojo es cuántas misiones te tiene.
 - **Servicios:** tu casa · Gimnasio de Don Tito · Estadio Luna Parquecito (torneo) · Feria de usados de Pompeya Chica ·

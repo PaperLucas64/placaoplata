@@ -3,6 +3,7 @@ import {
   CLINIC_PER_HP, ENERGY_EVERY, ENERGY_MAX, GUARDIA_FULL, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, TRAIN_MAX, TRAIN_MIN, TRAIN_PER_POINT
 } from "./config.js";
 import { GEO_PLACES } from "./geo-data.js";
+import { PENSIONES } from "./casas.js";
 import { ATTACK_SLOTS, JOBS, OLD_ITEMS, OLD_SLOT, SHOP, SLOTS, STAT_NAMES } from "./data.js";
 import {
   BED_ENERGY, BED_HEAL, CLOSET_SLOTS, GANG_KEYS, GANG_MIN_POINTS, GANG_THRESHOLD, GANGS, GOLPES, HOME, RANK_AT, RANK_NAMES, SAFE_CAP
@@ -89,8 +90,8 @@ export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
     tEnergy: now, tHeal: now, tAttack: now, tHeat: now, log: []
   };
   s.hp = maxHp(s);
-  /* naciste en un barrio al azar: ahí está tu pieza (después te podés mudar) */
-  const barrios = Object.keys(GEO_PLACES);
+  /* naciste en una de las pensiones, al azar: ahí está tu pieza (después te podés mudar) */
+  const barrios = Object.keys(PENSIONES).filter(b => GEO_PLACES[b]);
   s.home.spawn = barrios[Math.floor(Math.random() * barrios.length)];
   log(s, now, `${name} se baja del micro en Salida con ${money(10)} en el bolsillo. Marga le consigue una pieza en ${s.home.spawn}.`, "gold");
   return s;

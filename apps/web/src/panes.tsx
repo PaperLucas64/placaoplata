@@ -62,7 +62,7 @@ export function CityMap(ui: Ui & { filter?: string | null }) {
   const crowd = <span className="crowd"><span className="live on" /> {online} en línea · {people.length} en la calle</span>;
   return <section className="city" aria-label="Mapa de Maires">
     <Suspense fallback={<div className="gps city-map" />}>
-      <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
+      <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} homeAt={!trip?.from || trip.from === homePlace(s) ? homePt(s) : undefined} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
         at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} sprite={b?.kind === "caza" ? undefined : playerSprite(s.avatar)}
         others={others} now={now} spriteOf={travelerSprite} pins={pins} onPin={id => ui.setLugar(id === ui.lugar ? null : id)} selected={ui.lugar}
         onBarrio={b => ui.setLugar(`barrio:${b}`)} onMe={() => ui.openMe?.()} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
@@ -81,8 +81,8 @@ const near = spotIn;
 function allLugares(s: Ui["s"]): Lugar[] {
   const care = [...HOSPITALS.map(h => ({ ...h, care: "guardia" as const })), ...CLINICS.map(h => ({ ...h, care: "clinica" as const }))]
     .map(h => { const [lat, lng] = near(h.place, h.name); return careLugar(h.name, h.place, h.care, lat, lng); });
-  const home = GEO_PLACES[homePlace(s)];
-  const casa: Lugar = { id: "casa", name: `Tu casa: ${houseOf(s).name}`, kind: "casa", icon: "casa", barrio: homePlace(s), lat: home.lat, lng: home.lng,
+  const home = houseOf(s);
+  const casa: Lugar = { id: "casa", name: `Tu casa: ${home.name}`, kind: "casa", icon: "casa", barrio: homePlace(s), lat: home.lat, lng: home.lng,
     help: "Tu guarida: de acá salen y acá vuelven tus viajes. Mejoras, equipo y mudanzas." };
   /* lo que tiene cada barrio: inmobiliaria, kiosco y estaciones de subte (se ven de muy cerca) */
   const local: Lugar[] = BARRIOS.flatMap(b => {

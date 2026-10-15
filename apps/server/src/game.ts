@@ -3,7 +3,7 @@
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
   ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
-  startChase, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  startChase, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, spotIn, LUGARES, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -167,12 +167,12 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
           const here = s.busy?.kind === "vuelta" ? wherePlayer(RUTAS, s, now) : homePt(s);
           let dest: Pt | null = null;
           if (a.type === "mstart") { const m = findMission(s, a.id); const pl = m ? missionPlace(m) : undefined; dest = pl ? missionPt(m!, pl) : null; } // justo en la banderita
-          else if (a.type === "encargo") dest = placePt(HOME_BARRIO[a.gang]);
+          else if (a.type === "encargo") { const c = LUGARES.find(l => l.kind === "contacto" && l.gang === a.gang); dest = c ? [c.lat, c.lng] : placePt(HOME_BARRIO[a.gang]); }
           else if (a.type === "job") {
             const spot = a.at ? lugarOf(a.at) : undefined;
             if (spot) dest = [spot.lat, spot.lng];
             else { const gp = golpePlace(s, rng); place = gp; dest = placePt(gp); }
-          } else { const care = nearestCare(s, a.type === "heal" ? "clinica" : "guardia"); dest = placePt(care.place); }
+          } else { const care = nearestCare(s, a.type === "heal" ? "clinica" : "guardia"); dest = spotIn(care.place, care.name); } // la puerta del hospital, como en el mapa
           if (dest && kmBetween(here, dest) > 0.05) {
             const foot = a.type === "guardia" || (a.type === "mstart" && a.mode === "pie");
             const path = await streetPath(here, dest, foot ? "foot" : "car");

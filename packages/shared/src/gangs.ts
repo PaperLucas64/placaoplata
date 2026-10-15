@@ -14,7 +14,7 @@ export const GANGS: Record<Gang, GangInfo> = {
                perk: "Entrenás 25% más rápido (en los galpones sobran fierros)", say: "Acá se para cuando yo digo y se cobra cuando yo digo." },
   barra:     { name: "La Barra", boss: "El Tano Lucero", color: "#6cc070", hood: "la cancha",
                perk: "+10% de fuerza en las peleas", say: "El barrio se banca con el cuerpo, pibe." },
-  amarillos: { name: "Los Amarillos", boss: "El Tucu Medina", color: "#f2c94c", hood: "las remiserías",
+  amarillos: { name: "Los Amarillos", boss: "Rita \"Taxi\" Quiroga", color: "#f2c94c", hood: "las remiserías",
                perk: "Tu nivel de búsqueda sube 30% menos", say: "Conozco cada calle de Maires. Y cada salida." }
 };
 
@@ -60,7 +60,7 @@ export const GANG_MEMBERS: Record<Gang, string[]> = {
 /* Ranking: personajes fijos para que la ciudad no se vea vacía. [nombre, pandilla, respeto, nivel] */
 export const RIVALS: [string, Gang, number, number][] = [
   ["Elvira «La Señora» Santoro", "familia", 2900, 26], ["Don Ramón Ferrante", "sindicato", 2500, 24], ["El Tano Lucero", "barra", 2100, 22],
-  ["El Tucu Medina", "amarillos", 1800, 21], ["El Gallego", "familia", 980, 16], ["\"Grúa\" Ledesma", "sindicato", 720, 14],
+  ["Rita \"Taxi\" Quiroga", "amarillos", 1800, 21], ["El Gallego", "familia", 980, 16], ["\"Grúa\" Ledesma", "sindicato", 720, 14],
   ["Chino Funes", "barra", 510, 12], ["Pirata Arce", "amarillos", 340, 10], ["La Turca", "familia", 220, 8],
   ["El Ruso Olmedo", "sindicato", 130, 6], ["Fideo Romero", "barra", 75, 5], ["Mecha Vidal", "amarillos", 10, 2]
 ];
@@ -198,7 +198,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
   ],
   amarillos: [
     { id:"taximetro", gang:"amarillos", tier:0, rank:0, title:"Viaje sin taxímetro", reward:R1,
-      intro:"El Tucu Medina te tira las llaves de un remís. «Un paquete, una dirección, nada de preguntas. Y el taxímetro apagado.»",
+      intro:"Rita Quiroga te tira las llaves de un remís. «Un paquete, una dirección, nada de preguntas. Y el taxímetro apagado.»",
       steps:[
         { text:"Cruzar la avenida en hora pico con el paquete en el asiento de atrás.", stat:"ref", diff:5, energy:2, dmg:.1,
           ok:"Te mandaste por una calle que nadie usa.", ko:"Te encerraron en un embotellamiento y te comiste un cordón." },
@@ -206,7 +206,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           ok:"El portero te deja pasar y hasta te abre el ascensor.", ko:"El portero llama al encargado. Mejor volver más tarde." },
         { text:"El que recibe el paquete no quiere pagar el viaje.", fight:{ name:"El pasajero pesado", mult:.85 }, energy:3,
           win:"Pagó el viaje, la propina y la puerta que rompió.", lose:"Te echó a empujones. Hay que volver a cobrar." },
-        { text:"Devolverle el remís al Tucu.", energy:1, auto:true, ok:"El Tucu revisa el auto, ve que no tiene rayones y sonríe." }
+        { text:"Devolverle el remís a Rita.", energy:1, auto:true, ok:"Rita revisa el auto, ve que no tiene rayones y sonríe." }
       ],
       outro:"«Manejás bien y no preguntás. Eso vale oro en esta ciudad.»" },
     { id:"desarmadero", gang:"amarillos", tier:1, rank:2, title:"El desarmadero", reward:R2,
@@ -220,7 +220,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           win:"El dueño decide que el auto no valía tanto.", lose:"Te sacan del garaje a patadas." },
         { text:"Desarmar el auto antes de que amanezca.", stat:"fue", diff:8, energy:3, dmg:.1,
           ok:"Cuatrocientas partes, prolijas y numeradas.", ko:"Se te cayó el motor arriba del pie." },
-        { text:"Avisarle al Tucu que está listo.", energy:1, auto:true, ok:"El Tucu ya tiene comprador para cada pieza." }
+        { text:"Avisarle a Rita que está listo.", energy:1, auto:true, ok:"Rita ya tiene comprador para cada pieza." }
       ],
       outro:"«En una noche hiciste lo que a otros les lleva una semana.»" },
     { id:"picada", gang:"amarillos", tier:2, rank:4, title:"La picada de la costanera", reward:R3,

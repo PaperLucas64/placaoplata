@@ -111,6 +111,7 @@ interface Props {
   height?: number;
   className?: string;
   home?: string;             // el barrio donde vive tu personaje (de ahí salen sus viajes)
+  homeAt?: [number, number]; // la puerta de tu casa (si no, el centro del barrio)
   path?: Pt[];               // si saliste desde la calle: el camino por las cuadras
   pins?: Pin[];              // lugares del mapa (contactos, servicios, golpes, misiones…)
   onPin?: (id: string) => void;
@@ -123,7 +124,9 @@ interface Props {
 export interface Pin { id: string; name: string; icon: string; color: string; lat: number; lng: number; badge?: string; near?: boolean; deep?: boolean } // near: de cerca; deep: de muy cerca
 const PIN_ICONS = import.meta.glob("../assets/lugares/*.svg", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 const pinIcon = (k: string) => PIN_ICONS[`../assets/lugares/${k}.svg`] ?? PIN_ICONS["../assets/lugares/mision.svg"];
-export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus, onMe }: Props) {
+export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus, onMe, homeAt }: Props) {
+  const homeKey = homeAt ? homeAt.join(",") : "";
+  const homeLL = () => homeAt ? { lat: homeAt[0], lng: homeAt[1] } : GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME];
   const onBarrioRef = useRef(onBarrio);
   onBarrioRef.current = onBarrio;
   const onMeRef = useRef(onMe);
@@ -155,7 +158,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   /* armar el mapa y el recorrido */
   useEffect(() => {
     if (!box.current || !data) return;
-    const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME];
+    const home = homeLL();
     const map = new maplibregl.Map({
       container: box.current, style: sat ? satellite(data.style) : data.style, center: [home.lng, home.lat], zoom: 12, locale: LOCALE,
       attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false // la ruedita acerca y aleja
@@ -211,7 +214,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
       me.current = new maplibregl.Marker({ element: meEl, anchor: "bottom" }).setLngLat([home.lng, home.lat]).addTo(map);
     }
     return () => { map.remove(); me.current = null; mapRef.current = null; markers.current.clear(); prev.current.clear(); pinMarks.current.clear(); };
-  }, [data, place, mode, sprite, owners, homeName, path ? path.length : 0, sat]);
+  }, [data, place, mode, sprite, owners, homeName, homeKey, path ? path.length : 0, sat]);
 
   /* los lugares: pines con ícono; al tocarlos se abre lo que podés hacer ahí */
   const pinKey = (pins ?? []).map(p => `${p.id}|${p.color}|${p.icon}|${p.badge ?? ""}|${p.lat}|${p.lng}`).join(";");
@@ -329,7 +332,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   /* mover a tu personaje (y a la cámara, si te sigue) */
   useEffect(() => {
     if (!data || !me.current) return;
-    const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME], dest = place ? GEO_PLACES[place] : undefined, r = place ? data.rutas[homeName]?.[place] : undefined;
+    const home = homeLL(), dest = place ? GEO_PLACES[place] : undefined, r = place ? data.rutas[homeName]?.[place] : undefined;
     let pos: Pt = [home.lat, home.lng];
     if (at && path && path.length > 1) pos = positionAt([{ pts: path, w: 1 }], at.back ? 1 - at.f : at.f); // por las cuadras
     else if (at && r && mode) pos = positionAt(legsFor(r, mode), at.back ? 1 - at.f : at.f);
@@ -338,7 +341,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     face(me.current.getElement(), mePrev.current, pos);
     mePrev.current = pos;
     if (follow && mapRef.current) mapRef.current.easeTo({ center: ll(pos), duration: 900 });
-  }, [data, place, mode, at?.back, at?.f, homeName, follow]);
+  }, [data, place, mode, at?.back, at?.f, homeName, homeKey, follow]);
 
   const style = height ? { height } : undefined;
   if (failed) return <div className={`gps off ${className}`} style={style}><span className="tag">El mapa no cargó. El juego sigue igual.</span></div>;

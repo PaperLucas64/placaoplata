@@ -15,7 +15,7 @@ export const silhouette = (name: string) => img(`siluetas/${String((hash(name) %
 /* personajes con retrato propio; el resto son siluetas */
 const NAMED: Record<string, string> = {
   "Marga": "marga", "Don Tito": "tito", "Comisaria Inés Ríos": "rios", "El Gallego": "gallego",
-  "Elvira «La Señora» Santoro": "senora", "Don Ramón Ferrante": "bermejo", "El Tano Lucero": "lucero", "El Tucu Medina": "rita"
+  "Elvira «La Señora» Santoro": "senora", "Don Ramón Ferrante": "bermejo", "El Tano Lucero": "lucero", "Rita \"Taxi\" Quiroga": "rita"
 };
 export const portraitOf = (name: string) => NAMED[name] ? img(`retratos/${NAMED[name]}`) : silhouette(name);
 export const hasPortrait = (name: string) => !!NAMED[name];
