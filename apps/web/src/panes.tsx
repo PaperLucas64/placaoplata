@@ -65,7 +65,7 @@ export function CityMap(ui: Ui & { filter?: string | null }) {
       <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
         at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} sprite={b?.kind === "caza" ? undefined : playerSprite(s.avatar)}
         others={others} now={now} spriteOf={travelerSprite} pins={pins} onPin={id => ui.setLugar(id === ui.lugar ? null : id)} selected={ui.lugar}
-        onBarrio={b => ui.setLugar(`barrio:${b}`)} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
+        onBarrio={b => ui.setLugar(`barrio:${b}`)} onMe={() => ui.openMe?.()} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
         attack={s.tutDone ? { s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) } : undefined} />
     </Suspense>
     <p className="gps-status num">{status}{crowd}</p>
@@ -557,7 +557,8 @@ function tripLine(t: { mode: TravelMode; place: string; back: number }, ph: NonN
     : <>Volviendo a casa · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(ph.left)}</>;
 }
 const kmTxt = (km: number) => (km >= 10 ? `${Math.round(km)} km` : `${km.toFixed(1).replace(".", ",")} km`);
-const minTxt = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))} min`;
+/* «7 h 33 min» en vez de «453 min» */
+const minTxt = (ms: number) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`; };
 
 /* La misión en curso: el GPS con tu personaje y las etapas. Lo que todavía no pasó no se cuenta. */
 function MissionProgress({ s, now }: Ui) {

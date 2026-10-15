@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
+import { money, xpNeed, energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
@@ -13,6 +13,7 @@ export interface Ui {
   ping: number;                                  // sube cuando llega un aviso en vivo de amigos o misiones de a dos
   refresh: () => Promise<void>; toast: (text: string, good?: boolean) => void;
   lugar: string | null; setLugar: (id: string | null) => void; // el lugar del mapa que tocaste
+  openMe?: () => void;                                          // abrir tu panel (al tocarte en el mapa)
 }
 
 /* todos los fondos, para cambiar de uno a otro con un fundido */
@@ -117,7 +118,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
     : act({ type: "cancel" }));
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }), lugar,
-    setLugar: id => { setLugar(id); setPanel(null); setFight(null); setLiveFight(null); } };
+    setLugar: id => { setLugar(id); setPanel(null); setFight(null); setLiveFight(null); },
+    openMe: () => { setLugar(null); setPanel("me"); } };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
   const tabs: TabKey[] = withEquipo(s.tutDone ? withNewTabs(s.tabs) : s.tabs);
   /* cinco pestañas grandes; adentro, sus secciones (solo las que ya destrabaste) */
@@ -143,14 +145,15 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
       <nav className="rail" aria-label="Menú">
         <div className="rail-logo">Mai<span className="o">res</span></div>
-        {groups.map(g => (
-          <button key={g.id} className={shown === g.id ? "on" : ""} onClick={() => openGroup(g)}>
-            <span className="ri" aria-hidden="true">{GROUP_ICON[g.id]}</span><span>{g.name}</span>
-            {g.tabs.some(unseen) && <span className="dot" aria-label="nuevo" />}
-          </button>
-        ))}
+        <button className={shown === "me" ? "on" : ""} onClick={() => openPanel("me")}><span className="ri" aria-hidden="true">🧍</span><span>Vos</span></button>
+        <button className={shown === "inv" ? "on" : ""} onClick={() => { setLugar(null); setPanel(panel === "inv" ? null : "inv"); open("equipo"); }}>
+          <span className="ri" aria-hidden="true">🎒</span><span>Inventario</span></button>
+        <button className={shown === "amigos" ? "on" : ""} onClick={() => { setLugar(null); setPanel(panel === "amigos" ? null : "amigos"); open("amigos"); }}>
+          <span className="ri" aria-hidden="true">👥</span><span>Amigos</span></button>
         <button className={shown === "cronica" ? "on" : ""} onClick={() => openPanel("cronica")}>
           <span className="ri" aria-hidden="true">📜</span><span>Crónica</span></button>
+        <button className={shown === "clan" ? "on" : ""} onClick={() => openPanel("clan")}>
+          <span className="ri" aria-hidden="true">🛡️</span><span>Crear clan</span></button>
       </nav>
 
       <div className="topbar">
@@ -160,6 +163,12 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
             onFocus={() => { if (query) { setLugar(null); setPanel("buscar"); } }} />
           <button type="submit" className="search-go" aria-label="Buscar">🔍</button>
         </form>
+        <div className="vitals" aria-label="Tu estado">
+          <span title="Vida"><i className="v-hp" style={{ width: `${Math.min(100, s.hp / maxHp(s) * 100)}%` }} />❤ {Math.round(s.hp)}/{maxHp(s)}</span>
+          <span title="Energía"><i className="v-en" style={{ width: `${Math.min(100, s.energy / energyMax(s) * 100)}%` }} />⚡ {s.energy}/{energyMax(s)}</span>
+          <span title="Experiencia"><i className="v-xp" style={{ width: `${Math.min(100, s.xp / xpNeed(s) * 100)}%` }} />★ nv {s.lvl}</span>
+          <span className="v-gold">{money(s.gold)}</span>
+        </div>
         <div className="chips">
           <button className="chip do" disabled={busy} onClick={quick}>🎯 Cosas que hacer</button>
           {CHIPS.map(c => <button key={c.id} className={`chip ${filter === c.id ? "on" : ""}`} onClick={() => setFilter(filter === c.id ? null : c.id)}>{c.icon} {c.name}</button>)}
@@ -176,7 +185,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
       {shown && <aside className="panel" aria-label="Panel">
         <div className="panel-head">
-          <b>{shown === "me" ? s.name : shown === "lugar" ? "" : shown === "cronica" ? "Crónica" : shown === "buscar" ? "Buscar" : groups.find(g => g.id === shown)?.name}</b>
+          <b>{shown === "me" ? s.name : shown === "lugar" ? "" : shown === "cronica" ? "Crónica" : shown === "buscar" ? "Buscar"
+            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : groups.find(g => g.id === shown)?.name}</b>
           <button className="link" onClick={() => { setLugar(null); setPanel(null); }}>Cerrar</button>
         </div>
         {fight && <Fight f={fight} s={s} />}
@@ -189,6 +199,9 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
             {s.tabs.includes("ring") && <> · peleas ganadas {s.wins + s.c.duelW} · perdidas {s.losses + s.c.duelL}</>}</p>
         </>}
         {shown === "cronica" && <Chronicle s={s} onOut={onOut} />}
+        {shown === "inv" && <section className="pane"><Pane tab="equipo" {...ui} /></section>}
+        {shown === "amigos" && <section className="pane"><Pane tab="amigos" {...ui} /></section>}
+        {shown === "clan" && <div className="soon"><h2>Clanes</h2><p>Próximamente: armá tu propio clan con amigos, con chat, territorio y misiones de clan.</p></div>}
         {shown === "buscar" && <SearchPanel {...ui} query={query} />}
         {groups.some(g => g.id === shown) && (() => {
           const g = groups.find(x => x.id === shown)!;

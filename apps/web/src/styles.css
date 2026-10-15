@@ -480,3 +480,19 @@ body{background:transparent}
 .lg-steps .ok{background:#7fc8a9;border-color:#7fc8a9}
 .lg-steps .ko{background:#e0524f;border-color:#e0524f}
 .lg-steps .now{border-color:var(--sodium);box-shadow:0 0 6px var(--sodium)}
+
+/* vida, energía y XP: siempre a la vista, chiquito */
+.topbar{flex-wrap:wrap}
+.vitals{display:flex;gap:6px;flex:none;order:3;width:100%}
+.vitals span{position:relative;overflow:hidden;font:600 .72rem/1 var(--mono);background:rgba(18,19,23,.85);border:1px solid var(--line);border-radius:10px;padding:4px 8px;color:#e8e1d2}
+.vitals i{position:absolute;left:0;bottom:0;height:2px}
+.vitals .v-hp{background:#e0524f}.vitals .v-en{background:var(--sodium)}.vitals .v-xp{background:#7fc8a9}
+.vitals .v-gold{color:var(--sodium)}
+.soon{padding:10px 0}
+@media (max-width:820px){
+  .vitals{order:2}
+  /* el + y el − del zoom, a la vista en el teléfono */
+  .gm .maplibregl-ctrl-top-right{top:150px;bottom:auto;right:8px}
+  .gm .gps-view{top:236px;bottom:auto}
+  .gm .gps-follow{top:276px;bottom:auto}
+}

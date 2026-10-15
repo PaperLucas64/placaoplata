@@ -115,6 +115,7 @@ interface Props {
   pins?: Pin[];              // lugares del mapa (contactos, servicios, golpes, misiones…)
   onPin?: (id: string) => void;
   onBarrio?: (name: string) => void; // tocar un barrio (como el mapa de Helldivers)
+  onMe?: () => void;         // tocarte a vos
   focus?: string | null;     // barrio al que acercarse
   selected?: string | null;
 }
@@ -122,9 +123,11 @@ interface Props {
 export interface Pin { id: string; name: string; icon: string; color: string; lat: number; lng: number; badge?: string; near?: boolean; deep?: boolean } // near: de cerca; deep: de muy cerca
 const PIN_ICONS = import.meta.glob("../assets/lugares/*.svg", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 const pinIcon = (k: string) => PIN_ICONS[`../assets/lugares/${k}.svg`] ?? PIN_ICONS["../assets/lugares/mision.svg"];
-export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus }: Props) {
+export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path, pins, onPin, selected, onBarrio, focus, onMe }: Props) {
   const onBarrioRef = useRef(onBarrio);
   onBarrioRef.current = onBarrio;
+  const onMeRef = useRef(onMe);
+  onMeRef.current = onMe;
   const pinMarks = useRef(new Map<string, maplibregl.Marker>());
   const onPinRef = useRef(onPin);
   onPinRef.current = onPin;
@@ -194,8 +197,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
       legs.forEach((l, i) => {
         map.addSource(`leg${i}`, { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: l.pts.map(ll) } } });
         map.addLayer({ id: `leg${i}`, type: "line", source: `leg${i}`, layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": COLORS[l.kind] ?? "#f2c94c", "line-width": l.kind === "pie" ? 3 : 4, "line-opacity": 0.9,
-            ...(l.kind === "pie" ? { "line-dasharray": [1, 2] } : {}) } });
+          paint: { "line-color": "#ffffff", "line-width": 3.5, "line-opacity": 0.95, "line-dasharray": [2, 1.6] } }); // tu camino
       });
       map.addSource("chase", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "chase", type: "line", source: "chase", layout: { "line-cap": "round", "line-join": "round" },
@@ -204,7 +206,9 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     map.fitBounds(bounds, { padding: 30, maxZoom: 14.5, animate: false });
     if (sprite) {
       mePrev.current = undefined;
-      me.current = new maplibregl.Marker({ element: spriteEl(sprite, { me: true, label: "Vos" }), anchor: "bottom" }).setLngLat([home.lng, home.lat]).addTo(map);
+      const meEl = spriteEl(sprite, { me: true, label: "Vos" });
+      meEl.addEventListener("click", e => { e.stopPropagation(); onMeRef.current?.(); });
+      me.current = new maplibregl.Marker({ element: meEl, anchor: "bottom" }).setLngLat([home.lng, home.lat]).addTo(map);
     }
     return () => { map.remove(); me.current = null; mapRef.current = null; markers.current.clear(); prev.current.clear(); pinMarks.current.clear(); };
   }, [data, place, mode, sprite, owners, homeName, path ? path.length : 0, sat]);
