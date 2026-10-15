@@ -264,7 +264,7 @@ const VECINOS: Objective[] = [
   { who: "Doña Elsa, la del almacén", text: "Recuperar la jubilación que le robaron a Doña Elsa", stat: "ref" },
   { who: "el Turco del cambio", text: "Cobrarle una deuda a un cliente del Turco", stat: "lab" },
   { who: "un diputado nervioso", text: "Encontrar al perro de un diputado", stat: "ref" },
-  { who: "una señora de Recoleta Bien", text: "Sacarle fotos a un marido infiel", stat: "ref" },
+  { who: "una señora de Reloquita", text: "Sacarle fotos a un marido infiel", stat: "ref" },
   { who: "el cura de la parroquia", text: "Recuperar el cáliz que se llevaron de la iglesia", stat: "fue" },
   { who: "el dueño de la pizzería", text: "Sacar a los patovicas que no dejan trabajar a la pizzería", stat: "fue" },
   { who: "un periodista", text: "Conseguirle un documento a un periodista", stat: "lab" },

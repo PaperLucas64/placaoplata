@@ -118,12 +118,12 @@ export const TRAVEL_RISK: Record<TravelMode, string> = {
 export const HOSPITALS: { place: string; name: string }[] = [
   { place: "La Bocota", name: "Hospital Argerico" }, { place: "Once y Medio", name: "Hospital Ramos Mejido" },
   { place: "Palermo Soja", name: "Hospital Fernandito" }, { place: "Pompeya Chica", name: "Hospital Penita" },
-  { place: "Liniers Sur", name: "Hospital Santojanito" }, { place: "Recoleta Bien", name: "Hospital Rivadavio" },
+  { place: "Liniers Sur", name: "Hospital Santojanito" }, { place: "Reloquita", name: "Hospital Rivadavio" },
   { place: "Barrancas", name: "Hospital de Barrancas" }, { place: "San Isidrón", name: "Hospital Central de San Isidrón" },
   { place: "Avellanada", name: "Hospital Fiorito Chico" }, { place: "Moronga", name: "Hospital Posadito" }
 ];
 export const CLINICS: { place: string; name: string }[] = [
-  { place: "Recoleta Bien", name: "Sanatorio Recoleta Bien" }, { place: "Palermo Soja", name: "Clínica Palermo Soja" },
+  { place: "Reloquita", name: "Sanatorio Reloquita" }, { place: "Palermo Soja", name: "Clínica Palermo Soja" },
   { place: "Puerto Mareo", name: "Clínica del Puerto" }, { place: "San Isidrón", name: "Sanatorio de la Costa" }
 ];
 /* el más cerca de tu casa (o de un punto, si ya andás por la calle) */

@@ -34,5 +34,5 @@ Si se agrega arte nuevo: anotar acá el pack, el autor y la licencia, y sumarlo 
 
 ## Íconos de los lugares del mapa
 
-- **game-icons.net** (licencia CC BY 3.0): íconos de Delapouite, Lorc y Andy Meneely, en `apps/web/src/assets/lugares/`.
+- **Noto Emoji** de Google (licencia Apache 2.0), en `apps/web/src/assets/lugares/`: los íconos de colores de los lugares.
   Son provisorios, hasta tener los propios.

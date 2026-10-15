@@ -194,16 +194,16 @@ export const ARCS: Arc[] = [
           foe: ["Un pandillero armado", "Un pandillero cuida la caja.", "El pandillero queda esposado a un caño.", "El pandillero se escapa con la caja."],
           back: "Funes guarda la caja en su casa, no en la comisaría.", outro: "«Ahora el intendente me debe a mí.»" }
       } },
-      { name: "El intendente", place: "Recoleta Bien", rank: 3, diff: 19, mins: 45, reward: { gold: 2600, xp: 900, resp: 380, heat: 40 }, povs: {
+      { name: "El intendente", place: "Reloquita", rank: 3, diff: 19, mins: 45, reward: { gold: 2600, xp: 900, resp: 380, heat: 40 }, povs: {
         familia: { title: "La firma",
-          intro: "«El intendente Ramírez da una fiesta en Recoleta Bien. Vas a llevarle una copia de sus libros y una lapicera.»",
+          intro: "«El intendente Ramírez da una fiesta en Reloquita. Vas a llevarle una copia de sus libros y una lapicera.»",
           a: ["lab", "Entrar a la fiesta de la embajada.", "Entraste con un saco prestado y mucha cara.", "El de la puerta no te encontró en la lista."],
           b: ["dur", "Aguantar la mirada del intendente mientras lee.", "El intendente firma. Le tiembla la mano.", "Pestañeaste primero."],
           foe: ["El guardaespaldas del intendente", "El guardaespaldas te quiere sacar de la fiesta.", "El guardaespaldas termina en la fuente.", "El guardaespaldas te saca a la calle."],
           back: "La Señora enmarca el decreto firmado.", outro: "«Desde hoy, el municipio es una sucursal de la Familia.»" },
         sindicato: { title: "El convenio",
           intro: "«Mil afiliados en la puerta de la casa del intendente, hasta que firme el convenio. Vos los dirigís.»",
-          a: ["lab", "Llevar a mil afiliados a Recoleta Bien.", "Mil personas, bombos y choripán en la vereda más cara de Maires.", "Vinieron cuarenta."],
+          a: ["lab", "Llevar a mil afiliados a Reloquita.", "Mil personas, bombos y choripán en la vereda más cara de Maires.", "Vinieron cuarenta."],
           b: ["fue", "Bancar la puerta contra la Guardia de Infantería.", "La puerta queda de tu lado.", "La Guardia te pasa por encima."],
           foe: ["El jefe de la Guardia de Infantería", "El jefe de la Guardia te busca a vos, el que dirige.", "El jefe de la Guardia se retira con su gente.", "El jefe de la Guardia te sube a un camión."],
           back: "El Gordo sale al balcón con el convenio firmado.", outro: "«Esto es historia del movimiento obrero. Más o menos.»" },

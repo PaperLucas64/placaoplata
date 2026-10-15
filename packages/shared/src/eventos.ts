@@ -1,9 +1,9 @@
 /* Misiones de eventos del calendario. Solo se pueden hacer mientras dura el evento (ver activeEvents en lugares.ts). */
 import type { Mission } from "./types.js";
 
-/* Noche de Brujas: alguien está saqueando las bóvedas del cementerio de Recoleta Bien */
+/* Noche de Brujas: alguien está saqueando las bóvedas del cementerio de Reloquita */
 export const EVENT_MISSIONS: Mission[] = [
-  { id: "hw-1", event: "halloween", client: "vecinos", rank: 0, mins: 15, place: "Recoleta Bien", title: "Ruidos en las bóvedas",
+  { id: "hw-1", event: "halloween", client: "vecinos", rank: 0, mins: 15, place: "Reloquita", title: "Ruidos en las bóvedas",
     intro: "El cuidador del cementerio jura que de noche se escuchan martillazos en las bóvedas. «No son fantasmas. Los fantasmas no usan amoladora.»",
     req: { ref: 7 }, reward: { gold: 300, xp: 120, resp: 40, heat: 5 },
     steps: [
@@ -13,7 +13,7 @@ export const EVENT_MISSIONS: Mission[] = [
       { text: "Volver con el cuidador.", energy: 1, auto: true, ok: "El cuidador anota algo en un cuaderno viejo." }
     ],
     outro: "«Eran varios. Y uno dijo un nombre: Don Fermín. Averiguá quién es.»" },
-  { id: "hw-2", event: "halloween", client: "vecinos", rank: 0, mins: 25, place: "Recoleta Bien", title: "El anticuario de las bóvedas",
+  { id: "hw-2", event: "halloween", client: "vecinos", rank: 0, mins: 25, place: "Reloquita", title: "El anticuario de las bóvedas",
     intro: "Don Fermín tiene un anticuario y vende candelabros de bronce «de época». Muy de época. Muy de bóveda.",
     req: { lab: 9 }, reward: { gold: 600, xp: 220, resp: 70, heat: 8 },
     steps: [
@@ -23,7 +23,7 @@ export const EVENT_MISSIONS: Mission[] = [
       { text: "Volver con el cuidador.", energy: 1, auto: true, ok: "El cuidador cierra el cuaderno: «Esta noche los esperamos»." }
     ],
     outro: "«Esta noche vuelven. Y esta vez los esperamos.»" },
-  { id: "hw-3", event: "halloween", client: "vecinos", rank: 0, mins: 40, place: "Recoleta Bien", title: "La noche de las calabazas",
+  { id: "hw-3", event: "halloween", client: "vecinos", rank: 0, mins: 40, place: "Reloquita", title: "La noche de las calabazas",
     intro: "Medianoche en el cementerio. Diez máscaras de calabaza, una camioneta y un cuidador con linterna.",
     req: { fue: 11, dur: 10 }, reward: { gold: 1200, xp: 400, resp: 150, heat: 12 }, prize: "calabaza",
     steps: [

@@ -6,7 +6,7 @@ import { gangOf } from "./rules.js";
 import type { Gang, PlayerState } from "./types.js";
 
 export const BARRIOS = ["La Bocota", "Puerto Mareo", "San Telmón", "Palermo Soja", "Villa Crespa", "Barrancas", "Florida Vieja",
-  "Once y Medio", "Mataderos", "Recoleta Bien", "Liniers Sur", "Pompeya Chica"];
+  "Once y Medio", "Mataderos", "Reloquita", "Liniers Sur", "Pompeya Chica"];
 /* el barrio de cada pandilla (ahí suman sus misiones de la historia y sus encargos) */
 export const HOME_BARRIO: Record<Gang, string> = { familia: "Puerto Mareo", sindicato: "Barrancas", barra: "La Bocota", amarillos: "Once y Medio" };
 
@@ -19,7 +19,7 @@ export const TURF_BASE: Record<string, Partial<Record<Gang, number>>> = {
   "La Bocota": { barra: 30, familia: 8 }, "Puerto Mareo": { familia: 30, sindicato: 10 }, "San Telmón": { familia: 12, amarillos: 10 },
   "Palermo Soja": { amarillos: 12, barra: 8 }, "Villa Crespa": { barra: 12, sindicato: 8 }, "Barrancas": { sindicato: 30, barra: 8 },
   "Florida Vieja": { familia: 10, amarillos: 12 }, "Once y Medio": { amarillos: 30, familia: 8 }, "Mataderos": { sindicato: 12, barra: 10 },
-  "Recoleta Bien": { familia: 12 }, "Liniers Sur": { amarillos: 10, sindicato: 12 }, "Pompeya Chica": { barra: 10, sindicato: 10 }
+  "Reloquita": { familia: 12 }, "Liniers Sur": { amarillos: 10, sindicato: 12 }, "Pompeya Chica": { barra: 10, sindicato: 10 }
 };
 
 /* lo que hizo el jugador queda anotado acá y el servidor lo suma al mapa */

@@ -122,10 +122,14 @@ El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al 
   Desarmadero El Tuerca y Autopartes Lo de Cacho, YPFita de la Costanera y Shellita Avenida, Muelle 4, Financiera Las Cuevas.
 - **Trabajos honestos:** Bicis Rodado 26, lavadero de la estación, puerta del boliche Soja, Remisería Nocturna, Depósito 7.
 - **Negocios** (los tuyos y los que se pueden comprar) y las **misiones del tablón** como banderitas en su barrio.
-- **Eventos:** Noche de Brujas (24/10 al 2/11): el Cementerio de Recoleta Bien con 3 misiones encadenadas y una máscara de
+- **Eventos:** Noche de Brujas (24/10 al 2/11): el Cementerio de Reloquita con 3 misiones encadenadas y una máscara de
   calabaza de regalo (cabeza, reflejos +2, dureza +2; no se vende).
 - Los lugares aparecen a medida que avanzás (tutorial, nivel, rango) o con los eventos. De lejos se ven solo los importantes;
-  acercándote, todos. Íconos provisorios de game-icons.net (CC BY 3.0).
+  acercándote, todos. Íconos de colores (Noto Emoji, provisorios).
+- **Pantalla:** el mapa ocupa todo. Arriba, una barra con tu personaje, vida, energía, experiencia, búsqueda, plata y lo que
+  estás haciendo (con «Ficha» para ver todo). Al tocar un lugar se abre encima del mapa (al costado en compu, desde abajo en el
+  teléfono). Las pestañas quedan debajo, como menú, mientras todo pasa al mapa.
+- **Reloquita** (antes «Recoleta Bien»).
 
 ### 5.2b Pestañas
 Cinco pestañas con secciones: **Calle** (Trabajos, Misiones, Pelear, Negocios) · **Gimnasio** (Entrenar, Ring) ·
@@ -210,7 +214,7 @@ Premios: $150 / $500 / $1.800 · 60 / 180 / 600 XP · 30 / 90 / 300 respeto · +
 
 **Tablón de la calle (misiones generadas):** 4 misiones de pandilla a tu nivel (de 1 a 50 y más), una por dificultad, cada una de una
 pandilla al azar, **más una de los vecinos, una de la policía (desde nivel 5) y hasta dos de tus negocios** (ver abajo). Se arman combinando **12 barrios de Maires** (La Bocota, Puerto Mareo, San Telmón, Palermo Soja,
-Villa Crespa, Barrancas, Florida Vieja, Once y Medio, Mataderos, Recoleta Bien, Liniers Sur, Pompeya Chica), **6 objetivos
+Villa Crespa, Barrancas, Florida Vieja, Once y Medio, Mataderos, Reloquita, Liniers Sur, Pompeya Chica), **6 objetivos
 por pandilla**, etapas por atributo y un rival (pandillero o policía): cientos de combinaciones. Se renueva cada 6 horas o
 pagando 2 de energía.
 
@@ -250,7 +254,7 @@ Pagan `(10 + 2,4 × nivel) × (6 + 3 × horas)` de plata (12 h: 42 energías de 
 | Historia | Capítulo 1 | Capítulo 2 | Capítulo 3 |
 |---|---|---|---|
 | **La semana del clásico** (Bocota Juniors vs. Ríver Plateado) | Trapos y apuestas · La Bocota · rango 0 · 15 min | El árbitro · Villa Crespa · rango 1 · 30 min | La revancha en Rosarito · **interior** · rango 2 · 45 min |
-| **El Río Bravo** (un contenedor sin declarar con los libros del intendente) | Llega el barco · Puerto Mareo · rango 1 · 15 min | Lo que había adentro · Barrancas · rango 2 · 30 min | El intendente · Recoleta Bien · rango 3 · 45 min |
+| **El Río Bravo** (un contenedor sin declarar con los libros del intendente) | Llega el barco · Puerto Mareo · rango 1 · 15 min | Lo que había adentro · Barrancas · rango 2 · 30 min | El intendente · Reloquita · rango 3 · 45 min |
 
 Pruebas: dificultad 6 / 10 / 15 (clásico) y 8 / 13 / 19 (Río Bravo); piden esa dificultad +1 y esa misma en los dos atributos.
 Premios: clásico $200 / $600 / $1.500; Río Bravo $400 / $1.100 / $2.600 (con XP, respeto y calor en proporción).
@@ -269,7 +273,7 @@ pasan solo mientras viajás o volvés. En tu casa, adentro de un lugar o curánd
 - **Guardia** de un hospital público (Argerico, Ramos Mejido, Fernandito, Penita, Santojanito, Rivadavio, de Barrancas,
   Central de San Isidrón, Fiorito Chico, Posadito): gratis, vas **caminando** (o en colectivo si es lejos) a la más cercana
   y esperás (hasta 15 min según lo que te falte). Volvés caminando.
-- **Clínica privada** (Sanatorio Recoleta Bien, Clínica Palermo Soja, Clínica del Puerto, Sanatorio de la Costa): pagás
+- **Clínica privada** (Sanatorio Reloquita, Clínica Palermo Soja, Clínica del Puerto, Sanatorio de la Costa): pagás
   `$0,25 × vida que falta + $15`, te busca una **ambulancia** (45 km/h), 2 min de atención, y la ambulancia te deja en casa.
 - Desde que salís hasta que te dan el alta **nadie te puede tocar**; en ambulancia, tampoco a la vuelta.
 - El **botiquín** sigue siendo al instante.
@@ -344,7 +348,7 @@ siga, y cuántos hay en línea y en la calle.
 
 ### 5.8b Territorio (pestaña Ciudad)
 - **12 barrios:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,
-  Mataderos, Recoleta Bien, Liniers Sur y Pompeya Chica. Barrio de cada pandilla: Familia → Puerto Mareo, Sindicato →
+  Mataderos, Reloquita, Liniers Sur y Pompeya Chica. Barrio de cada pandilla: Familia → Puerto Mareo, Sindicato →
   Barrancas, Barra → La Bocota, Amarillos → Once y Medio.
 - **Influencia:** cada barrio tiene la de las cuatro pandillas. Se gana trabajando para una:
 
@@ -396,7 +400,7 @@ mejorar la cama, la caja fuerte y el armario hasta cierto nivel:
 | PH con terraza | Villa Crespa | 10 | $10.000 | 3 |
 | Casa con patio | Barrancas | 15 | $25.000 | 4 |
 | Chalet con pileta | San Isidrón (Zona Norte) | 22 | $60.000 | 5 |
-| Mansión | Recoleta Bien | 28 | $120.000 | 5 |
+| Mansión | Reloquita | 28 | $120.000 | 5 |
 
 Se mejora con plata y **tiempo de obra** (una obra a la vez, no te bloquea).
 

@@ -30,11 +30,11 @@ para que las misiones pasen siempre en los mismos lugares (como en GTA). Marcá 
   Balbuena, El Pibe Ricota, Mano de Piedra Ibáñez, La Pantera Funes, Martillo Gómez, El Oso Pereyra, Chispa Medina.
 - **Rangos:** Perejil, Pibe, Soldado, Puntero, Lugarteniente, Capo. **Atributos:** Fuerza, Dureza, Reflejos, Aguante, Labia.
 - **Lugares:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,
-  Mataderos, Recoleta Bien, Liniers Sur, Pompeya Chica · Zona Norte: Tigre Mojado, San Isidrón, Pilar de Oro · Zona Sur:
+  Mataderos, Reloquita, Liniers Sur, Pompeya Chica · Zona Norte: Tigre Mojado, San Isidrón, Pilar de Oro · Zona Sur:
   Avellanada, Lomas de Zafarrancho, Quilmates · Zona Oeste: Moronga, La Matancera, Moreno del Fondo · Interior: La Plata
   Dulce, Rosarito, Mar del Plato, Cordobita.
 - **Salud:** hospitales Argerico, Ramos Mejido, Fernandito, Penita, Santojanito, Rivadavio, de Barrancas, Central de San
-  Isidrón, Fiorito Chico, Posadito · clínicas: Sanatorio Recoleta Bien, Clínica Palermo Soja, Clínica del Puerto,
+  Isidrón, Fiorito Chico, Posadito · clínicas: Sanatorio Reloquita, Clínica Palermo Soja, Clínica del Puerto,
   Sanatorio de la Costa.
 - **Casas, negocios, vehículos, equipo, misiones:** ver docs/GDD.md (§5.5, §5.7, §5.9, §5.9b).
 
@@ -50,14 +50,14 @@ sortear el lugar: el «Laburo en el desarmadero» siempre es en un desarmadero d
 | Bicicleterías | 2 | Bicis Rodado 26 (Palermo Soja) · El Pedal (Florida Vieja) | laburo de reparto, robos |
 | Concesionarias | 2 | Autos del Bajo (Florida Vieja) · Motos Ruta 3 (Mataderos) | comprar moto/auto, robos de autos |
 | Estaciones de servicio | 3 | YPFita de la Costanera (Puerto Mareo) · Shellita Avenida (Liniers Sur) · Estación El Surtidor (Avellanada) | golpe «estación de servicio», laburo |
-| Bancos y financieras | 3 | Banco Nacioncita (Florida Vieja) · Financiera Las Cuevas (Once y Medio) · Casa de cambio del Turco (Recoleta Bien) | golpe «financiera», El blindado |
+| Bancos y financieras | 3 | Banco Nacioncita (Florida Vieja) · Financiera Las Cuevas (Once y Medio) · Casa de cambio del Turco (Reloquita) | golpe «financiera», El blindado |
 | Puerto | 3 | Muelle 4 · Depósito 7 · Aduanita (Puerto Mareo) | Sindicato, Río Bravo, contrabando |
 | Canchas | 2 | La Bombonerita (La Bocota) · El Monumentito (Florida Vieja) | La Barra, el clásico |
 | Galpones | 2 | Galpón 3 del Sindicato (Barrancas) · Mercado Central (La Matancera) | Sindicato, trabajos largos |
 | Remiserías | 2 | Remises Rita (Once y Medio) · Radiotaxi Amarillo (Liniers Sur) | Los Amarillos |
 | Boliches y casinos | 3 | Boliche Soja (Palermo Soja) · Casino flotante Estrella del Plata (Puerto Mareo) · Bingo Lomas (Lomas de Zafarrancho) | La Familia, negocios |
 | Mercados de usados | 2 | Feria de usados de Pompeya Chica · La Saladita (Lomas de Zafarrancho) | Mercado (comprar/vender) |
-| Fijos de la historia | — | Bar La Esquina y Gimnasio de Don Tito (San Telmón) · Comisaría 4ª (San Telmón) · Municipalidad (Recoleta Bien) | tutorial, Funes, el intendente |
+| Fijos de la historia | — | Bar La Esquina y Gimnasio de Don Tito (San Telmón) · Comisaría 4ª (San Telmón) · Municipalidad (Reloquita) | tutorial, Funes, el intendente |
 
 **Para decidir:** ¿te sirven estos tipos y cantidades? ¿Cambiamos algún nombre? ¿Agregamos tipos (escuelas, iglesias,
 cárcel, aeropuerto, hipódromo)? Con eso armo el mapa del mundo y conecto cada misión a su construcción.

@@ -31,7 +31,7 @@ PLACES = {
     "Florida Vieja":  (-34.5290, -58.4900, "Florida, Vicente López"),
     "Once y Medio":   (-34.6090, -58.4060, "Once"),
     "Mataderos":      (-34.6560, -58.5020, "Mataderos"),
-    "Recoleta Bien":  (-34.5880, -58.3930, "Recoleta"),
+    "Reloquita":  (-34.5880, -58.3930, "Recoleta"),
     "Liniers Sur":    (-34.6430, -58.5200, "Liniers"),
     "Pompeya Chica":  (-34.6500, -58.4150, "Nueva Pompeya"),
     # el conurbano: zona norte, sur y oeste
@@ -51,7 +51,7 @@ PLACES = {
     "Cordobita":      (-31.4170, -64.1830, "Córdoba"),
 }
 # casas que se pueden comprar: desde cada una salen los viajes (subte y tren, solo desde la pensión)
-ORIGINS = ["San Telmón", "Once y Medio", "Villa Crespa", "Barrancas", "San Isidrón", "Recoleta Bien"]
+ORIGINS = ["San Telmón", "Once y Medio", "Villa Crespa", "Barrancas", "San Isidrón", "Reloquita"]
 INTERIOR = {"La Plata Dulce", "Rosarito", "Mar del Plato", "Cordobita"}
 ZONE = {"Tigre Mojado": "norte", "San Isidrón": "norte", "Pilar de Oro": "norte",
         "Avellanada": "sur", "Lomas de Zafarrancho": "sur", "Quilmates": "sur",
@@ -90,7 +90,7 @@ ST = {
 # combinaciones de subte y tren desde la pensión: (tipo, línea, desde, hasta)
 RAIL = {
     "Once y Medio":   [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)")],
-    "Recoleta Bien":  [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Pueyrredón (D)")],
+    "Reloquita":  [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Pueyrredón (D)")],
     "Palermo Soja":   [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Plaza Italia (D)")],
     "Villa Crespa":   [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "B", "Carlos Pellegrini (B)", "Malabia (B)")],
     "Florida Vieja":  [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Florida (Mitre)")],

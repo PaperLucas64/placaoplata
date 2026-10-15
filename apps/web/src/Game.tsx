@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
-import { Chronicle, Fight, Sheet } from "./parts";
+import { Chronicle, Fight, Hud, Sheet } from "./parts";
 import { CityMap, Pane, PlacePanel } from "./panes";
 import { sceneFor } from "./art";
 
@@ -95,8 +95,12 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [lugar, setLugar] = useState<string | null>(null);
+  const [sheet, setSheet] = useState(false);
+  const cancel = () => (s.coop && s.busy?.kind === "mision"
+    ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
+    : act({ type: "cancel" }));
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }), lugar,
-    setLugar: id => { setLugar(id); setFight(null); setLiveFight(null); if (id) setTimeout(() => document.querySelector(".lugar")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } };
+    setLugar: id => { setLugar(id); setSheet(false); setFight(null); setLiveFight(null); } };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
   const tabs: TabKey[] = withEquipo(s.tutDone ? withNewTabs(s.tabs) : s.tabs);
   /* cinco pestañas grandes; adentro, sus secciones (solo las que ya destrabaste) */
@@ -118,13 +122,23 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
           {s.tabs.includes("ring") && <> · Peleas ganadas {s.wins + s.c.duelW} · perdidas {s.losses + s.c.duelL}</>}
         </div>
       </header>
-      <div className="game">
-        <Sheet s={s} now={now} disabled={busy} onCancel={() => s.coop && s.busy?.kind === "mision"
-          ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
-          : act({ type: "cancel" })} />
+      {/* el mapa es el juego: ocupa la pantalla; arriba, tu barra; al tocar un lugar, se abre encima */}
+      <div className="world">
         <CityMap {...ui} />
+        <Hud s={s} now={now} disabled={busy} onSheet={() => setSheet(v => !v)} onCancel={cancel} />
+        {(lugar || sheet) && <aside className="drawer" aria-label={sheet ? "Tu ficha" : "Lugar"}>
+          {sheet ? <>
+            <div className="drawer-head"><h2>Tu ficha</h2><button className="link" onClick={() => setSheet(false)}>Cerrar</button></div>
+            <Sheet s={s} now={now} disabled={busy} onCancel={cancel} />
+          </> : <>
+            {fight && <Fight f={fight} s={s} />}
+            {liveFight && <Fight f={liveFight} s={s} />}
+            <PlacePanel {...ui} />
+          </>}
+        </aside>}
+      </div>
+      <div className="game">
         <main className="board">
-          {lugar && <PlacePanel {...ui} />}
           <nav className="tabs" role="tablist">
             {groups.map(g => (
               <button key={g.id} role="tab" aria-selected={current?.id === g.id}
@@ -144,8 +158,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
           <section className="pane">
             <Pane tab={tab} {...ui} />
           </section>
-          {showFight && <Fight f={fight} s={s} />}
-          {liveFight && !showFight && <Fight f={liveFight} s={s} />}
+          {!lugar && showFight && <Fight f={fight} s={s} />}
+          {!lugar && liveFight && !showFight && <Fight f={liveFight} s={s} />}
         </main>
       </div>
       <Chronicle s={s} onOut={onOut} />

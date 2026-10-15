@@ -60,7 +60,7 @@ export const LUGARES: Lugar[] = [
       help: "Armas, cascos, chalecos y ropa. Al fondo, el mercado negro.", tab: "feria" }),
   L({ id: "autos-bajo", name: "Concesionaria Autos del Bajo", kind: "concesionaria", icon: "concesionaria", barrio: "Florida Vieja", lat: -34.5303, lng: -58.4880,
       help: "Motos y autos usados, y arreglos para el que tenga con qué.", tutDone: true }),
-  L({ id: "municipalidad", name: "Municipalidad de Maires", kind: "municipio", icon: "municipio", barrio: "Recoleta Bien", lat: -34.5905, lng: -58.3915,
+  L({ id: "municipalidad", name: "Municipalidad de Maires", kind: "municipio", icon: "municipio", barrio: "Reloquita", lat: -34.5905, lng: -58.3915,
       help: "Acá se ve quién manda en cada barrio y el ranking de la ciudad.", tutDone: true }),
   /* para robar (los golpes pasan siempre en estos lugares) */
   L({ id: "plaza-misere", name: "Plaza Misere", kind: "golpe", icon: "celulares", job: "celu", barrio: "Once y Medio", lat: -34.6098, lng: -58.4060,
@@ -91,7 +91,7 @@ export const LUGARES: Lugar[] = [
   L({ id: "deposito7", name: "Depósito 7", kind: "laburo", icon: "deposito", job: "deposito", barrio: "Puerto Mareo", lat: -34.6030, lng: -58.3655,
       help: "Seguridad en un depósito del puerto. Mirar sin ver." }),
   /* evento: Halloween */
-  L({ id: "cementerio", name: "Cementerio de Recoleta Bien", kind: "evento", icon: "calabaza", event: "halloween", barrio: "Recoleta Bien", lat: -34.5876, lng: -58.3932,
+  L({ id: "cementerio", name: "Cementerio de Reloquita", kind: "evento", icon: "calabaza", event: "halloween", barrio: "Reloquita", lat: -34.5876, lng: -58.3932,
       help: "Noche de Brujas: alguien está robando de las bóvedas.", tutDone: true })
 ];
 

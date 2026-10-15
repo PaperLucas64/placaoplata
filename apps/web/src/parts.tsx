@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   clamp, energyMax, findMission, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
-  type FightView, type PlayerState, type StatKey, eff, gearBonus, SLOTS, SLOT_NAMES } from "@pop/shared";
+  type FightView, type PlayerState, type StatKey, eff, gearBonus, SLOTS, SLOT_NAMES, GANGS } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
 import { ItemIcon } from "./icons";
 
@@ -10,6 +10,34 @@ export function Bar({ cls, label, v, max, note }: { cls: string; label: string; 
     <div className={`bar ${cls}`}>
       <div className="row"><span>{label}{note && <> <span className="tag">{note}</span></>}</span><span className="num">{v} / {max}</span></div>
       <div className="track"><div className="fill" style={{ width: `${clamp(v / max * 100, 0, 100)}%` }} /></div>
+    </div>
+  );
+}
+
+/* La barra de arriba del mapa: quién sos, cómo estás y qué estás haciendo. La ficha completa, con un botón. */
+export function Hud({ s, now, onSheet, onCancel, disabled }: { s: PlayerState; now: number; onSheet: () => void; onCancel: () => void; disabled: boolean }) {
+  const mh = maxHp(s), em = energyMax(s), g = gangOf(s);
+  const mini = (cls: string, label: string, v: number, max: number) => (
+    <div className={`mini ${cls}`} title={`${label}: ${v} / ${max}`}>
+      <span className="mini-label">{label}</span>
+      <div className="track"><div className="fill" style={{ width: `${clamp(v / max * 100, 0, 100)}%` }} /></div>
+      <span className="num mini-v">{v}/{max}</span>
+    </div>);
+  return (
+    <div className="hud">
+      <button className="hud-who" onClick={onSheet} title="Ver tu ficha">
+        <GangRing s={s} size={46} />
+        <span><b>{s.name}</b><span className="tag">Nivel {s.lvl}{s.tutDone ? ` · ${g ? GANGS[g].name : "Suelto"}` : ""}</span></span>
+      </button>
+      <div className="hud-bars">
+        {mini("hp", "Vida", Math.round(s.hp), mh)}
+        {mini("en", "Energía", s.energy, em)}
+        {mini("xp", "XP", s.xp, xpNeed(s))}
+        {s.tutDone && mini("heat", "Búsqueda", s.heat, 100)}
+      </div>
+      <span className="hud-gold num">{money(s.gold)}</span>
+      <div className="hud-busy"><BusyBar s={s} now={now} onCancel={onCancel} disabled={disabled} /></div>
+      <button className="hud-sheet" onClick={onSheet}>Ficha</button>
     </div>
   );
 }

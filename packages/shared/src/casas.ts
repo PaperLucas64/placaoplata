@@ -10,7 +10,7 @@ export const HOUSES: House[] = [
   { id: "ph",      name: "PH con terraza",              place: "Villa Crespa",  lvl: 10, price: 10000,  cap: 3, help: "Un pasillo largo, una terraza y vecinos que no preguntan." },
   { id: "casa",    name: "Casa con patio",              place: "Barrancas",     lvl: 15, price: 25000,  cap: 4, help: "Portón para el auto y un sótano que nadie conoce." },
   { id: "chalet",  name: "Chalet con pileta",           place: "San Isidrón",   lvl: 22, price: 60000,  cap: 5, help: "En Zona Norte, lejos del ruido. Y de todo lo demás." },
-  { id: "mansion", name: "Mansión",                     place: "Recoleta Bien", lvl: 28, price: 120000, cap: 5, help: "Para que todo Maires sepa quién manda." }
+  { id: "mansion", name: "Mansión",                     place: "Reloquita", lvl: 28, price: 120000, cap: 5, help: "Para que todo Maires sepa quién manda." }
 ];
 export const houseOf = (s: Pick<PlayerState, "home">) => HOUSES.find(h => h.id === s.home?.house) ?? HOUSES[0];
 /* el barrio donde vivís: de ahí salen y ahí vuelven todos tus viajes */
