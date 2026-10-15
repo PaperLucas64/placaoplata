@@ -1,45 +1,64 @@
 # Placa o Plata
 
-Juego de navegador por turnos de energía, al estilo BiteFight, sobre policías y ladrones.
+Juego de navegador online al estilo BiteFight, de policías y ladrones, en la ciudad de Bahía Gris.
 
-Llegás a Bahía Gris solo con tu nombre. Marga, la dueña del bar La Esquina, te da encargos que te enseñan cada mecánica de a una:
-
-1. **Laburos**: trabajos que gastan energía y dan plata y experiencia.
-2. **Gimnasio**: entrenás Fuerza, Dureza, Reflejos, Aguante y Labia.
-3. **Feria de usados**: armas, protección y botiquines.
-4. **Ring**: peleas por rounds contra rivales del gimnasio.
-5. **Guardia**: te curan a cambio de plata.
-6. **Misiones**: encargos por etapas, cada una prueba un atributo distinto.
-
-Al terminar la primera misión elegís bando: **la placa** (policía) o **la plata** (delincuente).
-
-Después de elegir, cada bando tiene lo suyo:
+Llegás solo con tu nombre. Marga, la dueña del bar La Esquina, te enseña cada mecánica con un encargo
+(laburos, gimnasio, feria, ring, guardia, misiones) y al final elegís bando: **la placa** o **la plata**.
 
 | | La placa | La plata |
 |---|---|---|
 | Jefa | Comisaria Inés Ríos | La Señora |
-| Caza | **Patrullaje**: paga menos, cobrás sueldo cada 10 min | **Golpes**: paga más pero suma **calor**; con mucho calor te detienen y pagás fianza (el abogado lo baja) |
-| La calle | Arrestás delincuentes: recompensa + decomiso | Asaltás policías: te quedás con lo que llevan |
+| Caza | **Patrullaje**: paga menos, sueldo cada 10 min | **Golpes**: paga más, pero suma **calor** (con mucho calor te detienen) |
+| La calle | Arrestás delincuentes: jugadores reales y personajes del juego | Asaltás policías: jugadores reales y personajes del juego |
 | Misiones | Ronda nocturna → Allanamiento en el puerto → Detener a La Señora | La protección → El blindado → La libreta de la 4ª |
 | Armería | Tonfa, chaleco antibalas, pistola, escudo | Manopla, campera con placas, recortada, chaleco |
 
-- **Respeto y rangos**: se gana con trabajos, peleas en la calle y misiones. Los rangos destraban misiones y equipo.
-- **Emboscadas**: cada tanto alguien del otro bando te ataca a vos. Si perdés, te sacan plata.
-- **Ranking**: tu posición en Bahía Gris contra los personajes de los dos bandos.
+Además: respeto y 6 rangos por bando, emboscadas, ranking de la ciudad y avisos en vivo cuando otro jugador te ataca.
 
-## Cómo jugar
+## Cómo correrlo en tu compu
 
-Abrí `index.html` en cualquier navegador. No necesita instalar nada.
-La partida se guarda en el navegador donde jugás (localStorage).
+Necesitás [Node.js](https://nodejs.org) 22 o más nuevo. No hace falta instalar ninguna base de datos.
 
-## Estado
+```bash
+npm install
+npm run dev
+```
 
-- Parte 1 (tutorial neutral y elección de bando): lista.
-- Parte 2 (patrullajes/golpes, la calle, rangos, armería, ranking y 3 misiones por bando): lista.
-- Pendiente: los rivales de la calle y del ranking son personajes del juego, no jugadores reales (eso necesitaría un servidor).
+Abrí http://localhost:5173 y creá un personaje. La partida queda guardada en `.data/` (base local).
 
-## Prototipos
+Para probar La calle con rivales de verdad, creá jugadores de prueba (con el servidor apagado):
 
-En `prototipos/` quedan las versiones anteriores con otras temáticas:
-`colmillo-y-garra` (vampiros y licántropos), `septima-luna` (lobizones y salamanqueros),
-`la-pulperia` y `pulperia-la-esquina` (pulpería tranquila y de administración).
+```bash
+npm run seed
+```
+
+Crea `Cabo Prueba`, `Agente Test` (placa), `Rata Prueba` y `Turca Test` (plata). Contraseña: `prueba123`.
+
+## Cómo está armado
+
+```
+packages/shared/   datos y reglas del juego: misiones, ítems, combate, energía, acciones
+apps/server/       Node + Fastify + Postgres: cuentas, partidas, peleas entre jugadores, avisos en vivo
+apps/web/          React + Vite: la pantalla
+tools/             simulador de balance y jugadores de prueba
+legacy/            la primera versión (un solo HTML) y los prototipos anteriores
+```
+
+- **El servidor hace todas las cuentas.** La pantalla solo pide acciones, así nadie puede hacer trampa editando su partida.
+- **Las reglas están en un solo lugar** (`packages/shared`). Las usan el servidor, la pantalla y el simulador.
+- **Base de datos:** sin configurar nada usa PGlite (Postgres dentro de Node). Para publicarlo, se pone `DATABASE_URL` apuntando a un Postgres real.
+
+## Otras órdenes
+
+| Orden | Qué hace |
+|---|---|
+| `npm test` | Corre los tests de las reglas |
+| `npm run sim` | Simula miles de peleas y muestra qué tan difícil es cada una |
+| `npm run typecheck` | Revisa los tipos de todo el proyecto |
+| `npm run build` y `npm start` | Arma la versión de producción; el servidor entrega también la pantalla |
+
+## Pendiente
+
+- Documento de balance (ingresos y gastos por nivel). La simulación muestra que un rival 2 niveles arriba es casi imposible.
+- Publicarlo online (hosting + Postgres).
+- Ideas: chat, clanes/bandas, mensajes entre jugadores, trabajo largo por horas, más misiones.

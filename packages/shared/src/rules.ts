@@ -1,0 +1,102 @@
+/* Fórmulas: progreso, combate y recarga. Funciones puras: el azar entra como parámetro. */
+import { ENERGY_EVERY, ENERGY_MAX, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, SALARY_EVERY } from "./config.js";
+import { JOBS, MISSIONS, RANK_AT, SHOP, SIDE_JOBS, VALIJA } from "./data.js";
+import type { Fighter, FightView, Item, LogEntry, Mission, PlayerState, Rng, Side } from "./types.js";
+
+export const rnd = (rng: Rng, a: number, b: number) => Math.floor(rng() * (b - a + 1)) + a;
+export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+export const pick = <T>(rng: Rng, a: T[]): T => a[rnd(rng, 0, a.length - 1)];
+export const money = (n: number) => `$${n}`;
+
+export const maxHp = (s: Pick<PlayerState, "stats" | "lvl">) => 40 + s.stats.agu * 12 + s.lvl * 6;
+export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
+export const trainCost = (v: number) => Math.round(2 * Math.pow(v, 1.7));
+export const gearVal = (s: PlayerState, slot: "arma" | "armadura") => SHOP.find(i => i.id === s.gear[slot])?.val ?? 0;
+export const rankOf = (s: Pick<PlayerState, "respect">) => RANK_AT.filter(r => s.respect >= r).length - 1;
+export const foeSide = (side: Side): Side => (side === "placa" ? "plata" : "placa");
+export const jobList = (s: PlayerState) => (s.side ? SIDE_JOBS[s.side] : JOBS);
+export const allMissions = (): Mission[] => [VALIJA, ...MISSIONS.placa, ...MISSIONS.plata];
+export const getMission = (id: string) => allMissions().find(m => m.id === id);
+export const salary = (s: PlayerState) => 30 + s.lvl * 12 + rankOf(s) * 25;
+export const salaryLeft = (s: PlayerState, now: number) => Math.max(0, SALARY_EVERY - (now - s.tSalary));
+export const lawyerCost = (s: PlayerState) => 20 + s.lvl * 8;
+export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * 0.6));
+export const itemLocked = (s: PlayerState, it: Item) => s.lvl < it.lvl || (!!it.rank && rankOf(s) < it.rank);
+
+export function newPlayer(name: string, now: number): PlayerState {
+  const s: PlayerState = {
+    name, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
+    stats: { fue: 5, dur: 5, ref: 5, agu: 5, lab: 5 },
+    gear: { arma: null, armadura: null }, potions: 0, wins: 0, losses: 0,
+    tut: 0, tutDone: false, tabs: ["laburos"], seenTab: {},
+    c: { jobs: 0, train: 0, buy: 0, spar: 0, heal: 0, valija: 0, duelW: 0, duelL: 0 },
+    mis: null, side: null, respect: 0, heat: 0, done: {}, targets: [],
+    tEnergy: now, tHeal: now, tSalary: now - SALARY_EVERY, tAttack: now, tHeat: now, log: []
+  };
+  s.hp = maxHp(s);
+  log(s, now, `${name} se baja del micro en Bahía Gris con ${money(10)} en el bolsillo.`, "gold");
+  return s;
+}
+
+export function log(s: PlayerState, now: number, msg: string, cls?: LogEntry["cls"]) {
+  s.log.unshift({ t: now, msg, ...(cls ? { cls } : {}) });
+  s.log = s.log.slice(0, LOG_SIZE);
+}
+export function gainXp(s: PlayerState, now: number, n: number) {
+  s.xp += n;
+  while (s.xp >= xpNeed(s)) { s.xp -= xpNeed(s); s.lvl++; s.hp = maxHp(s); log(s, now, `Subiste al nivel ${s.lvl}. Vida al máximo.`, "gold"); }
+}
+export const addHeat = (s: PlayerState, n: number) => { s.heat = clamp(s.heat + n, 0, 100); };
+
+/* Energía, vida y calor se recargan solos con el paso del tiempo (sin cron: se calcula al leer) */
+export function regen(s: PlayerState, now: number) {
+  if (s.energy < ENERGY_MAX) {
+    const g = Math.floor((now - s.tEnergy) / ENERGY_EVERY);
+    if (g > 0) { s.energy = Math.min(ENERGY_MAX, s.energy + g); s.tEnergy += g * ENERGY_EVERY; }
+  } else s.tEnergy = now;
+  const mh = maxHp(s);
+  if (s.hp < mh) {
+    const h = Math.floor((now - s.tHeal) / HEAL_EVERY);
+    if (h > 0) { s.hp = Math.min(mh, s.hp + h * Math.ceil(mh * 0.02)); s.tHeal += h * HEAL_EVERY; }
+  } else s.tHeal = now;
+  if (s.side === "plata" && s.heat > 0) {
+    const h = Math.floor((now - s.tHeat) / HEAT_EVERY);
+    if (h > 0) { s.heat = Math.max(0, s.heat - h); s.tHeat += h * HEAT_EVERY; }
+  } else s.tHeat = now;
+}
+
+/* ---------- combate ---------- */
+export function playerFighter(s: PlayerState): Fighter {
+  return { name: s.name, hp: s.hp, max: maxHp(s), fue: s.stats.fue, dur: s.stats.dur, ref: s.stats.ref, arma: gearVal(s, "arma"), armadura: gearVal(s, "armadura") };
+}
+function strike(rng: Rng, a: Fighter, d: Fighter) {
+  const chance = clamp(70 + (a.ref - d.ref) * 3, 20, 95);
+  if (rng() * 100 >= chance) return 0;
+  const crit = rng() < 0.08;
+  let dmg = a.fue * 1.6 + a.arma + rnd(rng, 0, 4) - d.dur * 0.7 - d.armadura;
+  dmg = Math.max(1, Math.round(dmg * (crit ? 1.8 : 1)));
+  return crit ? -dmg : dmg;
+}
+const fLine = (r: number, who: string, d: number) =>
+  d === 0 ? `R${r} · ${who} tira y no conecta.` : `R${r} · ${who} ${d < 0 ? "mete una mano tremenda de" : "pega por"} ${Math.abs(d)}.`;
+
+/* Pelea por rounds. `p` ataca primero; gana quien deja al otro en cero o termina con más vida proporcional. */
+export function battle(rng: Rng, p: Fighter, e: Fighter): FightView {
+  p = { ...p }; e = { ...e };
+  const rounds: FightView["rounds"] = [];
+  for (let r = 1; r <= 12 && p.hp > 0 && e.hp > 0; r++) {
+    let d = strike(rng, p, e); e.hp = Math.max(0, e.hp - Math.abs(d)); rounds.push({ who: "p", txt: fLine(r, p.name, d) });
+    if (e.hp <= 0) break;
+    d = strike(rng, e, p); p.hp = Math.max(0, p.hp - Math.abs(d)); rounds.push({ who: "e", txt: fLine(r, e.name, d) });
+  }
+  const won = e.hp <= 0 || (p.hp > 0 && p.hp / p.max > e.hp / e.max);
+  return { won, rounds, p, e };
+}
+/* Rival del juego escalado por nivel, al ritmo al que se puede entrenar en el gimnasio */
+export function scaledEnemy(rng: Rng, name: string, lvl: number, mult: number): Fighter {
+  const base = 4 + lvl * 0.95;
+  const v = () => Math.max(3, Math.round(base * mult + rnd(rng, -2, 2)));
+  const agu = v();
+  const max = Math.round((40 + agu * 12 + lvl * 6) * (0.85 + mult * 0.15));
+  return { name, hp: max, max, fue: v(), dur: v(), ref: v(), arma: Math.round(lvl * 1.0 * mult), armadura: Math.round(lvl * 0.75 * mult) };
+}
