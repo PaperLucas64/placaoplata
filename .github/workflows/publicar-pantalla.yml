@@ -33,14 +33,21 @@ jobs:
           VITE_API_URL: ${{ vars.API_URL }}
       - name: Subir por FTP
         if: env.HAS_FTP == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps   # Donweb exige FTP cifrado
-          local-dir: apps/web/dist/
-          server-dir: ${{ vars.FTP_DIR || 'public_html/juego/' }}
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ vars.FTP_DIR || 'public_html/juego/' }}
+        run: |
+          sudo apt-get install -y -qq lftp > /dev/null
+          # FTPS (Donweb exige cifrado). Sube todo; en assets/ borra lo viejo (los nombres cambian en cada versión).
+          lftp --env-password -u "$FTP_USERNAME" "$FTP_SERVER" -e "
+            set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes;
+            set net:max-retries 3; set net:timeout 30;
+            mkdir -p -f $FTP_DIR;
+            mirror --reverse --verbose --exclude-glob assets/ apps/web/dist/ $FTP_DIR;
+            mirror --reverse --verbose --delete apps/web/dist/assets/ ${FTP_DIR}assets/;
+            bye"
       - name: Falta configurar el FTP
         if: env.HAS_FTP != 'true'
         run: echo "::warning::No hay secretos de FTP cargados; se armó la pantalla pero no se subió."
