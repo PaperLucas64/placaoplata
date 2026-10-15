@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
-  clamp, energyMax, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
+  clamp, energyMax, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
   type FightView, type PlayerState, type StatKey
 } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
@@ -15,7 +15,7 @@ export function Bar({ cls, label, v, max, note }: { cls: string; label: string; 
   );
 }
 
-export function Sheet({ s, now }: { s: PlayerState; now: number }) {
+export function Sheet({ s, now, onCancel, disabled }: { s: PlayerState; now: number; onCancel: () => void; disabled: boolean }) {
   const mh = maxHp(s);
   const em = energyMax(s), g = gangOf(s);
   const nextE = s.energy < em ? Math.max(0, Math.ceil((ENERGY_EVERY - (now - s.tEnergy)) / 1000)) : 0;
@@ -30,6 +30,7 @@ export function Sheet({ s, now }: { s: PlayerState; now: number }) {
         <span className="tag">Nivel {s.lvl}</span>
       </div>
       </div>
+      <BusyBar s={s} now={now} onCancel={onCancel} disabled={disabled} />
       <Bar cls="hp" label="Vida" v={Math.round(s.hp)} max={mh} />
       <Bar cls="en" label="Energía" v={s.energy} max={em} note={nextE ? `+1 en ${nextE}s` : ""} />
       <Bar cls="xp" label="Experiencia" v={s.xp} max={xpNeed(s)} />
@@ -92,7 +93,7 @@ export function Credits({ onClose }: { onClose: () => void }) {
     <div className="credits" role="dialog" aria-modal="true" aria-label="Créditos" onClick={onClose}>
       <div onClick={e => e.stopPropagation()}>
         <h2>Créditos</h2>
-        <p>Placa o Plata es un juego de Mauspi Lab.</p>
+        <p>Malos Aires es un juego de Mauspi Lab.</p>
         <ul>
           <li><b>Fondos:</b> Noraneko Games (@NoranekoGames), packs de fondos para novela visual. Modificados (recorte y filtro nocturno).</li>
           <li><b>Retratos y siluetas:</b> わたおきば / Wataokiba (わたおび), personajes de cuerpo entero. Recortados.</li>
@@ -108,18 +109,26 @@ export function Credits({ onClose }: { onClose: () => void }) {
 
 const mmss = (ms: number) => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 
-/* Lo que estás haciendo en tiempo real (entrenar, guardia): cuenta regresiva y opción de cortarlo */
-export function BusyBar({ s, now, onCancel, disabled }: { s: PlayerState; now: number; onCancel: () => void; disabled: boolean }) {
-  const b = s.busy;
-  if (!b) return null;
-  const total = Math.max(1, b.until - b.since), left = Math.max(0, b.until - now);
-  const label = b.kind === "gym" ? `Entrenando ${STAT_NAMES[b.stat].toLowerCase()} en lo de Don Tito` : "Internado en la guardia del hospital";
-  const note = b.kind === "gym" ? "Si cortás ahora, perdés la plata y el punto." : "Si te vas antes, te llevás la parte de la curación que alcanzaste. Mientras estás acá, nadie te puede atacar.";
+/* Lo que estás haciendo en tiempo real (entrenar, guardia) y la obra de la casa: cuenta regresiva con su línea de tiempo */
+function Countdown({ label, since, until, now, note, action }: { label: string; since: number; until: number; now: number; note?: string; action?: ReactNode }) {
+  const total = Math.max(1, until - since), left = Math.max(0, until - now);
   return (
-    <section className="busy" aria-live="polite">
-      <div className="row"><b>{label}</b><span className="num">faltan {mmss(left)}</span></div>
+    <div className="busy" aria-live="polite">
+      <div className="row"><b>{label}</b><span className="num">{mmss(left)}</span></div>
       <div className="track"><div className="fill" style={{ width: `${clamp((1 - left / total) * 100, 0, 100)}%` }} /></div>
-      <div className="row"><span className="tag">{note}</span><button className="link" disabled={disabled} onClick={onCancel}>Cancelar</button></div>
-    </section>
+      {(note || action) && <div className="row"><span className="tag">{note}</span>{action}</div>}
+    </div>
   );
+}
+
+export function BusyBar({ s, now, onCancel, disabled }: { s: PlayerState; now: number; onCancel: () => void; disabled: boolean }) {
+  const b = s.busy, o = s.home?.obra;
+  if (!b && !o) return null;
+  return <>
+    {b && <Countdown now={now} since={b.since} until={b.until}
+      label={b.kind === "gym" ? `Entrenando ${STAT_NAMES[b.stat].toLowerCase()}` : "Internado en la guardia"}
+      note={b.kind === "gym" ? "Si cortás, perdés la plata y el punto." : "Nadie te puede atacar acá."}
+      action={<button className="link" disabled={disabled} onClick={onCancel}>Cancelar</button>} />}
+    {o && <Countdown now={now} since={o.since} until={o.until} label={`Obra: ${HOME[o.part].levels[s.home[o.part] + 1]?.name.toLowerCase()}`} />}
+  </>;
 }

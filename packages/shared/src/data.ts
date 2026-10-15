@@ -28,7 +28,9 @@ export const SHOP: Item[] = [
   { id:"campera",  slot:"armadura",  name:"Campera de cuero",     val:2,  price:25,   lvl:1 },
   { id:"casco",    slot:"armadura",  name:"Casco de moto",        val:5,  price:180,  lvl:3 },
   { id:"chaleco",  slot:"armadura",  name:"Chaleco acolchado",    val:8,  price:500,  lvl:6 },
-  { id:"botiquin", slot:"consumible",name:"Botiquín (+50% vida)", val:.5, price:20,   lvl:1 }
+  { id:"botiquin", slot:"consumible",name:"Botiquín (+50% vida)", val:.5, price:20,   lvl:1 },
+  /* vida para siempre: cara y cada vez más cara (ver supplementCost) */
+  { id:"suplemento", slot:"consumible",name:"Suplemento de Don Tito (+10 de vida máxima, para siempre)", val:10, price:300, lvl:3 }
 ];
 
 /* La primera misión de verdad, al estilo GTA: varias etapas, cada una prueba un atributo */
@@ -45,7 +47,7 @@ export const VALIJA: Mission = {
     { text:"Entregar la valija en el bar de Marga.", energy:1, auto:true,
       ok:"Llegaste. Marga deja la valija sobre la barra y la abre delante tuyo." }
   ],
-  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Ahora las cuatro pandillas de Bahía Gris saben quién sos. Cada una te va a ofrecer trabajo: la que más te banque te va a reclamar.»"
+  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Ahora las cuatro pandillas de Malos Aires saben quién sos. Cada una te va a ofrecer trabajo: la que más te banque te va a reclamar.»"
 };
 
 /* Mercado negro: arma y protección por rango, iguales para todas las pandillas.
@@ -72,7 +74,7 @@ export interface TutStep {
 }
 export const TUT: TutStep[] = [
   { id:"t1", tab:"laburos",  title:"Recién llegado",
-    say:"Si te vas a quedar en Bahía Gris, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
+    say:"Si te vas a quedar en Malos Aires, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
     goal:s=>s.c.jobs>=2, prog:s=>`Laburos hechos: ${Math.min(s.c.jobs,2)} de 2`, reward:{gold:15,xp:6} },
   { id:"t2", tab:"gimnasio", title:"Ponerse en forma",
     say:"Así como estás no durás una semana. En el gimnasio de Don Tito pagás y entrenás; lleva unos minutos, pero vale la pena. Subí cualquier atributo.",

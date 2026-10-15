@@ -6,7 +6,7 @@ import {
   ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSION_AFF, MISSIONS, POLICE_NAMES, RANK_NAMES
 } from "./gangs.js";
 import {
-  addAff, addHeat, battle, clamp, closetSlots, finishBusy, gainXp, gangOf, getMission, guardiaTime, healCost, isGolpe,
+  addAff, addHeat, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, getMission, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
@@ -64,7 +64,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
         /* fin del tutorial: se abre la ciudad (golpes, encargos, misiones de pandilla, la calle y tu casa) */
         s.tutDone = true; s.tAttack = now; s.tHeat = now;
         for (const k of ["calle", "casa", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
-        log(s, now, "Las cuatro pandillas de Bahía Gris ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
+        log(s, now, "Las cuatro pandillas de Malos Aires ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
       }
       return {};
     }
@@ -135,8 +135,16 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
 
     case "buy": {
       const it = SHOP.find(i => i.id === a.id);
-      if (!it) return fail("Eso no se vende acá.");
+      if (!it || !forSale(s, it)) return fail(s.tutDone ? "Eso no se vende acá." : "Por ahora la feria solo te vende una llave inglesa.");
       if (itemLocked(s, it)) return fail("Todavía no te lo venden.");
+      if (it.id === "suplemento") {
+        if (supplementsTaken(s) >= SUPPLEMENT_MAX) return fail("Don Tito dice que ya no te hace efecto.");
+        const c = supplementCost(s);
+        if (s.gold < c) return fail("No te alcanza la plata.");
+        s.gold -= c; s.hpBonus = (s.hpBonus ?? 0) + it.val; s.hp += it.val; s.c.buy++;
+        log(s, now, `Tomaste el suplemento de Don Tito (−${money(c)}): +${it.val} de vida máxima para siempre.`, "gold");
+        return {};
+      }
       if (s.gold < it.price) return fail("No te alcanza la plata.");
       if (it.slot !== "consumible" && (s.gear[it.slot] === it.id || s.home.closet.includes(it.id))) return fail("Ya lo tenés.");
       s.gold -= it.price; s.c.buy++;

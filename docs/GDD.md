@@ -1,4 +1,4 @@
-# Placa o Plata — Game Design Document
+# Malos Aires — Game Design Document
 
 **Estudio:** Mauspi Lab · **Versión del documento:** 2.0 (15/10/2026) · **Estado:** jugable online, en prueba entre amigos
 **Dónde se juega:** https://cinectomia.com/juego/ · **Repo:** github.com/PaperLucas64/placaoplata
@@ -7,6 +7,8 @@ Relacionados: [BALANCE.md](BALANCE.md) (números y cómo medirlos) · [CREDITOS.
 > Los números salen del código (`packages/shared/src`: `config.ts`, `data.ts`, `gangs.ts`, `rules.ts`, `actions.ts`).
 > Si se cambia un número allá, actualizar acá.
 
+**Nombre:** Malos Aires, parodia de Buenos Aires (como Los Santos con Los Ángeles). Antes se llamó "Placa o Plata" y la ciudad "Bahía Gris".
+
 **Cambio de la versión 2:** ya no se elige entre policía y delincuente. Hay **cuatro pandillas** y pertenecés a la que
 más trabajaste (afinidad dinámica). La policía pasó a ser una **amenaza para todos**. Se agregó **la casa** (base del jugador).
 
@@ -14,7 +16,7 @@ más trabajaste (afinidad dinámica). La policía pasó a ser una **amenaza para
 
 ## 1. Visión
 
-Juego de navegador por energía, al estilo **BiteFight**, en **Bahía Gris**, una ciudad portuaria rioplatense de noche.
+Juego de navegador por energía, al estilo **BiteFight**, en **Malos Aires**, una ciudad portuaria rioplatense de noche.
 Llegás solo con tu nombre, hacés trabajos para las **cuatro pandillas** que se pelean la ciudad y terminás siendo de la que
 más te banque. Peleás contra pandilleros de las otras —personajes y **jugadores reales**—, esquivás a la policía y
 armás tu casa.
@@ -212,7 +214,6 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 - **Protección para nuevos** y **tope diario de ataques** entre jugadores.
 - **Moderación:** nombres, bloquear cuentas, panel de administración.
 - **Probar el balance de las peleas entre jugadores reales.**
-- **Nombre del juego:** "Placa o Plata" ya no describe el juego (no hay policía jugable). Pensar uno nuevo.
 
 ### Pandillas
 - **Territorio:** barrios que cambian de dueño según la actividad de los jugadores de cada pandilla.

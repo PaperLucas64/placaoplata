@@ -1,4 +1,4 @@
-# Balance de Placa o Plata
+# Balance de Malos Aires
 
 Cómo está calibrado el juego, con qué objetivo y cómo volver a medirlo. Todos los números de este documento
 salen de herramientas que usan **las reglas reales del juego** (`packages/shared`):

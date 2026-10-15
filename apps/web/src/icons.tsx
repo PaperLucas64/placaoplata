@@ -54,7 +54,7 @@ const DRAWN: Record<string, ReactNode> = {
 
 /* cada ítem del juego -> su ícono */
 const ITEM_ICON: Record<string, string> = {
-  llave: "llave", bate: "bate", baston: "baston", campera: "campera", casco: "casco", chaleco: "chaleco", botiquin: "botiquin",
+  llave: "llave", bate: "bate", suplemento: "botiquin", baston: "baston", campera: "campera", casco: "casco", chaleco: "chaleco", botiquin: "botiquin",
   tonfa: "tonfa", reglam: "chaleco", taser: "taser", antibalas: "chaleco", pistola: "png:arma_pistola", tactico: "chaleco",
   antimotin: "png:arma_antimotin", escudo: "png:escudo",
   manopla: "manopla", gruesa: "campera", navaja: "png:navaja", placas: "campera", recortada: "png:arma_recortada",

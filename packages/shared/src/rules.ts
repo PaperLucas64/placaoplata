@@ -14,7 +14,14 @@ export const pick = <T>(rng: Rng, a: T[]): T => a[rnd(rng, 0, a.length - 1)];
 export const money = (n: number) => `$${n}`;
 const MIN = 60_000;
 
-export const maxHp = (s: Pick<PlayerState, "stats" | "lvl">) => 40 + s.stats.agu * 12 + s.lvl * 6;
+export const maxHp = (s: Pick<PlayerState, "stats" | "lvl"> & { hpBonus?: number }) => 40 + s.stats.agu * 12 + s.lvl * 6 + (s.hpBonus ?? 0);
+/* suplemento de Don Tito: +10 de vida máxima para siempre, hasta 10 veces; cada uno cuesta más que el anterior */
+export const SUPPLEMENT_MAX = 10;
+export const supplementsTaken = (s: Pick<PlayerState, "hpBonus">) => Math.round((s.hpBonus ?? 0) / 10);
+export const supplementCost = (s: Pick<PlayerState, "hpBonus">) => 300 * (supplementsTaken(s) + 1) ** 2;
+/* la feria: en el tutorial solo te vende una llave inglesa; después, todo lo de tu nivel */
+export const TUTORIAL_SHOP = ["llave"];
+export const forSale = (s: PlayerState, it: Item) => s.tutDone ? true : TUTORIAL_SHOP.includes(it.id);
 export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
 export const trainCost = (v: number) => Math.round(3 * Math.pow(v, 2));
 export const gearVal = (s: PlayerState, slot: "arma" | "armadura") => SHOP.find(i => i.id === s.gear[slot])?.val ?? 0;
@@ -66,7 +73,7 @@ export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
     tEnergy: now, tHeal: now, tAttack: now, tHeat: now, log: []
   };
   s.hp = maxHp(s);
-  log(s, now, `${name} se baja del micro en Bahía Gris con ${money(10)} en el bolsillo.`, "gold");
+  log(s, now, `${name} se baja del micro en Malos Aires con ${money(10)} en el bolsillo.`, "gold");
   return s;
 }
 
@@ -85,7 +92,7 @@ export function upgradeState(s: PlayerState & { side?: string | null; tSalary?: 
   if (s.tutDone && !s.tabs.includes("casa")) s.tabs.splice(s.tabs.indexOf("ranking"), 0, "casa");
   for (const k of ["calle", "ranking"] as const) if (s.tutDone && !s.tabs.includes(k)) s.tabs.push(k);
   s.v = 2;
-  log(s, now, old ? "Bahía Gris cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Bahía Gris cambió: ahora mandan las cuatro pandillas.", "gold");
+  log(s, now, old ? "Malos Aires cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Malos Aires cambió: ahora mandan las cuatro pandillas.", "gold");
   return s;
 }
 

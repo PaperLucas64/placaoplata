@@ -199,3 +199,22 @@ describe("tiempo humano", () => {
     expect(s.gold).toBeLessThan(gold);
   });
 });
+
+describe("feria", () => {
+  it("en el tutorial solo vende la llave inglesa", () => {
+    const s = newPlayer("Ana", T0); s.gold = 500;
+    expect(applyAction(s, { type: "buy", id: "campera" }, ctx()).error).toMatch(/llave/);
+    expect(applyAction(s, { type: "buy", id: "llave" }, ctx()).error).toBeUndefined();
+  });
+  it("el suplemento sube la vida máxima para siempre y cada vez cuesta más", () => {
+    const s = veteran("Ana"); s.gold = 200_000;
+    const hp0 = maxHp(s);
+    applyAction(s, { type: "buy", id: "suplemento" }, ctx());
+    const g1 = s.gold;
+    applyAction(s, { type: "buy", id: "suplemento" }, ctx());
+    expect(maxHp(s)).toBe(hp0 + 20);
+    expect(200_000 - g1).toBeLessThan(g1 - s.gold);
+    for (let i = 0; i < 20; i++) applyAction(s, { type: "buy", id: "suplemento" }, ctx());
+    expect(maxHp(s)).toBe(hp0 + 100); // tope: 10 suplementos
+  });
+});

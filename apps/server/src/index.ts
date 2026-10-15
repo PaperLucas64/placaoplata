@@ -53,7 +53,7 @@ app.post("/api/auth/register", authLimit, async (req, reply) => {
   if (!validUsername(username)) return reply.code(400).send({ error: "El nombre va de 3 a 20 letras, números o espacios." });
   if (!validPassword(password)) return reply.code(400).send({ error: "La contraseña necesita al menos 6 caracteres." });
   const taken = await db.query(`SELECT 1 FROM users WHERE lower(username) = lower($1)`, [username]);
-  if (taken.rows.length) return reply.code(409).send({ error: "Ese nombre ya está en uso en Bahía Gris." });
+  if (taken.rows.length) return reply.code(409).send({ error: "Ese nombre ya está en uso en Malos Aires." });
   const hash = await hashPassword(password);
   const token = await db.tx(async q => {
     const u = await q.query<{ id: number }>(`INSERT INTO users (username, pass_hash) VALUES ($1, $2) RETURNING id`, [username, hash]);
@@ -123,7 +123,7 @@ if (!PROD) app.post("/api/dev/seed", async (req, reply) => {
 });
 
 await app.listen({ port: PORT, host: "0.0.0.0" });
-console.log(`Placa o Plata escuchando en http://localhost:${PORT}`);
+console.log(`Malos Aires escuchando en http://localhost:${PORT}`);
 
 /* Cierre ordenado: termina las peticiones en curso y cierra la base sin dejarla a medio escribir.
    En producción llega SIGTERM; en desarrollo, el mensaje "shutdown" de tools/devserver.ts. */

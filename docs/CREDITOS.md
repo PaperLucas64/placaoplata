@@ -1,6 +1,6 @@
 # Créditos del arte
 
-Placa o Plata es un juego de **Mauspi Lab**. El arte de terceros se usa según la licencia de cada pack.
+Malos Aires es un juego de **Mauspi Lab**. El arte de terceros se usa según la licencia de cada pack.
 En este repo hay **solo versiones procesadas** (recortadas, con filtro nocturno, comprimidas), nunca los archivos originales,
 porque varias licencias no permiten redistribuirlos sueltos. Se generan con `tools/assets/build.py`.
 También se muestran en el juego (botón **Créditos**, al lado de la crónica).

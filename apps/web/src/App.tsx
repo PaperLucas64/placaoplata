@@ -15,8 +15,8 @@ export function App() {
 
   if (snap === "loading") return (
     <section id="auth">
-      <div><div className="tag">Bahía Gris · de noche</div><h1>Placa <span className="o">o</span> Plata</h1></div>
-      <p className="tag">{tries < 3 ? "Cargando Bahía Gris…" : "El servidor del juego no responde. Si estuvo un rato sin jugadores puede tardar un minuto en despertar; si no, todavía no está publicado. Seguimos intentando…"}</p>
+      <div><div className="tag">Malos Aires · de noche</div><h1>Malos <span className="o">Aires</span></h1></div>
+      <p className="tag">{tries < 3 ? "Cargando Malos Aires…" : "El servidor del juego no responde. Si estuvo un rato sin jugadores puede tardar un minuto en despertar; si no, todavía no está publicado. Seguimos intentando…"}</p>
     </section>
   );
   if (!snap) return <Auth onIn={load} />;

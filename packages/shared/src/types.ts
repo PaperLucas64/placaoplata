@@ -43,6 +43,7 @@ export interface PlayerState {
   v?: number; // versión del formato (2: pandillas y casa)
   name: string; lvl: number; xp: number; gold: number; energy: number; hp: number;
   avatar?: number; // retrato elegido al crear el personaje (1 a 4)
+  hpBonus?: number; // vida máxima extra para siempre (suplementos)
   stats: Record<StatKey, number>;
   gear: { arma: string | null; armadura: string | null };
   potions: number; wins: number; losses: number;

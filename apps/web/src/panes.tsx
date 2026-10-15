@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  affShare, canStart, closetSlots, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
+  affShare, canStart, closetSlots, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
   trainTime, getMission, healCost, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey
 } from "@pop/shared";
@@ -73,16 +73,21 @@ function Gym({ s, act, busy }: Ui) {
 }
 
 function Shop({ s, act, busy }: Ui) {
+  const items = SHOP.filter(it => forSale(s, it) && it.lvl <= s.lvl + 3 && (!it.rank || s.tutDone));
   return <>
     <h2>Feria de usados</h2>
-    <p>Una cosa en la mano y una encima. Lo que dejás de usar va a tu armario si tenés lugar (si no, se queda en la feria).{s.tutDone && " Al fondo, el mercado negro: se desbloquea subiendo de rango."}</p>
-    <div className="list">{SHOP.filter(it => it.lvl <= s.lvl + 3 && (!it.rank || s.tutDone)).map(it => {
+    <p>{s.tutDone
+      ? "Una cosa en la mano y una encima. Lo que dejás de usar va a tu armario si tenés lugar (si no, se queda en la feria). Cada nivel trae cosas nuevas; al fondo, el mercado negro, que se desbloquea subiendo de rango."
+      : "Por ahora el puestero te vende una sola cosa: «Cuando Marga te dé el visto bueno, te muestro lo demás.»"}</p>
+    <div className="list">{items.map(it => {
       const own = it.slot !== "consumible" && (s.gear[it.slot] === it.id || s.home.closet.includes(it.id));
-      return <div className="item" key={it.id}>
+      const sup = it.id === "suplemento", maxed = sup && supplementsTaken(s) >= SUPPLEMENT_MAX;
+      const price = sup ? supplementCost(s) : it.price, locked = itemLocked(s, it);
+      return <div className={`item ${locked ? "locked" : ""}`} key={it.id}>
         <div className="with-art"><ItemIcon id={it.id} /><div><h3>{it.name}{it.rank && <span className="badge" style={{ marginLeft: 6 }}>mercado negro</span>}</h3>
-          <div className="meta num">{it.slot === "consumible" ? "Se usa desde la guardia" : `${it.slot === "arma" ? "golpe" : "protección"} +${it.val}`} · {money(it.price)}
-            {s.lvl < it.lvl && ` · desde nivel ${it.lvl}`}{it.rank && rankOf(s) < it.rank ? ` · desde rango ${RANK_NAMES[it.rank]}` : ""}</div></div></div>
-        <div className="act"><button disabled={busy || own || s.gold < it.price || itemLocked(s, it)} onClick={() => act({ type: "buy", id: it.id })}>{own ? "Lo tenés" : "Comprar"}</button></div>
+          <div className="meta num">{sup ? `Llevás ${supplementsTaken(s)} de ${SUPPLEMENT_MAX}` : it.slot === "consumible" ? "Se usa desde la clínica" : `${it.slot === "arma" ? "golpe" : "protección"} +${it.val}`} · {money(price)}
+            {s.lvl < it.lvl && ` · se desbloquea en nivel ${it.lvl}`}{it.rank && rankOf(s) < it.rank ? ` · se desbloquea en rango ${RANK_NAMES[it.rank]}` : ""}</div></div></div>
+        <div className="act"><button disabled={busy || own || maxed || s.gold < price || locked} onClick={() => act({ type: "buy", id: it.id })}>{own ? "Lo tenés" : maxed ? "Al máximo" : "Comprar"}</button></div>
       </div>;
     })}</div>
   </>;
@@ -197,8 +202,8 @@ function Ranking({ s }: Ui) {
   const [rows, setRows] = useState<RankRow[] | null>(null);
   useEffect(() => { api.ranking().then(setRows).catch(() => setRows([])); }, [s.respect]);
   return <>
-    <h2>Ranking de Bahía Gris</h2>
-    <p>Quién manda en Bahía Gris, de las cuatro pandillas. Se ordena por respeto.</p>
+    <h2>Ranking de Malos Aires</h2>
+    <p>Quién manda en Malos Aires, de las cuatro pandillas. Se ordena por respeto.</p>
     {!rows ? <p className="tag">Cargando…</p> :
       <ol className="ranking">{rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className={r.me ? "me" : ""}>

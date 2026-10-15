@@ -1,9 +1,9 @@
-# Placa o Plata
+# Malos Aires
 
-Juego de navegador online al estilo BiteFight, de policías y ladrones, en la ciudad de Bahía Gris.
+Juego de navegador online al estilo BiteFight, de policías y ladrones, en la ciudad de Malos Aires.
 
 Llegás solo con tu nombre. Marga, la dueña del bar La Esquina, te enseña cada mecánica con un encargo. Después, cuatro
-pandillas se pelean Bahía Gris —**La Familia** (rojo), **El Sindicato** (azul), **La Barra** (verde) y **Los Amarillos**
+pandillas se pelean Malos Aires —**La Familia** (rojo), **El Sindicato** (azul), **La Barra** (verde) y **Los Amarillos**
 (amarillo)— y terminás siendo de la que más trabajaste: un anillo de colores alrededor de tu avatar muestra tu afinidad.
 La policía persigue a todos (calor, detenciones). Tenés tu **casa** (cama, caja fuerte y armario) y algunas cosas llevan
 **tiempo de verdad**, como en BiteFight: entrenar, la guardia gratis y las obras.

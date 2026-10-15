@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { gangOf, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
-import { BusyBar, Chronicle, Fight, Sheet } from "./parts";
+import { Chronicle, Fight, Sheet } from "./parts";
 import { Pane } from "./panes";
 import { sceneFor } from "./art";
 
@@ -40,10 +40,11 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   }, setLive), [refresh]);
   /* cuando termina el entrenamiento o la guardia, traer el estado del servidor */
   useEffect(() => {
-    if (!server.busy) return;
-    const t = setTimeout(refresh, Math.max(0, server.busy.until - (Date.now() + offset)) + 800);
+    const ends = [server.busy?.until, server.home?.obra?.until].filter((x): x is number => !!x);
+    if (!ends.length) return;
+    const t = setTimeout(refresh, Math.max(0, Math.min(...ends) - (Date.now() + offset)) + 800);
     return () => clearTimeout(t);
-  }, [server.busy, offset, refresh]);
+  }, [server.busy, server.home?.obra, offset, refresh]);
   /* cada tanto, traer novedades (emboscadas de personajes del juego) */
   useEffect(() => { const t = setInterval(refresh, 60_000); return () => clearInterval(t); }, [refresh]);
 
@@ -68,16 +69,15 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   return (
     <>
       <header className="top">
-        <div><div className="tag">Bahía Gris · de noche</div><h1>Placa <span className="o">o</span> Plata</h1></div>
+        <div><div className="tag">Malos Aires · de noche</div><h1>Malos <span className="o">Aires</span></h1></div>
         <div className="tag num">
           <span className={`live ${live ? "on" : ""}`}>{live ? "en línea" : "sin conexión"}</span>
           {s.tabs.includes("ring") && <> · Peleas ganadas {s.wins + s.c.duelW} · perdidas {s.losses + s.c.duelL}</>}
         </div>
       </header>
       <div className="game">
-        <Sheet s={s} now={now} />
+        <Sheet s={s} now={now} disabled={busy} onCancel={() => act({ type: "cancel" })} />
         <main className="board">
-          <BusyBar s={s} now={now} disabled={busy} onCancel={() => act({ type: "cancel" })} />
           {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <nav className="tabs" role="tablist">
             {s.tabs.map(k => (
