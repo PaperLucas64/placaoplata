@@ -44,7 +44,9 @@ async function requireUser(req: any, reply: any): Promise<number | null> {
   return uid;
 }
 
-app.get("/api/health", async () => { await db.query("SELECT 1"); return { ok: true }; });
+/* Chequeo de salud para Render y UptimeRobot. No toca la base a propósito: si la consultara cada pocos segundos,
+   Neon no se apagaría nunca y se gastarían las horas gratis del mes. La base se prende sola cuando alguien juega. */
+app.get("/api/health", async () => ({ ok: true }));
 
 app.post("/api/auth/register", authLimit, async (req, reply) => {
   const { username, password } = (req.body ?? {}) as Record<string, unknown>;
