@@ -536,3 +536,16 @@ body{background:transparent}
 
 /* con el panel abierto, la leyenda del mapa se corre al costado (no queda tapada) */
 @media (min-width:821px){.gm.with-panel .gps-status{left:calc(100px + min(440px, 100% - 180px));max-width:min(520px, calc(100% - 600px))}}
+
+/* el panel no tapa la barra de arriba (buscar, filtros y vida); en el celular los filtros se deslizan */
+.chips{min-width:0;max-width:100%}
+@media (min-width:821px){
+  .topbar{flex-wrap:wrap;row-gap:6px}
+  .topbar .chips{flex:1 1 300px}
+  .panel{top:96px} /* la barra de arriba termina en ~84 px (medido en 1024, 1366 y 1920) */
+}
+@media (max-width:820px){
+  .topbar{flex-wrap:nowrap}
+  .topbar > *{max-width:100%;min-width:0}
+  .search{margin-right:56px}
+}

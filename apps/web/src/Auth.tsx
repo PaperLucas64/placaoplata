@@ -20,7 +20,7 @@ export function Auth({ onIn }: { onIn: () => void }) {
   return (
     <section id="auth">
       <div><div className="tag">Maires · de noche</div><h1>Malan<span className="o">dro</span></h1></div>
-      <p>Llegás a Maires con un bolso y diez pesos. Marga, la dueña del bar La Esquina, te da un lugar donde dormir a cambio de que le hagas unos encargos. Después vas a tener que elegir: la placa o la plata.</p>
+      <p>Llegás a Maires con un bolso y diez pesos. Marga, la dueña del bar La Esquina, te da un lugar donde dormir a cambio de que le hagas unos encargos. Después, las cuatro pandillas de la ciudad te van a querer para ellas.</p>
       <form onSubmit={submit}>
         <h3>{mode === "new" ? "Bajar del micro" : "Volver a Maires"}</h3>
         <label className="tag" htmlFor="u">{mode === "new" ? "¿Cómo te llamás?" : "Tu nombre"}</label>

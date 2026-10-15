@@ -126,6 +126,11 @@ function mapPins(s: Ui["s"], now: number, filter?: string | null): Pin[] {
 }
 
 /* Lo que podés hacer en el lugar que tocaste en el mapa */
+/* marca la pestaña de un lugar como vista apenas lo abrís */
+function SeenTab({ tab, act }: { tab: TabKey; act: Ui["act"] }) {
+  useEffect(() => { act({ type: "seen", tab }); }, [tab]);
+  return null;
+}
 export function PlacePanel(ui: Ui) {
   const { s, act, busy, now, lugar, setLugar } = ui;
   const pane = { ...ui, busy: busy || (!!s.busy && s.busy.kind !== "vuelta") };
@@ -145,6 +150,7 @@ export function PlacePanel(ui: Ui) {
   const job = l.job ? [...JOBS, ...GOLPES].find(j => j.id === l.job) : undefined;
   const golpe = job && GOLPES.includes(job);
   return <section className="lugar" style={{ ["--lugar" as string]: color }}>
+    {l.tab && !s.seenTab[l.tab] && <SeenTab tab={l.tab} act={act} />}
     <div className="lugar-head">
       {l.gang ? <Portrait src={bossImg(l.gang)} gang={l.gang} size={56} /> : null}
       <div><span className="tag">{KIND_NAME[l.kind]} · {l.barrio}</span><h2>{l.name}</h2></div>
@@ -162,7 +168,8 @@ export function PlacePanel(ui: Ui) {
     {(l.kind === "negocio" || l.kind === "concesionaria") && <Business {...ui} />}
     {l.kind === "municipio" && <Ranking {...ui} />}
     {l.kind === "inmobiliaria" && <HouseList {...ui} b={l.barrio} />}
-    {l.kind === "kiosco" && <div className="list"><div className="item">
+    {l.kind === "kiosco" && !s.tutDone && <p className="tag">«Botiquines te vendo cuando termines con lo de Marga, pibe.»</p>}
+    {l.kind === "kiosco" && s.tutDone && <div className="list"><div className="item">
       <div className="with-art"><ItemIcon id="botiquin" /><div><h3>Botiquín</h3><div className="meta num">+50% de vida, cuando lo uses · {money(20)} · tenés {s.potions}</div></div></div>
       <div className="act"><button disabled={busy || s.gold < 20} onClick={() => act({ type: "buy", id: "botiquin" })}>Comprar</button></div>
     </div></div>}
@@ -350,7 +357,7 @@ function Gym({ s, act, busy }: Ui) {
       const c = trainCost(s.stats[k]);
       return <div className="item" key={k}>
         <div><h3>{STAT_NAMES[k]} <span className="num">{s.stats[k]}</span>{gearBonus(s, k) > 0 && <span className="num bonus"> (+{gearBonus(s, k)} del equipo)</span>}</h3><div className="meta">{STAT_HELP[k]}</div></div>
-        <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)} · {durTxt(trainTime(s.stats[k]) / 60000)}</span></button></div>
+        <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)} · {durTxt(trainTime(s.stats[k], s) / 60000)}</span></button></div>
       </div>;
     })}</div>
   </>;
@@ -410,7 +417,7 @@ function Equipment({ s, act, busy }: Ui) {
             <div className="meta num">{SLOT_NAMES[it.slot]} · {bonusTxt(it)}{cur ? ` (tenés puesto: ${bonusTxt(cur)})` : " · ese lugar está vacío"}</div></div></div>
           <div className="act">
             <button className="primary" disabled={busy} onClick={() => act({ type: "equip", id })}>Ponérmelo</button>
-            <button disabled={busy} onClick={() => act({ type: "sell", id })}>Vender · {money(Math.round(it.price * SELL_RATE))}</button>
+            {!it.event && <button disabled={busy} onClick={() => act({ type: "sell", id })}>Vender · {money(Math.round(it.price * SELL_RATE))}</button>}
           </div>
         </div>;
       })}</div>}
