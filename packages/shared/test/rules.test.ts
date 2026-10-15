@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  missionCatchUp, missionMins, newBoard, RANK_AT, regen, safeCap, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
+  coopMission, missionCatchUp, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -252,5 +252,29 @@ describe("misiones con tiempo", () => {
     expect(s.board.map(m => m.difficulty)).toEqual([0, 1, 2, 3]);
     expect(new Set(s.board.map(m => m.title)).size).toBe(4);
     expect(s.board[3].reward!.gold).toBeGreaterThan(s.board[0].reward!.gold);
+  });
+});
+
+describe("misiones de a dos", () => {
+  it("pagan más que una difícil sola y suman afinidad", () => {
+    const m = coopMission(seeded(1), 10, "barra", 7);
+    expect(m.id).toBe("coop-7");
+    expect(m.reward!.gold).toBeGreaterThan(streetMission(seeded(1), 10, 2, "barra", "x").reward!.gold);
+  });
+  it("en cada prueba actúa el que mejor tiene ese atributo", () => {
+    const a = veteran("Ana"), b = veteran("Beto");
+    a.stats.lab = 30; b.stats.lab = 5;
+    const r = resolveCoopStep(a, b, { text: "", stat: "lab", diff: 5, energy: 2 }, seeded(2));
+    expect(r.who).toBe("Ana");
+  });
+  it("las peleas las dan juntos: suman la vida de los dos", () => {
+    const a = veteran("Ana"), b = veteran("Beto");
+    expect(teamFighter(a, b).max).toBe(maxHp(a) + maxHp(b));
+  });
+  it("mientras espera a su compañero, no puede arrancar otra cosa larga", () => {
+    const s = veteran("Ana");
+    s.coop = { id: 1, partner: "Beto", partnerId: 2, mission: coopMission(seeded(1), 6, "familia", 1), status: "waiting" };
+    expect(applyAction(s, { type: "train", stat: "fue" }, ctx()).error).toMatch(/de a dos/);
+    expect(applyAction(s, { type: "job", id: "bici" }, ctx()).error).toBeUndefined(); // lo instantáneo, sí
   });
 });

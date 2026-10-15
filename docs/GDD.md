@@ -179,6 +179,18 @@ pagando 2 de energía.
 
 Paga por energía: `(10 + 2,4 × nivel) × multiplicador` de plata y `(3 + 0,55 × nivel) × multiplicador` de XP.
 
+### 5.7b Amigos y misiones de a dos
+- **Amigos:** se agregan por nombre; el otro acepta (si los dos se piden, queda aceptado). Se ve nivel, pandilla y si está en línea.
+- **Misión de a dos:** invitás a un amigo; la misión se arma para el nivel promedio de los dos y es de tu pandilla (o de
+  una al azar si andás suelto). Al aceptar se cobra **8 de energía a cada uno**.
+- **Si alguno está ocupado** (entrenando, en la guardia o en otra misión), la misión **espera** y arranca sola cuando los
+  dos estén libres. Mientras espera, ninguno puede arrancar otra actividad larga (entrenar, guardia, misión).
+- Dura 40 min, 4 etapas. En cada prueba actúa **el que mejor tiene ese atributo**; las peleas las dan **juntos** (suman
+  vida, pega el más fuerte, esquiva el más rápido) contra un grupo más duro. Sale bien con el 60%.
+- Premio para **cada uno**: `8 × (10 + 2,4 × nivel) × 1,6` de plata, XP en proporción, +8 respeto, +5 afinidad.
+- Se puede cancelar antes de arrancar (vuelve la energía) o abandonar en curso (se cae para los dos).
+- Avisos en vivo: solicitud de amistad, invitación, aceptada, arrancó, terminó, cancelada.
+
 ### 5.8 La calle
 Rivales: pandilleros de **las otras pandillas** (si andás suelto, de todas). Hasta 3 jugadores reales de nivel parecido;
 el resto, personajes. A los de tu pandilla no los podés atacar. 3 de energía por pelea; mismo jugador real 1 vez por hora;
@@ -222,6 +234,7 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 | Ataques a jugadores | 1 por hora al mismo; sin tope diario |
 | Pandilla | se puede cambiar trabajando para otra |
 | Avatar | se elige al crear el personaje |
+| Misiones de a dos | una por vez; una invitación pendiente por vez |
 
 ---
 

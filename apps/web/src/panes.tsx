@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  affShare, canStart, closetSlots, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
+  affShare, canStart, closetSlots, COOP_ENERGY, COOP_MINS, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
   trainTime, healCost, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionMins, missionNeed, missionReq, STREET_DIFF, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey
 } from "@pop/shared";
-import { api, type RankRow } from "./api";
+import { api, type FriendsView, type RankRow } from "./api";
 import type { Ui } from "./Game";
 import { avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
@@ -23,6 +23,7 @@ export function Pane({ tab, ...rest }: Ui & { tab: TabKey }) {
     case "misiones": return <Missions {...ui} />;
     case "calle": return <Street {...ui} />;
     case "casa": return <House {...rest} />;
+    case "amigos": return <Friends {...rest} />;
     case "ranking": return <Ranking {...ui} />;
   }
 }
@@ -281,5 +282,83 @@ function House({ s, act, busy, now }: Ui) {
           </div>;
         })}</div>}
     </>}
+  </>;
+}
+
+/* Amigos y misiones de a dos */
+function Friends({ s, busy, ping, refresh, toast }: Ui) {
+  const [data, setData] = useState<FriendsView | null>(null);
+  const [name, setName] = useState("");
+  const [working, setWorking] = useState(false);
+  const load = () => api.friends().then(setData).catch(() => {});
+  useEffect(() => { load(); const t = setInterval(load, 30_000); return () => clearInterval(t); }, [ping]);
+  /* toda acción: llamar, avisar el error si lo hay, y recargar amigos y personaje */
+  const run = async (f: () => Promise<unknown>, ok?: string) => {
+    setWorking(true);
+    try { await f(); if (ok) toast(ok, true); }
+    catch (e: any) { toast(e.message); }
+    finally { setWorking(false); load(); refresh(); }
+  };
+  const off = busy || working;
+  const c = s.coop;
+  const coopMeta = (m: { mins?: number; reward?: { gold: number; xp: number } }) =>
+    `${m.mins ?? COOP_MINS} min · ${COOP_ENERGY} de energía cada uno · ${money(m.reward?.gold ?? 0)} y ${m.reward?.xp ?? 0} XP para cada uno`;
+
+  return <>
+    <h2>Amigos</h2>
+    <p>Agregá a tus amigos por su nombre en el juego. Con un amigo podés hacer misiones de a dos: pagan más, y arrancan cuando los dos estén libres.</p>
+    <form className="row-actions" onSubmit={e => { e.preventDefault(); if (name.trim()) run(() => api.addFriend(name.trim()), "Solicitud enviada.").then(() => setName("")); }}>
+      <input placeholder="Nombre de tu amigo" value={name} onChange={e => setName(e.target.value)} maxLength={20} aria-label="Nombre de tu amigo" />
+      <button disabled={off || !name.trim()}>Agregar</button>
+    </form>
+
+    {c && <div className="thread" style={{ borderColor: "var(--sodium)" }}>
+      <h3>Tu misión de a dos: {c.mission.title}</h3>
+      <p className="meta">Con {c.partner} · {c.status === "waiting" ? "esperando a que los dos estén libres" : "en curso (mirá el avance arriba de tu vida)"} · {coopMeta(c.mission)}</p>
+      <div><button className="link" disabled={off} onClick={() => run(() => api.coopCancel(c.id))}>{c.status === "waiting" ? "Cancelar (se devuelve la energía)" : "Abandonar"}</button></div>
+    </div>}
+
+    {!!data?.invites.length && <>
+      <h3>Te invitaron</h3>
+      <div className="list">{data.invites.map(i => (
+        <div className="item" key={i.id}>
+          <div><h3>{i.mission.title}</h3><div className="meta">{i.from} te invita · {coopMeta(i.mission)}</div></div>
+          <div className="act">
+            <button className="primary" disabled={off || !!c} onClick={() => run(() => api.coopRespond(i.id, true), "¡Aceptada! Arranca cuando los dos estén libres.")}>Aceptar</button>
+            <button disabled={off} onClick={() => run(() => api.coopRespond(i.id, false))}>No puedo</button>
+          </div>
+        </div>))}</div>
+    </>}
+
+    {!!data?.incoming.length && <>
+      <h3>Solicitudes de amistad</h3>
+      <div className="list">{data.incoming.map(p => (
+        <div className="item" key={p.id}>
+          <div className="with-art"><Portrait src={avatarImg(p.avatar)} gang={p.gang} size={44} /><div><h3>{p.name}</h3><div className="meta">nivel {p.lvl}</div></div></div>
+          <div className="act">
+            <button className="primary" disabled={off} onClick={() => run(() => api.acceptFriend(p.id), `Ahora sos amigo de ${p.name}.`)}>Aceptar</button>
+            <button disabled={off} onClick={() => run(() => api.removeFriend(p.id))}>Rechazar</button>
+          </div>
+        </div>))}</div>
+    </>}
+
+    <h3>Tus amigos</h3>
+    {!data ? <p className="tag">Cargando…</p> : !data.friends.length ? <p>Todavía no agregaste a nadie.</p> :
+      <div className="list">{data.friends.map(p => {
+        const sent = data.sent.find(x => x.to === p.name);
+        return <div className="item" key={p.id}>
+          <div className="with-art"><Portrait src={avatarImg(p.avatar)} gang={p.gang} size={48} />
+            <div><h3>{p.name} <span className={`live ${p.online ? "on" : ""}`} /></h3>
+              <div className="meta">nivel {p.lvl} · <GangBadge gang={p.gang} /> · {p.online ? "en línea" : "desconectado"}</div>
+              {sent && <div className="lock">Invitación enviada: {sent.mission.title}</div>}</div></div>
+          <div className="act">{sent
+            ? <button className="link" disabled={off} onClick={() => run(() => api.coopCancel(sent.id))}>Cancelar invitación</button>
+            : <button disabled={off || !!c || !!data.sent.length} onClick={() => run(() => api.coopInvite(p.id), `Invitaste a ${p.name}.`)}>Misión de a dos</button>}
+            <button className="link" disabled={off} onClick={() => run(() => api.removeFriend(p.id))}>Quitar</button>
+          </div>
+        </div>;
+      })}</div>}
+
+    {!!data?.outgoing.length && <p className="tag">Esperando respuesta: {data.outgoing.map(p => p.name).join(", ")}.</p>}
   </>;
 }

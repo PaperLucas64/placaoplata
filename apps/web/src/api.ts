@@ -1,4 +1,4 @@
-import type { Action, ActionResult, Gang, PlayerState } from "@pop/shared";
+import type { Action, ActionResult, Gang, Mission, PlayerState } from "@pop/shared";
 
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
@@ -15,6 +15,11 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export interface Snapshot { state: PlayerState; now: number }
+export interface Person { id: number; name: string; lvl: number; gang: Gang | null; avatar: number; online: boolean }
+export interface FriendsView {
+  friends: Person[]; incoming: Person[]; outgoing: Person[];
+  invites: { id: number; from: string; mission: Mission }[]; sent: { id: number; to: string; mission: Mission }[];
+}
 export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean }
 
 export const api = {
@@ -23,7 +28,14 @@ export const api = {
   logout: () => call("/api/auth/logout", {}),
   me: () => call<Snapshot & { id: number }>("/api/me"),
   act: (a: Action) => call<Snapshot & { result: ActionResult }>("/api/action", a),
-  ranking: () => call<RankRow[]>("/api/ranking")
+  ranking: () => call<RankRow[]>("/api/ranking"),
+  friends: () => call<FriendsView>("/api/friends"),
+  addFriend: (name: string) => call<{ ok: boolean; accepted: boolean }>("/api/friends/add", { name }),
+  acceptFriend: (id: number) => call("/api/friends/accept", { id }),
+  removeFriend: (id: number) => call("/api/friends/remove", { id }),
+  coopInvite: (friendId: number) => call("/api/coop/invite", { friendId }),
+  coopRespond: (id: number, accept: boolean) => call("/api/coop/respond", { id, accept }),
+  coopCancel: (id: number) => call("/api/coop/cancel", { id })
 };
 
 /* Avisos en vivo. Se reconecta solo si se corta. */

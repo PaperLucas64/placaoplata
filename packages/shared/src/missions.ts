@@ -16,8 +16,8 @@ export const BOARD_REROLL_COST = 2;                 // o pagando energía
 
 /* ---------- datos de cada misión ---------- */
 export const allStory = (): Mission[] => [VALIJA, ...GANG_KEYS.flatMap(g => MISSIONS[g])];
-export const findMission = (s: Pick<PlayerState, "board">, id: string) =>
-  allStory().find(m => m.id === id) ?? s.board?.find(m => m.id === id);
+export const findMission = (s: Pick<PlayerState, "board" | "coop">, id: string) =>
+  allStory().find(m => m.id === id) ?? s.board?.find(m => m.id === id) ?? (s.coop?.mission.id === id ? s.coop.mission : undefined);
 export const missionMins = (m: Mission) => m.mins ?? (m.id === VALIJA.id ? VALIJA_MINS : STORY_MINS[m.tier ?? 0]);
 export const missionEnergy = (m: Mission) => m.steps.reduce((a, st) => a + st.energy, 0);
 /* cuántas etapas tienen que salir bien (La valija perdona más: es el tutorial) */
@@ -55,7 +55,7 @@ export function nextMissionEvent(s: PlayerState): number | null {
 /* Resuelve las etapas que ya pasaron. Devuelve true si cambió algo. */
 export function missionCatchUp(s: PlayerState, { now, rng }: { now: number; rng: Rng }): boolean {
   const b = s.busy;
-  if (b?.kind !== "mision") return false;
+  if (b?.kind !== "mision" || b.id.startsWith("coop-")) return false; // las de a dos las resuelve el servidor para los dos
   const m = findMission(s, b.id);
   if (!m) { s.busy = null; return true; }
   let changed = false;

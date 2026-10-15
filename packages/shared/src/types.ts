@@ -1,6 +1,6 @@
 export type Gang = "familia" | "sindicato" | "barra" | "amarillos";
 export type StatKey = "fue" | "dur" | "ref" | "agu" | "lab";
-export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "ranking";
+export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "amigos" | "ranking";
 export type Rng = () => number;
 
 export interface Job {
@@ -57,6 +57,8 @@ export interface PlayerState {
   respect: number; heat: number; done: Record<string, boolean>; targets: Target[];
   home: Home;
   board: Mission[]; tBoard: number; // tablón de misiones de calle y cuándo se armó
+  /* misión de a dos aceptada: esperando a que los dos estén libres, o en curso */
+  coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
   tEnergy: number; tHeal: number; tAttack: number; tHeat: number;
   /* algo que lleva tiempo de verdad: mientras dura no se puede trabajar ni pelear */
   busy?: Busy | null;

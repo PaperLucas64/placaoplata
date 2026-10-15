@@ -5,3 +5,4 @@ export * from "./gangs.js";
 export * from "./rules.js";
 export * from "./actions.js";
 export * from "./missions.js";
+export * from "./coop.js";

@@ -7,7 +7,11 @@ import { Pane } from "./panes";
 import { sceneFor } from "./art";
 
 export type Act = (a: Action) => Promise<void>;
-export interface Ui { s: PlayerState; now: number; act: Act; busy: boolean; mission: { ok: boolean; text: string } | null }
+export interface Ui {
+  s: PlayerState; now: number; act: Act; busy: boolean; mission: { ok: boolean; text: string } | null;
+  ping: number;                                  // sube cuando llega un aviso en vivo de amigos o misiones de a dos
+  refresh: () => Promise<void>; toast: (text: string, good?: boolean) => void;
+}
 
 const tabName = (s: PlayerState, k: TabKey) =>
   TAB_NAMES[k];
@@ -22,6 +26,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const [toast, setToast] = useState<{ text: string; good?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(false);
+  const [ping, setPing] = useState(0);
 
   /* el reloj corre en la pantalla; la energía y la vida se recalculan con las mismas reglas del servidor */
   useEffect(() => { const t = setInterval(() => setClock(Date.now()), 1000); return () => clearInterval(t); }, []);
@@ -33,6 +38,16 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4500); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => connectLive(m => {
+    if (m.type === "friend" || m.type === "coop") {
+      const msgs: Record<string, string> = {
+        request: "Te mandaron una solicitud de amistad.", accepted: m.type === "friend" ? "Aceptaron tu solicitud de amistad." : "Aceptaron tu misión de a dos.",
+        invite: `${m.from ?? "Un amigo"} te invitó a una misión de a dos.`, start: "Arrancó tu misión de a dos.",
+        done: "Terminó tu misión de a dos. Mirá la crónica.", declined: "No aceptaron tu misión de a dos.", cancelled: "Se canceló tu misión de a dos."
+      };
+      setToast({ text: msgs[m.what] ?? "Novedades de tus amigos.", good: m.what !== "cancelled" && m.what !== "declined" });
+      setPing(p => p + 1);
+      refresh();
+    }
     if (m.type === "attacked") {
       setToast(m.won ? { text: `${m.by} te atacó y lo rechazaste.`, good: true } : { text: `${m.by} te atacó y te ganó. Mirá la crónica.` });
       refresh();
@@ -63,7 +78,9 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const open = (k: TabKey) => { setTab(k); setFight(null); if (!s.seenTab[k]) act({ type: "seen", tab: k }); };
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ui: Ui = { s, now, act, busy, mission };
+  const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }) };
+  /* la pestaña Amigos aparece después del tutorial (también en partidas viejas) */
+  const tabs: TabKey[] = s.tutDone && !s.tabs.includes("amigos") ? [...s.tabs.slice(0, -1), "amigos", ...s.tabs.slice(-1)] : s.tabs;
   const showFight = fight && (tab === "ring" || tab === "misiones" || tab === "calle");
 
   return (
@@ -76,11 +93,13 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         </div>
       </header>
       <div className="game">
-        <Sheet s={s} now={now} disabled={busy} onCancel={() => act({ type: "cancel" })} />
+        <Sheet s={s} now={now} disabled={busy} onCancel={() => s.coop && s.busy?.kind === "mision"
+          ? api.coopCancel(s.coop.id).then(refresh).catch(e => setToast({ text: e.message }))
+          : act({ type: "cancel" })} />
         <main className="board">
           {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <nav className="tabs" role="tablist">
-            {s.tabs.map(k => (
+            {tabs.map(k => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
                 {tabName(s, k)}{!s.seenTab[k] && tab !== k && <span className="dot" aria-label="nuevo" />}
               </button>

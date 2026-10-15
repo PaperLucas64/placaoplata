@@ -11,7 +11,7 @@ import type { WebSocket } from "ws";
 import { newPlayer, type Action } from "@pop/shared";
 import { openDb } from "./db.js";
 import { checkPassword, COOKIE, createSession, deleteSession, hashPassword, SESSION_DAYS, userFromToken, validPassword, validUsername } from "./auth.js";
-import { makeGame } from "./game.js";
+import { GameError, makeGame } from "./game.js";
 import { seedTestPlayers } from "./seed.js";
 
 const PROD = process.env.NODE_ENV === "production";
@@ -33,7 +33,15 @@ const sockets = new Map<number, Set<WebSocket>>();
 const notify = (playerId: number, msg: unknown) => {
   for (const ws of sockets.get(playerId) ?? []) ws.send(JSON.stringify(msg));
 };
-const game = makeGame(db, notify);
+const game = makeGame(db, notify, playerId => (sockets.get(playerId)?.size ?? 0) > 0);
+
+/* errores del juego (reglas): se muestran al jugador tal cual */
+app.setErrorHandler((err, _req, reply) => {
+  if (err instanceof GameError) return reply.code(400).send({ error: err.message });
+  app.log.error(err);
+  const e = err as { statusCode?: number; message?: string };
+  reply.code(e.statusCode ?? 500).send({ error: e.statusCode && e.statusCode < 500 ? e.message : "Algo salió mal en el servidor." });
+});
 
 const cookieOpts = { path: "/", httpOnly: true, sameSite: "lax" as const, secure: PROD, maxAge: SESSION_DAYS * 86400 };
 const authLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
@@ -92,6 +100,38 @@ app.post("/api/action", async (req, reply) => {
   if (!a || typeof a !== "object" || typeof a.type !== "string") return reply.code(400).send({ error: "Acción inválida." });
   const { state, result } = await game.act(uid, a);
   return { state, result, now: Date.now() };
+});
+
+/* ---------- amigos y misiones de a dos ---------- */
+const num = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : NaN);
+app.get("/api/friends", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.friends(uid);
+});
+app.post("/api/friends/add", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.addFriend(uid, (req.body as { name?: unknown })?.name);
+});
+app.post("/api/friends/accept", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.acceptFriend(uid, num((req.body as { id?: unknown })?.id));
+});
+app.post("/api/friends/remove", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.removeFriend(uid, num((req.body as { id?: unknown })?.id));
+});
+app.post("/api/coop/invite", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.coopInvite(uid, num((req.body as { friendId?: unknown })?.friendId));
+});
+app.post("/api/coop/respond", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  const b = (req.body ?? {}) as { id?: unknown; accept?: unknown };
+  return game.coopRespond(uid, num(b.id), b.accept === true);
+});
+app.post("/api/coop/cancel", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.coopCancel(uid, num((req.body as { id?: unknown })?.id));
 });
 
 app.get("/api/ranking", async (req, reply) => {

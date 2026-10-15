@@ -92,4 +92,4 @@ export const TUT: TutStep[] = [
     say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
     goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.busy?.kind === "mision" ? `en curso (etapa ${s.busy.done + 1} de ${VALIJA.steps.length})` : "sin empezar"}`, reward:{gold:40,xp:15} }
 ];
-export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", ranking:"Ranking" };
+export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", amigos:"Amigos", ranking:"Ranking" };

@@ -1,12 +1,16 @@
 /* Servicio del juego: carga el personaje, le aplica el tiempo que pasó, ejecuta la acción y guarda.
-   Todo pasa adentro de una transacción y con un candado por jugador, así no hay acciones pisadas. */
+   Todo pasa adentro de una transacción y con un candado por jugador, así no hay acciones pisadas.
+   Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
-  ambushCatchUp, applyAction, boardCatchUp, checkDuel, missionCatchUp, gangOf, maxHp, MIN_HP_TO_FIGHT, npcTarget, PVP_SAME_TARGET_EVERY, pvp, regen,
-  RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type PlayerState, type Rng, type Target
+  ambushCatchUp, applyAction, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
+  resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
+  type Rng, type Target
 } from "@pop/shared";
 import type { Db, Queryable } from "./db.js";
 
 const rng: Rng = Math.random;
+export class GameError extends Error {}
 
 /* candado en memoria por jugador (alcanza con un solo servidor) */
 const locks = new Map<number, Promise<unknown>>();
@@ -21,9 +25,10 @@ async function withLocks<T>(ids: number[], fn: () => Promise<T>): Promise<T> {
 }
 
 interface Row { id: number; state: PlayerState }
+interface CoopRow { id: number; host_id: number; guest_id: number; mission: Mission; status: string; since: string | null; until: string | null; done: number; ok: number }
 
-async function lockRow(q: Queryable, where: string, param: unknown): Promise<Row | null> {
-  const r = await q.query<Row>(`SELECT id, state FROM players WHERE ${where} = $1 FOR UPDATE`, [param]);
+async function lockRow(q: Queryable, id: number): Promise<Row | null> {
+  const r = await q.query<Row>(`SELECT id, state FROM players WHERE id = $1 FOR UPDATE`, [id]);
   const row = r.rows[0];
   if (row) upgradeState(row.state, Date.now()); // partidas de versiones anteriores
   return row ?? null;
@@ -32,7 +37,7 @@ async function saveRow(q: Queryable, id: number, s: PlayerState) {
   await q.query(`UPDATE players SET state = $2, side = $3, lvl = $4, respect = $5, gold = $6, last_seen = now() WHERE id = $1`,
     [id, JSON.stringify(s), gangOf(s), s.lvl, s.respect, s.gold]);
 }
-/* el tiempo que pasó desde la última vez: recarga y emboscadas */
+/* el tiempo que pasó desde la última vez: recarga, misiones, tablón y emboscadas */
 function catchUp(s: PlayerState, now: number) {
   regen(s, now);
   missionCatchUp(s, { now, rng });   // etapas de la misión en curso que ya pasaron
@@ -59,40 +64,51 @@ async function fillTargets(q: Queryable, id: number, s: PlayerState) {
   s.targets = targets;
 }
 
-export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => void) {
-  async function me(userId: number) {
-    const id = await idOf(userId);
-    return withLocks([id], () => db.tx(async q => {
-      const row = (await lockRow(q, "id", id))!;
-      const now = Date.now();
-      catchUp(row.state, now);
-      if (row.state.tutDone && !row.state.targets.length) await fillTargets(q, id, row.state);
-      await saveRow(q, id, row.state);
-      return { id, state: row.state };
-    }));
-  }
-
+export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => void, isOnline: (playerId: number) => boolean) {
   async function idOf(userId: number) {
     const r = await db.query<{ id: number }>(`SELECT id FROM players WHERE user_id = $1`, [userId]);
-    if (!r.rows[0]) throw new Error("Sin personaje");
+    if (!r.rows[0]) throw new GameError("Sin personaje");
     return r.rows[0].id;
+  }
+  const peekState = async (id: number) => (await db.query<{ state: PlayerState }>(`SELECT state FROM players WHERE id = $1`, [id])).rows[0]?.state;
+
+  /* Abre una sesión sobre varios jugadores: candados, transacción, el tiempo que pasó y la misión de a dos.
+     Al final guarda a todos. */
+  async function session<T>(ids: number[], fn: (q: Queryable, rows: Map<number, Row>, now: number) => Promise<T>): Promise<T> {
+    return withLocks(ids, () => db.tx(async q => {
+      const now = Date.now();
+      const rows = new Map<number, Row>();
+      for (const i of [...new Set(ids)].sort((a, b) => a - b)) { const r = await lockRow(q, i); if (r) rows.set(i, r); }
+      for (const r of rows.values()) catchUp(r.state, now);
+      for (const r of rows.values()) if (r.state.coop) await coopProgress(q, r.state.coop.id, rows, now);
+      const out = await fn(q, rows, now);
+      for (const r of rows.values()) await saveRow(q, r.id, r.state);
+      return out;
+    }));
+  }
+  /* el compañero de misión de a dos, para bloquearlo junto con el jugador */
+  const partnerOf = (s?: PlayerState) => s?.coop?.partnerId;
+
+  async function me(userId: number) {
+    const id = await idOf(userId);
+    const p = partnerOf(await peekState(id));
+    return session(p ? [id, p] : [id], async (q, rows) => {
+      const s = rows.get(id)!.state;
+      if (s.tutDone && !s.targets.length) await fillTargets(q, id, s);
+      return { id, state: s };
+    });
   }
 
   async function act(userId: number, a: Action): Promise<{ state: PlayerState; result: ActionResult }> {
     const id = await idOf(userId);
+    const peek = await peekState(id);
     /* pelear contra otro jugador bloquea a los dos */
-    const peek = await db.query<{ state: PlayerState }>(`SELECT state FROM players WHERE id = $1`, [id]);
-    const t = a.type === "duel" ? peek.rows[0].state.targets[a.i] : undefined;
+    const t = a.type === "duel" ? peek?.targets[a.i] : undefined;
     const otherId = t?.kind === "player" ? t.id : null;
+    const ids = [id, ...(otherId ? [otherId] : []), ...(partnerOf(peek) ? [partnerOf(peek)!] : [])];
 
-    return withLocks(otherId ? [id, otherId] : [id], () => db.tx(async q => {
-      const now = Date.now();
-      const ids = otherId ? [id, otherId].sort((x, y) => x - y) : [id];
-      const rows = new Map<number, Row>();
-      for (const i of ids) { const r = await lockRow(q, "id", i); if (r) rows.set(i, r); }
+    return session(ids, async (q, rows, now) => {
       const s = rows.get(id)!.state;
-      catchUp(s, now);
-
       let result: ActionResult;
       if (a.type === "duel" && otherId) {
         result = await duelPlayer(q, id, s, a.i, rows.get(otherId), now);
@@ -100,9 +116,8 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
         result = applyAction(s, a, { now, rng });
         if (!result.error && (a.type === "scout" || a.type === "claimTut" || (a.type === "duel" && !s.targets.length))) await fillTargets(q, id, s);
       }
-      await saveRow(q, id, s);
       return { state: s, result };
-    }));
+    });
   }
 
   async function duelPlayer(q: Queryable, id: number, s: PlayerState, i: number, other: Row | undefined, now: number): Promise<ActionResult> {
@@ -110,22 +125,191 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const drop = () => { s.targets.splice(i, 1); };
     if (!other || t.kind !== "player") { drop(); return { error: "Ese rival ya no está." }; }
     const def = other.state;
-    catchUp(def, now);
     /* si se pasó a tu pandilla mientras tanto, ya no es rival */
     const dg = gangOf(def);
     if (dg && dg === gangOf(s)) { drop(); return { error: `${def.name} ahora es de tu pandilla.` }; }
-    if (def.hp < maxHp(def) * MIN_HP_TO_FIGHT || def.busy?.kind === "guardia") { drop(); await saveRow(q, other.id, def); return { error: `${def.name} está internado en la guardia. Buscá a otro.` }; }
+    if (def.hp < maxHp(def) * MIN_HP_TO_FIGHT || def.busy?.kind === "guardia") { drop(); return { error: `${def.name} está internado en la guardia. Buscá a otro.` }; }
     const err = checkDuel(s, i);
     if (err) return { error: err };
     drop();
     const goldBefore = def.gold;
     const result = pvp(s, def, { now, rng });
-    await saveRow(q, other.id, def);
     await q.query(`INSERT INTO pvp_log (attacker_id, defender_id, attacker_won, gold) VALUES ($1, $2, $3, $4)`,
       [id, other.id, result.fight!.won, goldBefore - def.gold]);
     if (!s.targets.length) await fillTargets(q, id, s);
     notify(other.id, { type: "attacked", by: s.name, won: !result.fight!.won });
     return result;
+  }
+
+  /* ---------- misiones de a dos ---------- */
+  /* Avanza una misión de a dos: si los dos están libres, arranca; si está en curso, resuelve las etapas que ya pasaron */
+  async function coopProgress(q: Queryable, coopId: number, rows: Map<number, Row>, now: number) {
+    const c = (await q.query<CoopRow>(`SELECT * FROM coop WHERE id = $1 FOR UPDATE`, [coopId])).rows[0];
+    const host = rows.get(c?.host_id ?? -1)?.state, guest = rows.get(c?.guest_id ?? -1)?.state;
+    if (!c || !host || !guest) return;
+    if (c.status !== "waiting" && c.status !== "running") {
+      for (const s of [host, guest]) if (s.coop?.id === c.id) s.coop = null;
+      return;
+    }
+    const m = c.mission, pair: [PlayerState, PlayerState][] = [[host, guest], [guest, host]];
+    if (c.status === "waiting") {
+      if (host.busy || guest.busy) return; // se espera a que los dos terminen lo que están haciendo
+      const since = now, until = coopUntil(now);
+      for (const [s, o] of pair) {
+        s.busy = { kind: "mision", id: m.id, since, until, done: 0, ok: 0, res: [] };
+        if (s.coop) s.coop.status = "running";
+        log(s, now, `Arrancó «${m.title}» con ${o.name}. Vuelven en ${Math.round((until - since) / 60_000)} min.`, "gold");
+      }
+      c.status = "running"; c.since = String(since); c.until = String(until);
+      for (const id of [c.host_id, c.guest_id]) notify(id, { type: "coop", what: "start" });
+    }
+    const since = Number(c.since), until = Number(c.until), n = m.steps.length;
+    while (c.done < n && now >= coopStepAt(since, until, n, c.done)) {
+      const at = coopStepAt(since, until, n, c.done), st = m.steps[c.done];
+      const r = resolveCoopStep(host, guest, st, rng);
+      c.done++; if (r.ok) c.ok++;
+      const text = st.fight ? (r.ok ? st.win : st.lose) : r.ok ? st.ok : st.ko;
+      for (const s of [host, guest]) {
+        if (s.busy?.kind === "mision") { s.busy.done = c.done; s.busy.ok = c.ok; (s.busy.res ??= []).push(r.ok); }
+        log(s, at, `«${m.title}» · ${r.who && r.who !== "los dos" ? `${r.who}: ` : ""}${text ?? ""}`, r.ok ? undefined : "bad");
+      }
+    }
+    if (c.done >= n) {
+      for (const [s, o] of pair) { s.busy = null; s.coop = null; finishCoop(s, m, c.ok, until, o.name); }
+      c.status = "done";
+      for (const id of [c.host_id, c.guest_id]) notify(id, { type: "coop", what: "done" });
+    }
+    await q.query(`UPDATE coop SET status = $2, since = $3, until = $4, done = $5, ok = $6 WHERE id = $1`,
+      [c.id, c.status, c.since, c.until, c.done, c.ok]);
+  }
+
+  async function areFriends(q: Queryable, a: number, b: number) {
+    const r = await q.query(`SELECT 1 FROM friends WHERE accepted AND ((a_id = $1 AND b_id = $2) OR (a_id = $2 AND b_id = $1))`, [a, b]);
+    return r.rows.length > 0;
+  }
+
+  /* Lo que muestra la pestaña Amigos */
+  async function friends(userId: number) {
+    const id = await idOf(userId);
+    const r = await db.query<{ a_id: number; b_id: number; accepted: boolean; id: number; name: string; lvl: number; side: Gang | null; avatar: number | null }>(
+      `SELECT f.a_id, f.b_id, f.accepted, p.id, p.name, p.lvl, p.side, (p.state->>'avatar')::int AS avatar
+         FROM friends f JOIN players p ON p.id = CASE WHEN f.a_id = $1 THEN f.b_id ELSE f.a_id END
+        WHERE f.a_id = $1 OR f.b_id = $1 ORDER BY p.name`, [id]);
+    const person = (x: typeof r.rows[number]) => ({ id: x.id, name: x.name, lvl: x.lvl, gang: x.side, avatar: x.avatar ?? 1, online: isOnline(x.id) });
+    const invites = await db.query<{ id: number; name: string; mission: Mission; host_id: number }>(
+      `SELECT c.id, p.name, c.mission, c.host_id FROM coop c JOIN players p ON p.id = c.host_id
+        WHERE c.guest_id = $1 AND c.status = 'invited' ORDER BY c.created_at DESC`, [id]);
+    const sent = await db.query<{ id: number; name: string; mission: Mission }>(
+      `SELECT c.id, p.name, c.mission FROM coop c JOIN players p ON p.id = c.guest_id
+        WHERE c.host_id = $1 AND c.status = 'invited' ORDER BY c.created_at DESC`, [id]);
+    return {
+      friends: r.rows.filter(x => x.accepted).map(person),
+      incoming: r.rows.filter(x => !x.accepted && x.b_id === id).map(person),
+      outgoing: r.rows.filter(x => !x.accepted && x.a_id === id).map(person),
+      invites: invites.rows.map(x => ({ id: x.id, from: x.name, mission: x.mission })),
+      sent: sent.rows.map(x => ({ id: x.id, to: x.name, mission: x.mission }))
+    };
+  }
+
+  async function addFriend(userId: number, name: unknown) {
+    const id = await idOf(userId);
+    if (typeof name !== "string" || !name.trim()) throw new GameError("Escribí el nombre de tu amigo.");
+    const other = (await db.query<{ id: number }>(`SELECT id FROM players WHERE lower(name) = lower($1)`, [name.trim()])).rows[0];
+    if (!other) throw new GameError("No hay nadie con ese nombre en Malos Aires.");
+    if (other.id === id) throw new GameError("No podés ser tu propio amigo (bueno, sí, pero no acá).");
+    return db.tx(async q => {
+      const back = await q.query(`SELECT accepted FROM friends WHERE a_id = $1 AND b_id = $2`, [other.id, id]);
+      if (back.rows.length) { // ya te había pedido: queda aceptado
+        await q.query(`UPDATE friends SET accepted = true WHERE a_id = $1 AND b_id = $2`, [other.id, id]);
+        notify(other.id, { type: "friend", what: "accepted" });
+        return { ok: true, accepted: true };
+      }
+      await q.query(`INSERT INTO friends (a_id, b_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [id, other.id]);
+      notify(other.id, { type: "friend", what: "request" });
+      return { ok: true, accepted: false };
+    });
+  }
+  async function acceptFriend(userId: number, otherId: number) {
+    const id = await idOf(userId);
+    const r = await db.query(`UPDATE friends SET accepted = true WHERE a_id = $1 AND b_id = $2 RETURNING 1`, [otherId, id]);
+    if (!r.rows.length) throw new GameError("Esa solicitud ya no está.");
+    notify(otherId, { type: "friend", what: "accepted" });
+    return { ok: true };
+  }
+  async function removeFriend(userId: number, otherId: number) {
+    const id = await idOf(userId);
+    await db.query(`DELETE FROM friends WHERE (a_id = $1 AND b_id = $2) OR (a_id = $2 AND b_id = $1)`, [id, otherId]);
+    return { ok: true };
+  }
+
+  /* Invitar a un amigo: la misión se arma para el nivel de los dos, de tu pandilla (o de una al azar si andás suelto) */
+  async function coopInvite(userId: number, friendId: number) {
+    const id = await idOf(userId);
+    return session([id, friendId], async (q, rows) => {
+      const s = rows.get(id)?.state, f = rows.get(friendId)?.state;
+      if (!s || !f || !(await areFriends(q, id, friendId))) throw new GameError("Solo podés invitar a tus amigos.");
+      if (!s.tutDone || !f.tutDone) throw new GameError("Los dos tienen que haber terminado el tutorial.");
+      if (s.coop) throw new GameError("Ya tenés una misión de a dos.");
+      const pending = await q.query(`SELECT 1 FROM coop WHERE host_id = $1 AND status = 'invited'`, [id]);
+      if (pending.rows.length) throw new GameError("Ya tenés una invitación esperando respuesta.");
+      const c = await q.query<{ id: number }>(`INSERT INTO coop (host_id, guest_id, mission) VALUES ($1, $2, '{}') RETURNING id`, [id, friendId]);
+      const m = coopMission(rng, Math.round((s.lvl + f.lvl) / 2), gangOf(s) ?? pick(rng, GANG_KEYS), c.rows[0].id);
+      await q.query(`UPDATE coop SET mission = $2 WHERE id = $1`, [c.rows[0].id, JSON.stringify(m)]);
+      notify(friendId, { type: "coop", what: "invite", from: s.name });
+      return { ok: true, mission: m };
+    });
+  }
+
+  /* Responder una invitación. Al aceptar se cobra la energía a los dos y la misión arranca cuando estén libres. */
+  async function coopRespond(userId: number, coopId: number, accept: boolean) {
+    const id = await idOf(userId);
+    const c0 = (await db.query<CoopRow>(`SELECT * FROM coop WHERE id = $1`, [coopId])).rows[0];
+    if (!c0 || c0.guest_id !== id || c0.status !== "invited") throw new GameError("Esa invitación ya no está.");
+    return session([c0.host_id, id], async (q, rows, now) => {
+      const host = rows.get(c0.host_id)!.state, guest = rows.get(id)!.state;
+      if (!accept) {
+        await q.query(`UPDATE coop SET status = 'declined' WHERE id = $1`, [coopId]);
+        log(host, now, `${guest.name} no puede sumarse a «${c0.mission.title}».`);
+        notify(c0.host_id, { type: "coop", what: "declined" });
+        return { ok: true };
+      }
+      if (host.coop || guest.coop) throw new GameError("Alguno de los dos ya está en otra misión de a dos.");
+      for (const s of [host, guest]) {
+        if (s.energy < COOP_ENERGY) throw new GameError(`${s === guest ? "Te faltan" : `A ${host.name} le faltan`} ${COOP_ENERGY} de energía.`);
+      }
+      for (const [s, o, oid] of [[host, guest, id], [guest, host, c0.host_id]] as const) {
+        s.energy -= COOP_ENERGY;
+        s.coop = { id: coopId, partner: o.name, partnerId: oid, mission: c0.mission, status: "waiting" };
+        log(s, now, `«${c0.mission.title}» con ${o.name}: arranca apenas estén libres los dos.`, "gold");
+      }
+      await q.query(`UPDATE coop SET status = 'waiting' WHERE id = $1`, [coopId]);
+      await coopProgress(q, coopId, rows, now);
+      notify(c0.host_id, { type: "coop", what: "accepted" });
+      return { ok: true };
+    });
+  }
+
+  /* Cancelar: antes de arrancar se devuelve la energía; en curso, la misión se cae para los dos */
+  async function coopCancel(userId: number, coopId: number) {
+    const id = await idOf(userId);
+    const c0 = (await db.query<CoopRow>(`SELECT * FROM coop WHERE id = $1`, [coopId])).rows[0];
+    if (!c0 || (c0.host_id !== id && c0.guest_id !== id)) throw new GameError("Esa misión no es tuya.");
+    return session([c0.host_id, c0.guest_id], async (q, rows, now) => {
+      const c = (await q.query<CoopRow>(`SELECT * FROM coop WHERE id = $1 FOR UPDATE`, [coopId])).rows[0];
+      if (!["invited", "waiting", "running"].includes(c.status)) return { ok: true };
+      const me = rows.get(id)!.state;
+      for (const r of rows.values()) {
+        const s = r.state;
+        if (s.coop?.id !== coopId) continue;
+        if (c.status === "waiting") s.energy = Math.min(energyMax(s) + COOP_ENERGY, s.energy + COOP_ENERGY);
+        if (c.status === "running" && s.busy?.kind === "mision") s.busy = null;
+        s.coop = null;
+        log(s, now, c.status === "running" ? `«${c.mission.title}» se cayó: ${me.name} la abandonó.` : `«${c.mission.title}» se canceló.`, "bad");
+      }
+      await q.query(`UPDATE coop SET status = 'cancelled' WHERE id = $1`, [coopId]);
+      notify(id === c.host_id ? c.guest_id : c.host_id, { type: "coop", what: "cancelled" });
+      return { ok: true };
+    });
   }
 
   /* Ranking: jugadores reales y los personajes de siempre, para que la ciudad no se vea vacía */
@@ -139,5 +323,5 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     return rows.sort((a, b) => b.resp - a.resp);
   }
 
-  return { me, act, ranking };
+  return { me, act, ranking, friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
 }

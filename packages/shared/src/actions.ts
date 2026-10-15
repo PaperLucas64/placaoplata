@@ -43,9 +43,14 @@ const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "s
 const busyText = (s: PlayerState) =>
   s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión." : "Estás internado en la guardia.";
 
+/* Con una misión de a dos aceptada que todavía no arrancó, no se puede empezar otra cosa larga */
+const BLOCKED_WHEN_COOP_WAITING = new Set<Action["type"]>(["train", "guardia", "mstart", "reroll"]);
+
 export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): ActionResult {
   finishBusy(s, now);
   if (s.busy && BLOCKED_WHEN_BUSY.has(a.type)) return fail(`${busyText(s)} Esperá a que termine o cancelalo.`);
+  if (s.coop?.status === "waiting" && BLOCKED_WHEN_COOP_WAITING.has(a.type))
+    return fail(`Tenés una misión de a dos con ${s.coop.partner}: arranca cuando los dos estén libres.`);
   switch (a.type) {
     case "seen": { s.seenTab[a.tab] = true; return {}; }
 
@@ -60,7 +65,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       else {
         /* fin del tutorial: se abre la ciudad (golpes, encargos, misiones de pandilla, la calle y tu casa) */
         s.tutDone = true; s.tAttack = now; s.tHeat = now;
-        for (const k of ["calle", "casa", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
+        for (const k of ["calle", "casa", "amigos", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
         log(s, now, "Las cuatro pandillas de Malos Aires ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
       }
       return {};
@@ -194,6 +199,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
     case "cancel": {
       const b = s.busy;
       if (!b) return fail("No estás haciendo nada.");
+      if (b.kind === "mision" && b.id.startsWith("coop-")) return fail("La misión de a dos se cancela desde Amigos.");
       if (b.kind === "mision") { abandonMission(s, now); return {}; }
       s.busy = null;
       if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
