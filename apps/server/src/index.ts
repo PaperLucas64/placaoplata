@@ -212,7 +212,7 @@ if (!PROD) app.post("/api/dev/ring-round", async (req, reply) => {
 });
 
 await app.listen({ port: PORT, host: "0.0.0.0" });
-console.log(`Maires escuchando en http://localhost:${PORT}`);
+console.log(`Malandro escuchando en http://localhost:${PORT}`);
 
 /* Cierre ordenado: termina las peticiones en curso y cierra la base sin dejarla a medio escribir.
    En producción llega SIGTERM; en desarrollo, el mensaje "shutdown" de tools/devserver.ts. */

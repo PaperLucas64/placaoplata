@@ -1,4 +1,6 @@
-# Maires — Game Design Document
+# Malandro — Game Design Document
+
+> El juego se llama **Malandro**; la ciudad donde pasa todo es **Maires** (parodia de Buenos Aires).
 
 **Estudio:** Mauspi Lab · **Versión del documento:** 2.0 (15/10/2026) · **Estado:** jugable online, en prueba entre amigos
 **Dónde se juega:** https://cinectomia.com/juego/ · **Repo:** github.com/PaperLucas64/placaoplata

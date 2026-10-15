@@ -6,7 +6,7 @@ import {
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
   tripPhase, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
-  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
+  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, spotIn, missionPt
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
 import SUBTE from "@pop/shared/subte.json";
@@ -77,12 +77,7 @@ export const doable = (s: Ui["s"], m: Mission) => canStart(s, m) && meetsReq(s, 
 
 /* ---------- los lugares del mapa ---------- */
 /* un punto cerca del centro de un barrio (para lo que no tiene dirección propia), siempre el mismo para la misma clave */
-function near(barrio: string, key: string): [number, number] {
-  const c = GEO_PLACES[barrio];
-  let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) | 0;
-  const a = (h % 360) * Math.PI / 180, r = 0.0025 + ((h >>> 8) % 100) / 100 * 0.004;
-  return [c.lat + Math.sin(a) * r, c.lng + Math.cos(a) * r];
-}
+const near = spotIn;
 function allLugares(s: Ui["s"]): Lugar[] {
   const care = [...HOSPITALS.map(h => ({ ...h, care: "guardia" as const })), ...CLINICS.map(h => ({ ...h, care: "clinica" as const }))]
     .map(h => { const [lat, lng] = near(h.place, h.name); return careLugar(h.name, h.place, h.care, lat, lng); });
@@ -121,7 +116,7 @@ function mapPins(s: Ui["s"], now: number, filter?: string | null): Pin[] {
   /* las misiones del tablón: banderitas en su barrio, del color de quien las da */
   for (const m of kinds && !kinds.includes("mision") ? [] : s.board ?? []) {
     const c = GEO_PLACES[m.place ?? ""]; if (!c || !doable(s, m)) continue;
-    const [lat, lng] = near(m.place!, m.id);
+    const [lat, lng] = missionPt(m, missionPlace(m) ?? m.place!)!;
     pins.push({ id: `mision:${m.id}`, name: m.title, icon: "mision", color: clientOf(m).color, lat, lng });
   }
   return pins;

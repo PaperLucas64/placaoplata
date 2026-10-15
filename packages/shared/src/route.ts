@@ -4,7 +4,7 @@
 import { homePlace } from "./casas.js";
 import { GEO_HOME, GEO_PLACES, hasMod, tripPhase, TRAVEL_SCALE, type TravelMode } from "./geo.js";
 import { gangOf } from "./rules.js";
-import type { Gang, PlayerState } from "./types.js";
+import type { Gang, Mission, PlayerState } from "./types.js";
 
 export type Pt = [number, number]; // [lat, lng]
 export type Leg = { kind: "pie" | "subte" | "tren"; line?: string; pts: Pt[] };
@@ -52,6 +52,15 @@ export function positionAt(legs: { pts: Pt[]; w: number }[], f: number): Pt {
 /* tu casa en el mapa */
 export const homePt = (s?: Pick<PlayerState, "home">): Pt => { const p = GEO_PLACES[s ? homePlace(s) : GEO_HOME]; return [p.lat, p.lng]; };
 export const placePt = (p: string): Pt | null => (GEO_PLACES[p] ? [GEO_PLACES[p].lat, GEO_PLACES[p].lng] : null);
+/* un punto fijo adentro de un barrio para cada cosa (siempre el mismo para la misma clave) */
+export function spotIn(barrio: string, key: string): Pt {
+  const c = GEO_PLACES[barrio] ?? GEO_PLACES[GEO_HOME];
+  let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  const a = (h % 360) * Math.PI / 180, r = 0.0025 + ((h >>> 8) % 100) / 100 * 0.004;
+  return [c.lat + Math.sin(a) * r, c.lng + Math.cos(a) * r];
+}
+/* dónde pasa una misión: justo en su banderita del mapa */
+export const missionPt = (m: Pick<Mission, "id">, place: string): Pt | null => (GEO_PLACES[place] ? spotIn(place, m.id) : null);
 
 /* ---------- dónde está alguien que está en la calle ---------- */
 export interface OnTrip { since: number; until: number; trip: { mode: TravelMode; place: string; go: number; back: number; from?: string; path?: Pt[] } }

@@ -3,7 +3,7 @@
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
   ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
-  startChase, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  startChase, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -30,7 +30,7 @@ async function streetPath(a: Pt, b: Pt, profile: "foot" | "car"): Promise<Pt[] |
 async function fetchPath(a: Pt, b: Pt, profile: "foot" | "car"): Promise<Pt[] | undefined> {
   try {
     const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(4000), headers: { "User-Agent": "Maires (juego de navegador)" } });
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000), headers: { "User-Agent": "Malandro (juego de navegador)" } });
     if (!r.ok) return undefined;
     const j = await r.json() as { routes?: { geometry: { coordinates: [number, number][] } }[] };
     const pts = j.routes?.[0]?.geometry.coordinates.map(([lng, lat]) => [Math.round(lat * 1e5) / 1e5, Math.round(lng * 1e5) / 1e5] as Pt);
@@ -166,7 +166,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
         if (a.type === "mstart" || a.type === "guardia" || a.type === "heal" || a.type === "encargo" || (a.type === "job" && isGolpe(a.id))) {
           const here = s.busy?.kind === "vuelta" ? wherePlayer(RUTAS, s, now) : homePt(s);
           let dest: Pt | null = null;
-          if (a.type === "mstart") { const m = findMission(s, a.id); const pl = m ? missionPlace(m) : undefined; dest = pl ? placePt(pl) : null; }
+          if (a.type === "mstart") { const m = findMission(s, a.id); const pl = m ? missionPlace(m) : undefined; dest = pl ? missionPt(m!, pl) : null; } // justo en la banderita
           else if (a.type === "encargo") dest = placePt(HOME_BARRIO[a.gang]);
           else if (a.type === "job") {
             const spot = a.at ? lugarOf(a.at) : undefined;

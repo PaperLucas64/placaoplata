@@ -1,6 +1,6 @@
-# Maires
+# Malandro
 
-Juego de navegador online al estilo BiteFight, de policías y ladrones, en la ciudad de Maires.
+Malandro: juego de navegador online al estilo BiteFight, de policías y ladrones, en la ciudad de Maires.
 
 Llegás solo con tu nombre. Marga, la dueña del bar La Esquina, te enseña cada mecánica con un encargo. Después, cuatro
 pandillas se pelean Maires —**La Familia** (rojo), **El Sindicato** (azul), **La Barra** (verde) y **Los Amarillos**
