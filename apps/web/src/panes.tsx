@@ -78,6 +78,8 @@ export const doable = (s: Ui["s"], m: Mission) => canStart(s, m) && meetsReq(s, 
 /* ---------- los lugares del mapa ---------- */
 /* un punto cerca del centro de un barrio (para lo que no tiene dirección propia), siempre el mismo para la misma clave */
 const near = spotIn;
+/* los colores de las líneas de subte (A provincias, B animales, C ríos, D mares, E fechas, H comidas) */
+const LINE_COLOR: Record<string, string> = { A: "#4fc3e8", B: "#e0524f", C: "#3b6fd1", D: "#3fa564", E: "#8e5bb5", H: "#f2c94c" };
 function allLugares(s: Ui["s"]): Lugar[] {
   const care = [...HOSPITALS.map(h => ({ ...h, care: "guardia" as const })), ...CLINICS.map(h => ({ ...h, care: "clinica" as const }))]
     .map(h => { const [lat, lng] = near(h.place, h.name); return careLugar(h.name, h.place, h.care, lat, lng); });
@@ -95,7 +97,7 @@ function allLugares(s: Ui["s"]): Lugar[] {
     ];
   });
   const subte: Lugar[] = SUBTE.map(x => ({ id: `subte-${x.name}`, name: `Estación ${x.name}`, kind: "subte" as const, icon: "subte", barrio: x.barrio,
-    lat: x.lat, lng: x.lng, deep: true, help: "Subte. Pronto vas a poder viajar en subte entre barrios." }));
+    color: LINE_COLOR[x.line], lat: x.lat, lng: x.lng, deep: true, help: `Línea ${x.line} del subte. Pronto vas a poder viajar en subte entre barrios.` }));
   const props: Lugar[] = PROPS.map(p => { const [lat, lng] = near(p.place, p.id);
     return { id: `negocio-${p.id}`, name: p.name, kind: "negocio" as const, icon: p.id === "kiosco24" ? "kiosco" : p.id, prop: p.id, barrio: p.place, lat, lng, help: p.help, tutDone: true }; });
   return [casa, ...LUGARES, ...care.map(c => ({ ...c, deep: true })), ...props, ...local, ...subte];
@@ -110,7 +112,7 @@ function mapPins(s: Ui["s"], now: number, filter?: string | null): Pin[] {
   const kinds = filter ? FILTER_KINDS[filter] : null;
   const pins: Pin[] = allLugares(s).filter(l => (l.id === "casa" || lugarOpen(s, l, now)) && (!kinds || kinds.includes(l.kind)))
     .filter(l => l.kind !== "negocio" || s.lvl >= (propOf(l.prop!)?.lvl ?? 99) - 2 || s.props?.[l.prop!] !== undefined)
-    .map(l => ({ id: l.id, name: l.name, icon: l.icon, color: l.gang ? GANGS[l.gang].color : KIND_COLOR[l.kind], lat: l.lat, lng: l.lng,
+    .map(l => ({ id: l.id, name: l.name, icon: l.icon, color: l.gang ? GANGS[l.gang].color : l.color ?? KIND_COLOR[l.kind], lat: l.lat, lng: l.lng,
       badge: l.kind === "contacto" && l.gang ? String(MISSIONS[l.gang].filter(m => doable(s, m)).length || "") || undefined : undefined,
       near: !kinds && ["golpe", "laburo", "salud", "negocio", "municipio", "concesionaria", "estadio"].includes(l.kind), deep: !kinds && !!l.deep }));
   /* las misiones del tablón: banderitas en su barrio, del color de quien las da */
