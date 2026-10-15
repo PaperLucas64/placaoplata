@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@pop/shared": "^0.1.0",
-    "maplibre-gl": "^5.24.0",
+    "maplibre-gl": "^6.14.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   }

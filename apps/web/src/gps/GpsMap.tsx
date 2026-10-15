@@ -2,8 +2,12 @@
    nombres reales de las calles: encima van los barrios de Maires. Muestra el recorrido de tu personaje y dónde está ahora.
    Los recorridos vienen de tools/geo/build.py; se cargan aparte para no pesar en la primera pantalla. */
 import { useEffect, useRef, useState } from "react";
-import maplibregl, { type StyleSpecification } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import type { StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+/* MapLibre 6 busca su worker al lado de su propio archivo; Vite no lo copia, así que lo armamos aparte y le pasamos la dirección */
+import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+maplibregl.setWorkerUrl(mapWorkerUrl);
 import {
   CHASE_NAMES, chaseModes, DUEL_COST, GANGS, GEO_HOME, GEO_PLACES, legsFor, money, planChase, positionAt, TRAVEL, travelerPos, tripPhase,
   type ChaseMode, type PlayerState, type Pt, type Rutas, type TravelMode

@@ -7,6 +7,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: process.env.VITE_BASE ?? "./", // rutas relativas: funciona en cualquier carpeta (cinectomia.com/juego/)
   plugins: [react()],
+  worker: { format: "es" }, // el worker del mapa (MapLibre 6) es un módulo
   server: {
     port: 5173,
     proxy: { "/api": { target: "http://localhost:3000", ws: true } }
