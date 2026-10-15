@@ -259,7 +259,7 @@ export const HOME: Record<HomePart, { title: string; help: string; levels: HomeL
     { name: "Caja blindada", cost: 9000, mins: 90 },
     { name: "Bóveda", cost: 22000, mins: 180 }
   ] },
-  armario: { title: "Armario", help: "Guardás el equipo que cambiás y lo podés volver a usar.", levels: [
+  armario: { title: "Armario", help: "Más lugar en tu bolso para guardar equipo.", levels: [
     { name: "Sin armario", cost: 0, mins: 0 },
     { name: "Perchero", cost: 200, mins: 10 },
     { name: "Ropero", cost: 1200, mins: 30 },

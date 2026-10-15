@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
@@ -89,12 +89,17 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     finally { setBusy(false); }
   };
 
-  const open = (k: TabKey) => { setTab(k); setFight(null); setLiveFight(null); if (!s.seenTab[k]) act({ type: "seen", tab: k }); };
+  const lastIn = useRef<Record<string, TabKey>>({});
+  const open = (k: TabKey) => { const g = GROUPS.find(x => x.tabs.includes(k)); if (g) lastIn.current[g.id] = k; setTab(k); setFight(null); setLiveFight(null); if (!s.seenTab[k]) act({ type: "seen", tab: k }); };
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }) };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
-  const tabs: TabKey[] = s.tutDone ? withNewTabs(s.tabs) : s.tabs;
+  const tabs: TabKey[] = withEquipo(s.tutDone ? withNewTabs(s.tabs) : s.tabs);
+  /* cinco pestañas grandes; adentro, sus secciones (solo las que ya destrabaste) */
+  const groups = GROUPS.map(g => ({ ...g, tabs: g.tabs.filter(k => tabs.includes(k)) })).filter(g => g.tabs.length);
+  const current = groups.find(g => g.tabs.includes(tab)) ?? groups[0];
+  const unseen = (k: TabKey) => !s.seenTab[k] && tab !== k;
   const showFight = fight && (tab === "ring" || tab === "misiones" || tab === "calle" || tab === "ranking");
 
   return (
@@ -117,12 +122,20 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         <CityMap {...ui} />
         <main className="board">
           <nav className="tabs" role="tablist">
-            {tabs.map(k => (
-              <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
-                {tabName(s, k)}{!s.seenTab[k] && tab !== k && <span className="dot" aria-label="nuevo" />}
+            {groups.map(g => (
+              <button key={g.id} role="tab" aria-selected={current?.id === g.id}
+                onClick={() => open(g.tabs.includes(lastIn.current[g.id] as TabKey) ? lastIn.current[g.id] as TabKey : g.tabs[0])}>
+                {g.name}{g.tabs.some(unseen) && <span className="dot" aria-label="nuevo" />}
               </button>
             ))}
           </nav>
+          {current && current.tabs.length > 1 && <nav className="subtabs" role="tablist">
+            {current.tabs.map(k => (
+              <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
+                {SUB_NAMES[k] ?? tabName(s, k)}{unseen(k) && <span className="dot" aria-label="nuevo" />}
+              </button>
+            ))}
+          </nav>}
           {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <section className="pane">
             <Pane tab={tab} {...ui} />
@@ -136,6 +149,21 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     </>
   );
 }
+
+/* Las pestañas grandes y qué secciones tiene cada una */
+const GROUPS: { id: string; name: string; tabs: TabKey[] }[] = [
+  { id: "calle", name: "Calle", tabs: ["laburos", "misiones", "calle", "negocios"] },
+  { id: "gym", name: "Gimnasio", tabs: ["gimnasio", "ring"] },
+  { id: "mercado", name: "Mercado", tabs: ["feria"] },
+  { id: "casa", name: "Casa", tabs: ["casa", "equipo", "guardia"] },
+  { id: "ciudad", name: "Ciudad", tabs: ["ranking", "amigos"] }
+];
+const SUB_NAMES: Partial<Record<TabKey, string>> = {
+  laburos: "Trabajos", misiones: "Misiones", calle: "Pelear", negocios: "Negocios", gimnasio: "Entrenar", ring: "Ring",
+  casa: "Tu casa", equipo: "Equipo", guardia: "Clínica", ranking: "Barrios y ranking", amigos: "Amigos"
+};
+/* el equipo aparece con el mercado */
+const withEquipo = (tabs: TabKey[]): TabKey[] => (tabs.includes("feria") && !tabs.includes("equipo") ? [...tabs, "equipo"] : tabs);
 
 /* Negocios va después de Casa y Amigos antes de Ciudad, aunque la partida sea de antes de que existieran */
 function withNewTabs(tabs: TabKey[]): TabKey[] {

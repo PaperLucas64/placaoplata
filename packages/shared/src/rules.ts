@@ -2,11 +2,11 @@
 import {
   CLINIC_PER_HP, ENERGY_EVERY, ENERGY_MAX, GUARDIA_FULL, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, TRAIN_MAX, TRAIN_MIN, TRAIN_PER_POINT
 } from "./config.js";
-import { JOBS, OLD_ITEMS, SHOP, STAT_NAMES } from "./data.js";
+import { ATTACK_SLOTS, JOBS, OLD_ITEMS, OLD_SLOT, SHOP, SLOTS, STAT_NAMES } from "./data.js";
 import {
   BED_ENERGY, BED_HEAL, CLOSET_SLOTS, GANG_KEYS, GANG_MIN_POINTS, GANG_THRESHOLD, GANGS, GOLPES, HOME, RANK_AT, RANK_NAMES, SAFE_CAP
 } from "./gangs.js";
-import type { Fighter, FightView, Gang, Home, Item, LogEntry, PlayerState, Rng } from "./types.js";
+import type { Fighter, FightView, Gang, Home, Item, LogEntry, PlayerState, Rng, Slot } from "./types.js";
 
 export const rnd = (rng: Rng, a: number, b: number) => Math.floor(rng() * (b - a + 1)) + a;
 export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -24,7 +24,18 @@ export const TUTORIAL_SHOP = ["llave"];
 export const forSale = (s: PlayerState, it: Item) => s.tutDone ? true : TUTORIAL_SHOP.includes(it.id);
 export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
 export const trainCost = (v: number) => Math.round(3 * Math.pow(v, 2));
-export const gearVal = (s: PlayerState, slot: "arma" | "armadura") => SHOP.find(i => i.id === s.gear[slot])?.val ?? 0;
+export const itemOf = (id: string | null | undefined) => (id ? SHOP.find(i => i.id === id) : undefined);
+export const slotVal = (s: PlayerState, slot: Slot) => itemOf(s.gear?.[slot])?.val ?? 0;
+/* golpe = arma blanca + arma de fuego; protección = cabeza + chaleco + ropa */
+export const attackVal = (s: PlayerState) => ATTACK_SLOTS.reduce((a, k) => a + slotVal(s, k), 0);
+export const defenseVal = (s: PlayerState) => SLOTS.filter(k => !ATTACK_SLOTS.includes(k)).reduce((a, k) => a + slotVal(s, k), 0);
+/* (compatibilidad) "arma" = todo lo que pega, "armadura" = todo lo que protege */
+export const gearVal = (s: PlayerState, kind: "arma" | "armadura" | Slot) =>
+  kind === "arma" ? attackVal(s) : kind === "armadura" ? defenseVal(s) : slotVal(s, kind);
+export const emptyGear = (): Record<Slot, string | null> => ({ blanca: null, fuego: null, cabeza: null, torso: null, ropa: null });
+/* el bolso: 4 cosas, más lo que entre en el armario de tu casa */
+export const BAG = 4;
+export const bagSize = (s: Pick<PlayerState, "home">) => BAG + CLOSET_SLOTS[s.home?.armario ?? 0];
 export const rankOf = (s: Pick<PlayerState, "respect">) => RANK_AT.filter(r => s.respect >= r).length - 1;
 export const lawyerCost = (s: PlayerState) => 20 + s.lvl * 8;
 export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * CLINIC_PER_HP));
@@ -61,9 +72,9 @@ export const busyLeft = (s: PlayerState, now: number) => (s.busy ? Math.max(0, s
 
 export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
   const s: PlayerState = {
-    v: 3, name, avatar, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
+    v: 4, name, avatar, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
     stats: { fue: 5, dur: 5, ref: 5, agu: 5, lab: 5 },
-    gear: { arma: null, armadura: null }, potions: 0, wins: 0, losses: 0,
+    gear: emptyGear(), inv: [], potions: 0, wins: 0, losses: 0,
     tut: 0, tutDone: false, tabs: ["laburos"], seenTab: {},
     c: { jobs: 0, train: 0, buy: 0, spar: 0, heal: 0, valija: 0, duelW: 0, duelL: 0 },
     aff: { familia: 0, sindicato: 0, barra: 0, amarillos: 0 }, board: [], tBoard: 0,
@@ -77,22 +88,36 @@ export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
 
 /* Partidas de la versión con policía (placa o plata): se pasan al formato de pandillas */
 export function upgradeState(s: PlayerState & { side?: string | null; tSalary?: number; mis?: unknown }, now: number): PlayerState {
-  if (s.v === 3) return s;
+  if (s.v === 4) return s;
+  if (s.v === 3) return toSlots(s);
   /* v2 -> v3: misiones a tiempo humano y tablón de la calle */
-  if (s.v === 2) { delete s.mis; s.board = []; s.tBoard = 0; s.v = 3; return s; }
+  if (s.v === 2) { delete s.mis; s.board = []; s.tBoard = 0; return toSlots(s); }
   const old = s.side;
   delete s.side; delete s.tSalary;
   s.aff = { familia: 0, sindicato: 0, barra: 0, amarillos: 0 };
   if (old === "plata") s.aff.familia = Object.keys(s.done ?? {}).filter(id => ["kiosco", "blindado", "comisaria"].includes(id)).length * 20 + 10;
   for (const id of ["ronda", "allanamiento", "senora"]) delete s.done?.[id];
   delete s.mis; s.board = []; s.tBoard = 0;
-  for (const slot of ["arma", "armadura"] as const) { const g = s.gear[slot]; if (g && OLD_ITEMS[g]) s.gear[slot] = OLD_ITEMS[g]; }
+  const og = s.gear as unknown as Record<"arma" | "armadura", string | null>; // la versión con policía tenía otros ítems
+  for (const slot of ["arma", "armadura"] as const) { const g = og[slot]; if (g && OLD_ITEMS[g]) og[slot] = OLD_ITEMS[g]; }
   s.home = newHome();
   s.targets = [];
   if (s.tutDone && !s.tabs.includes("casa")) s.tabs.splice(s.tabs.indexOf("ranking"), 0, "casa");
   for (const k of ["calle", "ranking"] as const) if (s.tutDone && !s.tabs.includes(k)) s.tabs.push(k);
-  s.v = 3;
+  toSlots(s);
   log(s, now, old ? "Maires cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Maires cambió: ahora mandan las cuatro pandillas.", "gold");
+  return s;
+}
+
+/* v3 -> v4: de arma y armadura a cinco lugares de equipo; lo del armario pasa al inventario */
+function toSlots(s: PlayerState): PlayerState {
+  const old = s.gear as unknown as { arma?: string | null; armadura?: string | null };
+  const gear = emptyGear();
+  for (const id of [old.arma, old.armadura]) if (id && OLD_SLOT[id]) gear[OLD_SLOT[id]] = id;
+  s.gear = gear;
+  s.inv = [...(s.home?.closet ?? [])].filter(id => itemOf(id));
+  if (s.home) s.home.closet = [];
+  s.v = 4;
   return s;
 }
 
@@ -131,7 +156,7 @@ export function addAff(s: PlayerState, now: number, g: Gang, n: number) {
 /* Termina lo que estaba en curso si ya pasó el tiempo */
 export function finishBusy(s: PlayerState, now: number) {
   const b = s.busy;
-  if (b && b.kind !== "mision" && !(b.kind === "guardia" && b.trip) && now >= b.until) { // las curas con viaje las termina missionCatchUp
+  if (b && b.kind !== "mision" && b.kind !== "salida" && !(b.kind === "guardia" && b.trip) && now >= b.until) { // misiones, salidas y curas con viaje: missionCatchUp / salidaCatchUp
     s.busy = null;
     if (b.kind === "caza") log(s, b.until, "Volviste a casa.");
     else if (b.kind === "vuelta") log(s, b.until, "Llegaste a casa.");
@@ -176,7 +201,7 @@ export function regen(s: PlayerState, now: number) {
 /* La Barra pega 10% más fuerte */
 export function playerFighter(s: PlayerState): Fighter {
   const fue = gangOf(s) === "barra" ? Math.round(s.stats.fue * 1.1) : s.stats.fue;
-  return { name: s.name, hp: s.hp, max: maxHp(s), fue, dur: s.stats.dur, ref: s.stats.ref, arma: gearVal(s, "arma"), armadura: gearVal(s, "armadura") };
+  return { name: s.name, hp: s.hp, max: maxHp(s), fue, dur: s.stats.dur, ref: s.stats.ref, arma: attackVal(s), armadura: defenseVal(s) };
 }
 /* Golpes fuertes y con variación: las peleas duran pocos rounds y un rival un poco mejor no es imposible.
    Curva medida con tools/playthrough.ts y docs/BALANCE.md. */

@@ -5,7 +5,7 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, GEO_HOME, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, HOUSES, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
+  tripPhase, VEHICLES, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, HOUSES, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
 } from "@pop/shared";
 import { api, type BarrioView, type FriendsView, type RankRow, type RingView, type Traveler } from "./api";
 import type { Ui } from "./Game";
@@ -43,7 +43,7 @@ export function CityMap({ s, now, act }: Ui) {
   const b = s.busy;
   /* tu viaje de ahora: a una misión, a curarte o volviendo a casa */
   const ret = b?.kind === "vuelta" ? returnTrip(b) : null;
-  const trip = b?.kind === "mision" || b?.kind === "guardia" ? b.trip ?? null : ret ? ret.trip : null;
+  const trip = b?.kind === "mision" || b?.kind === "guardia" || b?.kind === "salida" ? b.trip ?? null : ret ? ret.trip : null;
   const ph = trip && b && b.kind !== "gym" && b.kind !== "caza" ? tripPhase({ since: b.since, until: b.until, trip: { ...trip, ev: 0 } }, now) : null;
   const others: Traveler[] = b?.kind === "caza"
     ? [...people, { id: -1, name: "Vos", lvl: s.lvl, gang: gangOf(s), avatar: s.avatar ?? 1, since: b.since, until: b.until,
@@ -54,6 +54,9 @@ export function CityMap({ s, now, act }: Ui) {
       ? <>{b.clinic ? "La ambulancia te lleva" : "Caminando"} a {b.clinic ? "la clínica" : "la guardia"} en <b>{trip!.place}</b> · llegás en {minTxt(ph.left)} · nadie te puede tocar</>
       : <>{b.clinic ? "Te están curando en la clínica" : "En la guardia, esperando que te atiendan"} · alta en {minTxt(b.until - now)} · nadie te puede tocar</>)
     : b?.kind === "vuelta" && ph ? <>{b.safe ? "La ambulancia te lleva a casa" : `Volviendo a casa ${TRAVEL[b.mode].verb}`} · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(b.until - now)}{!b.safe && " · si querés, arrancá otra cosa desde acá"}</>
+    : b?.kind === "salida" ? (ph?.phase === "ida"
+      ? <>{TRAVEL[trip!.mode].name} a <b>{b.place}</b> para {b.what === "golpe" ? "un golpe" : "un encargo"} · llegás en {minTxt(ph.left)}</>
+      : <>En <b>{b.place}</b>, {b.what === "golpe" ? "en el golpe" : "haciendo el encargo"} · {minTxt(b.until - now)}</>)
     : trip && ph ? tripLine(trip, ph, km)
     : b?.kind === "caza" ? (now < b.meet
       ? <>Vas {CHASE_NAMES[b.mode].toLowerCase()} a cruzar a <b>{b.targetName}</b> cerca de {b.place} · faltan {minTxt(b.meet - now)}</>
@@ -91,6 +94,7 @@ export function Pane({ tab, ...rest }: Ui & { tab: TabKey }) {
     case "laburos": return <Jobs {...ui} />;
     case "gimnasio": return <Gym {...ui} />;
     case "feria": return <Shop {...rest} />;
+    case "equipo": return <Equipment {...rest} />;
     case "ring": return <Ring {...ui} />;
     case "guardia": return <Hospital {...rest} />;
     case "misiones": return <Missions {...ui} />;
@@ -150,21 +154,57 @@ function Gym({ s, act, busy }: Ui) {
 function Shop({ s, act, busy }: Ui) {
   const items = SHOP.filter(it => forSale(s, it) && it.lvl <= s.lvl + 3 && (!it.rank || s.tutDone));
   return <>
-    <h2>Feria de usados</h2>
+    <h2>Mercado</h2>
     <p>{s.tutDone
-      ? "Una cosa en la mano y una encima. Lo que dejás de usar va a tu armario si tenés lugar (si no, se queda en la feria). Cada nivel trae cosas nuevas; al fondo, el mercado negro, que se desbloquea subiendo de rango."
+      ? "Armas blancas y de fuego, cascos, chalecos y ropa. Si el lugar está vacío (o lo nuevo es mejor) te lo ponés al toque; lo otro va a tu bolso, en Casa › Equipo. Cada nivel trae cosas nuevas; al fondo, el mercado negro, que se desbloquea subiendo de rango."
       : "Por ahora el puestero te vende una sola cosa: «Cuando Marga te dé el visto bueno, te muestro lo demás.»"}</p>
     <div className="list">{items.map(it => {
-      const own = it.slot !== "consumible" && (s.gear[it.slot] === it.id || s.home.closet.includes(it.id));
+      const own = it.slot !== "consumible" && (s.gear[it.slot] === it.id || s.inv.includes(it.id));
       const sup = it.id === "suplemento", maxed = sup && supplementsTaken(s) >= SUPPLEMENT_MAX;
       const price = sup ? supplementCost(s) : it.price, locked = itemLocked(s, it);
+      const cur = it.slot !== "consumible" ? SHOP.find(x => x.id === s.gear[it.slot as Slot]) : undefined;
       return <div className={`item ${locked ? "locked" : ""}`} key={it.id}>
         <div className="with-art"><ItemIcon id={it.id} /><div><h3>{it.name}{it.rank && <span className="badge" style={{ marginLeft: 6 }}>mercado negro</span>}</h3>
-          <div className="meta num">{sup ? `Llevás ${supplementsTaken(s)} de ${SUPPLEMENT_MAX}` : it.slot === "consumible" ? "Se usa desde la clínica" : `${it.slot === "arma" ? "golpe" : "protección"} +${it.val}`} · {money(price)}
+          <div className="meta num">{sup ? `Llevás ${supplementsTaken(s)} de ${SUPPLEMENT_MAX}` : it.slot === "consumible" ? "Se usa desde la clínica"
+            : `${SLOT_NAMES[it.slot]} · ${ATTACK_SLOTS.includes(it.slot) ? "golpe" : "protección"} +${it.val}${cur && cur.id !== it.id ? ` (tenés +${cur.val})` : ""}`} · {money(price)}
             {s.lvl < it.lvl && ` · se desbloquea en nivel ${it.lvl}`}{it.rank && rankOf(s) < it.rank ? ` · se desbloquea en rango ${RANK_NAMES[it.rank]}` : ""}</div></div></div>
         <div className="act"><button disabled={busy || own || maxed || s.gold < price || locked} onClick={() => act({ type: "buy", id: it.id })}>{own ? "Lo tenés" : maxed ? "Al máximo" : "Comprar"}</button></div>
       </div>;
     })}</div>
+  </>;
+}
+
+/* Equipo, estilo RPG: lo que tenés puesto en cada lugar y tu bolso */
+function Equipment({ s, act, busy }: Ui) {
+  return <>
+    <h2>Equipo</h2>
+    <p>Golpe <b className="num">+{attackVal(s)}</b> (arma blanca + arma de fuego) · protección <b className="num">+{defenseVal(s)}</b> (cabeza + chaleco + ropa). Lo que no tenés puesto va en el bolso: entran {bagSize(s)} cosas (más con un armario mejor).</p>
+    <div className="slots">{SLOTS.map(k => {
+      const it = SHOP.find(x => x.id === s.gear[k]);
+      return <div className={`slot ${it ? "" : "empty"}`} key={k}>
+        <span className="tag">{SLOT_NAMES[k]}</span>
+        {it ? <ItemIcon id={it.id} /> : <span className="icon" />}
+        <b>{it ? it.name : "—"}</b>
+        <span className="num meta">{it ? `+${it.val}` : "vacío"}</span>
+        {it && <button className="link" disabled={busy || s.inv.length >= bagSize(s)} onClick={() => act({ type: "unequip", slot: k })}>Sacármelo</button>}
+      </div>;
+    })}</div>
+    <h3>Bolso ({s.inv.length} de {bagSize(s)})</h3>
+    {!s.inv.length ? <p>Vacío. Lo que compres y no te pongas queda acá.</p> :
+      <div className="list">{s.inv.map((id, i) => {
+        const it = SHOP.find(x => x.id === id)!;
+        if (!it || it.slot === "consumible") return null;
+        const cur = SHOP.find(x => x.id === s.gear[it.slot as Slot]);
+        return <div className="item" key={`${id}-${i}`}>
+          <div className="with-art"><ItemIcon id={id} /><div><h3>{it.name}</h3>
+            <div className="meta num">{SLOT_NAMES[it.slot]} · +{it.val}{cur ? ` (tenés puesto +${cur.val})` : " · ese lugar está vacío"}</div></div></div>
+          <div className="act">
+            <button className="primary" disabled={busy} onClick={() => act({ type: "equip", id })}>Ponérmelo</button>
+            <button disabled={busy} onClick={() => act({ type: "sell", id })}>Vender · {money(Math.round(it.price * SELL_RATE))}</button>
+          </div>
+        </div>;
+      })}</div>}
+    {s.potions > 0 && <p className="tag">Además tenés {s.potions} {s.potions === 1 ? "botiquín" : "botiquines"} (se usan desde la Clínica).</p>}
   </>;
 }
 
@@ -466,7 +506,7 @@ function House({ s, act, busy, now }: Ui) {
         <div><h3>{h.title}: {h.levels[lv].name}</h3><div className="meta">{h.help}
           {part === "cama" && ` Ahora: +${BED_ENERGY[lv]} de energía máxima.`}
           {part === "caja" && ` Capacidad: ${money(safeCap(s))}.`}
-          {part === "armario" && ` Lugar: ${closetSlots(s)} cosas.`}
+          {part === "armario" && ` Tu bolso: ${bagSize(s)} cosas.`}
           {next && <><br /><span className="num">Siguiente: {next.name} · {money(next.cost)} · {next.mins} min de obra</span></>}</div></div>
         <div className="act">{!next ? <span className="tag">al máximo</span>
           : roof ? <span className="tag">no entra en tu casa</span>
@@ -498,17 +538,7 @@ function House({ s, act, busy, now }: Ui) {
       </div>
     </>}
 
-    {closetSlots(s) > 0 && <>
-      <h3>Armario ({s.home.closet.length} de {closetSlots(s)})</h3>
-      {!s.home.closet.length ? <p>Vacío. Cuando compres algo nuevo, lo que tenías puesto viene acá.</p> :
-        <div className="list">{s.home.closet.map(id => {
-          const it = SHOP.find(i => i.id === id)!;
-          return <div className="item" key={id}>
-            <div className="with-art"><ItemIcon id={id} /><div><h3>{it.name}</h3><div className="meta num">{it.slot === "arma" ? "golpe" : "protección"} +{it.val}</div></div></div>
-            <div className="act"><button disabled={busy} onClick={() => act({ type: "equip", id })}>Ponérmelo</button></div>
-          </div>;
-        })}</div>}
-    </>}
+
   </>;
 }
 

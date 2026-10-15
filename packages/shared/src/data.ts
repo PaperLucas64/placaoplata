@@ -1,6 +1,6 @@
 /* Datos del juego: trabajos, rivales, ítems, misiones y rangos.
    Se comparten entre el servidor, la pantalla y el simulador de balance. */
-import type { Job, RingRival, Item, Mission, StatKey, TabKey, PlayerState } from "./types.js";
+import type { Slot, Job, RingRival, Item, Mission, StatKey, TabKey, PlayerState } from "./types.js";
 
 export const STAT_NAMES: Record<StatKey, string> = { fue:"Fuerza", dur:"Dureza", ref:"Reflejos", agu:"Aguante", lab:"Labia" };
 export const STAT_HELP: Record<StatKey, string> = { fue:"Pegás más fuerte", dur:"Te duelen menos los golpes", ref:"Acertás más y esquivás", agu:"Más vida", lab:"Mejor paga y convencés a la gente" };
@@ -22,12 +22,15 @@ export const RING: RingRival[] = [
   { name:"El campeón del barrio", lvl:12, mult:1.05, lore:"Tiene el cinturón colgado en la panadería de la esquina." }
 ];
 export const SHOP: Item[] = [
-  { id:"llave",    slot:"arma",      name:"Llave inglesa",        val:3,  price:30,   lvl:1 },
-  { id:"bate",     slot:"arma",      name:"Bate de aluminio",     val:6,  price:150,  lvl:3 },
-  { id:"baston",   slot:"arma",      name:"Bastón extensible",    val:9,  price:450,  lvl:6 },
-  { id:"campera",  slot:"armadura",  name:"Campera de cuero",     val:2,  price:25,   lvl:1 },
-  { id:"casco",    slot:"armadura",  name:"Casco de moto",        val:5,  price:180,  lvl:3 },
-  { id:"chaleco",  slot:"armadura",  name:"Chaleco acolchado",    val:8,  price:500,  lvl:6 },
+  { id:"llave",    slot:"blanca",    name:"Llave inglesa",        val:3,  price:30,   lvl:1 },
+  { id:"bate",     slot:"blanca",    name:"Bate de aluminio",     val:5,  price:150,  lvl:3 },
+  { id:"baston",   slot:"blanca",    name:"Bastón extensible",    val:7,  price:350,  lvl:6 },
+  { id:"revolver", slot:"fuego",     name:"Revólver 38 viejo",    val:5,  price:450,  lvl:6 },
+  { id:"pistola",  slot:"fuego",     name:"Pistola 9 mm",         val:8,  price:1000, lvl:10 },
+  { id:"campera",  slot:"ropa",      name:"Campera de cuero",     val:2,  price:25,   lvl:1 },
+  { id:"gorra",    slot:"cabeza",    name:"Gorra con visera",     val:1,  price:40,   lvl:2 },
+  { id:"casco",    slot:"cabeza",    name:"Casco de moto",        val:3,  price:180,  lvl:3 },
+  { id:"chaleco",  slot:"torso",     name:"Chaleco acolchado",    val:4,  price:350,  lvl:6 },
   { id:"botiquin", slot:"consumible",name:"Botiquín (+50% vida)", val:.5, price:20,   lvl:1 },
   /* vida para siempre: cara y cada vez más cara (ver supplementCost) */
   { id:"suplemento", slot:"consumible",name:"Suplemento de Don Tito (+10 de vida máxima, para siempre)", val:10, price:300, lvl:3 }
@@ -53,15 +56,25 @@ export const VALIJA: Mission = {
 /* Mercado negro: arma y protección por rango, iguales para todas las pandillas.
    Precio: ~2 sesiones de trabajo del nivel en que se llega al rango. */
 SHOP.push(
-  { id:"manopla",   slot:"arma",     name:"Manopla de bronce",           val:11, price:900,  lvl:1, rank:1 },
-  { id:"gruesa",    slot:"armadura", name:"Campera de cuero gruesa",     val:10, price:900,  lvl:1, rank:1 },
-  { id:"navaja",    slot:"arma",     name:"Navaja automática",           val:15, price:2200, lvl:1, rank:2 },
-  { id:"placas",    slot:"armadura", name:"Campera con placas",          val:15, price:2200, lvl:1, rank:2 },
-  { id:"recortada", slot:"arma",     name:"Escopeta recortada",          val:19, price:3800, lvl:1, rank:3 },
-  { id:"robado",    slot:"armadura", name:"Chaleco robado a la policía", val:19, price:3800, lvl:1, rank:3 },
-  { id:"fusil",     slot:"arma",     name:"Fusil del contrabando",       val:23, price:6000, lvl:1, rank:4 },
-  { id:"negro",     slot:"armadura", name:"Chaleco del mercado negro",   val:23, price:6000, lvl:1, rank:4 }
+  { id:"manopla",   slot:"blanca", name:"Manopla de bronce",           val:7,  price:550,  lvl:1, rank:1 },
+  { id:"gruesa",    slot:"ropa",   name:"Campera de cuero gruesa",     val:5,  price:500,  lvl:1, rank:1 },
+  { id:"navaja",    slot:"blanca", name:"Navaja automática",           val:9,  price:1300, lvl:1, rank:2 },
+  { id:"placas",    slot:"ropa",   name:"Campera con placas",          val:7,  price:1200, lvl:1, rank:2 },
+  { id:"antidisturbios", slot:"cabeza", name:"Casco antidisturbios",   val:5,  price:1000, lvl:1, rank:2 },
+  { id:"recortada", slot:"fuego",  name:"Escopeta recortada",          val:11, price:2200, lvl:1, rank:3 },
+  { id:"robado",    slot:"torso",  name:"Chaleco robado a la policía", val:8,  price:1800, lvl:1, rank:3 },
+  { id:"fusil",     slot:"fuego",  name:"Fusil del contrabando",       val:14, price:3600, lvl:1, rank:4 },
+  { id:"negro",     slot:"torso",  name:"Chaleco del mercado negro",   val:11, price:2900, lvl:1, rank:4 }
 );
+/* nombres de cada lugar del equipo */
+export const SLOT_NAMES: Record<Slot, string> = { blanca: "Arma blanca", fuego: "Arma de fuego", cabeza: "Cabeza", torso: "Chaleco", ropa: "Ropa" };
+export const SLOTS: Slot[] = ["blanca", "fuego", "cabeza", "torso", "ropa"];
+export const ATTACK_SLOTS: Slot[] = ["blanca", "fuego"];
+/* de qué lugar es cada cosa de la versión de dos lugares (arma y armadura) */
+export const OLD_SLOT: Record<string, Slot> = {
+  llave: "blanca", bate: "blanca", baston: "blanca", manopla: "blanca", navaja: "blanca", recortada: "fuego", fusil: "fuego",
+  campera: "ropa", gruesa: "ropa", placas: "ropa", casco: "cabeza", chaleco: "torso", robado: "torso", negro: "torso"
+};
 /* Equipo de la versión con policía, para pasar partidas viejas */
 export const OLD_ITEMS: Record<string, string> = {
   tonfa: "manopla", reglam: "gruesa", taser: "navaja", antibalas: "placas", pistola: "recortada", tactico: "robado", antimotin: "fusil", escudo: "negro"
@@ -92,4 +105,4 @@ export const TUT: TutStep[] = [
     say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
     goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.busy?.kind === "mision" ? `en curso (etapa ${s.busy.done + 1} de ${VALIJA.steps.length})` : "sin empezar"}`, reward:{gold:40,xp:15} }
 ];
-export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", negocios:"Negocios", amigos:"Amigos", ranking:"Ciudad" };
+export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Mercado", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", negocios:"Negocios", amigos:"Amigos", ranking:"Ciudad", equipo:"Equipo" };

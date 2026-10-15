@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   clamp, energyMax, findMission, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
-  type FightView, type PlayerState, type StatKey
-} from "@pop/shared";
+  type FightView, type PlayerState, type StatKey, attackVal, defenseVal, SLOTS, SLOT_NAMES } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
 import { ItemIcon } from "./icons";
 
@@ -19,7 +18,7 @@ export function Sheet({ s, now, onCancel, disabled }: { s: PlayerState; now: num
   const mh = maxHp(s);
   const em = energyMax(s), g = gangOf(s);
   const nextE = s.energy < em ? Math.max(0, Math.ceil((ENERGY_EVERY - (now - s.tEnergy)) / 1000)) : 0;
-  const w = SHOP.find(i => i.id === s.gear.arma), a = SHOP.find(i => i.id === s.gear.armadura);
+
   return (
     <aside className="sheet">
       <div className="who-row">
@@ -45,8 +44,11 @@ export function Sheet({ s, now, onCancel, disabled }: { s: PlayerState; now: num
       )}
       {s.tabs.includes("feria") && (
         <div className="gear">
-          <span className="with-art">{w && <ItemIcon id={w.id} />}<span>Mano: {w ? `${w.name} (+${w.val})` : "nada"}</span></span>
-          <span className="with-art">{a && <ItemIcon id={a.id} />}<span>Encima: {a ? `${a.name} (+${a.val})` : "ropa de calle"}</span></span>
+          <div className="stat"><span>Golpe</span><span className="num">+{attackVal(s)}</span></div>
+          <div className="stat"><span>Protección</span><span className="num">+{defenseVal(s)}</span></div>
+          <div className="gear-row">{SLOTS.map(k => s.gear[k]
+            ? <span key={k} title={`${SLOT_NAMES[k]}: ${SHOP.find(i => i.id === s.gear[k])?.name}`}><ItemIcon id={s.gear[k]!} /></span>
+            : <span key={k} className="icon empty" title={`${SLOT_NAMES[k]}: vacío`} />)}</div>
           {s.potions > 0 && <span>Botiquines: {s.potions}</span>}
         </div>
       )}
@@ -128,9 +130,11 @@ export function BusyBar({ s, now, onCancel, disabled }: { s: PlayerState; now: n
     {b && <Countdown now={now} since={b.since} until={b.until}
       label={b.kind === "gym" ? `Entrenando ${STAT_NAMES[b.stat].toLowerCase()}` : b.kind === "mision" ? `Misión: ${findMission(s, b.id)?.title ?? ""}`
         : b.kind === "caza" ? `Buscando a ${b.targetName}` : b.kind === "vuelta" ? (b.safe ? "En ambulancia a casa" : "Volviendo a casa")
+        : b.kind === "salida" ? `${b.what === "golpe" ? "Golpe" : "Encargo"} en ${b.place}`
         : b.clinic ? "En la clínica" : "En la guardia"}
       note={b.kind === "gym" ? "Si cortás, perdés la plata y el punto." : b.kind === "mision" ? `Etapa ${Math.min(b.done + 1, findMission(s, b.id)?.steps.length ?? 1)} · la crónica te cuenta.`
-        : b.kind === "caza" ? `Lo cruzás cerca de ${b.place}. Lo ves en el mapa.` : b.kind === "vuelta" ? (b.safe ? "Nadie te puede tocar." : "Andás por la calle: podés arrancar otra misión desde acá.")
+        : b.kind === "caza" ? `Lo cruzás cerca de ${b.place}. Lo ves en el mapa.` : b.kind === "vuelta" ? (b.safe ? "Nadie te puede tocar." : "Andás por la calle: podés arrancar otra cosa desde acá.")
+        : b.kind === "salida" ? "Cuando lo hagas, la crónica te cuenta cómo salió."
         : "Mientras te curan, nadie te puede tocar."}
       action={b.kind === "vuelta" ? undefined : <button className="link" disabled={disabled} onClick={onCancel}>Cancelar</button>} />}
     {o && <Countdown now={now} since={o.since} until={o.until} label={`Obra: ${HOME[o.part].levels[s.home[o.part] + 1]?.name.toLowerCase()}`} />}

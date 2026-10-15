@@ -58,7 +58,8 @@ const ITEM_ICON: Record<string, string> = {
   tonfa: "tonfa", reglam: "chaleco", taser: "taser", antibalas: "chaleco", pistola: "png:arma_pistola", tactico: "chaleco",
   antimotin: "png:arma_antimotin", escudo: "png:escudo",
   manopla: "manopla", gruesa: "campera", navaja: "png:navaja", placas: "campera", recortada: "png:arma_recortada",
-  robado: "chaleco", fusil: "png:arma_fusil", negro: "chaleco"
+  robado: "chaleco", fusil: "png:arma_fusil", negro: "chaleco",
+  revolver: "png:arma_pistola", gorra: "casco", antidisturbios: "casco"
 };
 
 export function ItemIcon({ id }: { id: string }) {

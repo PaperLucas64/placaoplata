@@ -2,7 +2,7 @@ import type { TravelMode, TripState } from "./geo.js";
 
 export type Gang = "familia" | "sindicato" | "barra" | "amarillos";
 export type StatKey = "fue" | "dur" | "ref" | "agu" | "lab";
-export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "negocios" | "amigos" | "ranking";
+export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "negocios" | "amigos" | "ranking" | "equipo";
 export type Rng = () => number;
 
 export interface Job {
@@ -11,8 +11,10 @@ export interface Job {
   resp?: number; heat?: number;
 }
 export interface RingRival { name: string; lvl: number; mult: number; lore: string }
+/* lugares de equipo, estilo RPG: dos para pegar y tres para que no te peguen */
+export type Slot = "blanca" | "fuego" | "cabeza" | "torso" | "ropa";
 export interface Item {
-  id: string; slot: "arma" | "armadura" | "consumible"; name: string; val: number; price: number; lvl: number;
+  id: string; slot: Slot | "consumible"; name: string; val: number; price: number; lvl: number;
   rank?: number;
 }
 export interface MissionStep {
@@ -46,7 +48,7 @@ export type Target =
 export interface Home {
   cama: number; caja: number; armario: number;
   safe: number;        // plata en la caja fuerte (a salvo de robos y fianzas)
-  closet: string[];    // equipo guardado en el armario
+  closet: string[];    // (versión vieja: el armario; ahora todo va al inventario)
   obra: { part: "cama" | "caja" | "armario"; since: number; until: number } | null; // mejora en construcción
   house?: string;      // qué casa tenés (si no está, la pieza de pensión)
 }
@@ -57,7 +59,8 @@ export interface PlayerState {
   avatar?: number; // retrato elegido al crear el personaje (1 a 4)
   hpBonus?: number; // vida máxima extra para siempre (suplementos)
   stats: Record<StatKey, number>;
-  gear: { arma: string | null; armadura: string | null };
+  gear: Record<Slot, string | null>; // lo que tenés puesto en cada lugar
+  inv: string[];                     // lo que tenés y no te pusiste (entra según tu armario)
   potions: number; wins: number; losses: number;
   tut: number; tutDone: boolean; tabs: TabKey[]; seenTab: Partial<Record<TabKey, boolean>>;
   c: { jobs: number; train: number; buy: number; spar: number; heal: number; valija: number; duelW: number; duelL: number };
@@ -80,6 +83,8 @@ export interface PlayerState {
 export type Busy =
   | { kind: "gym"; since: number; until: number; stat: StatKey }
   | { kind: "guardia"; since: number; until: number; hpFrom: number; trip?: TripState | null; clinic?: boolean } // curándote (intocable)
+  /* un golpe o un encargo: vas al barrio, lo hacés y volvés (el resultado se sabe al llegar) */
+  | { kind: "salida"; since: number; until: number; what: "golpe" | "encargo"; ref: string; place: string; trip?: TripState | null }
   /* volviendo a casa después de algo: estás en la calle y podés arrancar otra cosa desde donde estés */
   | { kind: "vuelta"; since: number; until: number; mode: TravelMode; place: string; home: string; path?: [number, number][]; safe?: boolean }
   | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[]; // etapas resueltas, cuántas salieron bien y cuáles
@@ -101,7 +106,9 @@ export type Action =
   | { type: "encargo"; gang: Gang }
   | { type: "train"; stat: StatKey }
   | { type: "buy"; id: string }
-  | { type: "equip"; id: string }       // sacar algo del armario
+  | { type: "equip"; id: string }       // ponerte algo del inventario
+  | { type: "unequip"; slot: Slot }     // sacártelo (vuelve al inventario)
+  | { type: "sell"; id: string }        // vender algo del inventario en la feria
   | { type: "kit" }
   | { type: "heal" }                    // clínica: paga y es al instante
   | { type: "guardia" }                 // hospital público: gratis, pero esperás

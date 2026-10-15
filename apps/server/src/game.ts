@@ -3,7 +3,7 @@
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
   ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
-  startChase, tripPos, returnTrip, wherePlayer, placePt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  startChase, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -62,7 +62,8 @@ async function saveRow(q: Queryable, id: number, s: PlayerState) {
 /* el tiempo que pasó desde la última vez: recarga, misiones, tablón y emboscadas */
 function catchUp(s: PlayerState, now: number) {
   regen(s, now);
-  missionCatchUp(s, { now, rng });   // etapas de la misión en curso que ya pasaron
+  missionCatchUp(s, { now, rng });   // etapas de la misión en curso que ya pasaron (y las curas con viaje)
+  salidaCatchUp(s, { now, rng });    // golpes y encargos
   boardCatchUp(s, { now, rng });     // tablón de la calle (cada 6 horas)
   ambushCatchUp(s, { now, rng });
 }
@@ -144,10 +145,10 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
         const wasChase = s.busy?.kind === "caza";
         /* si venías volviendo a casa y arrancás otra cosa, salís desde donde estás: el camino se calcula por las cuadras */
         let from: FromPoint | undefined;
-        if (s.busy?.kind === "vuelta" && (a.type === "mstart" || a.type === "guardia" || a.type === "heal")) {
+        if (s.busy?.kind === "vuelta" && (a.type === "mstart" || a.type === "guardia" || a.type === "heal" || a.type === "encargo")) {
           const here = wherePlayer(RUTAS, s, now);
           const m = a.type === "mstart" ? findMission(s, a.id) : undefined;
-          const dest = m ? missionPlace(m) : nearestCare(s, a.type === "heal" ? "clinica" : "guardia").place;
+          const dest = m ? missionPlace(m) : a.type === "encargo" ? HOME_BARRIO[a.gang] : nearestCare(s, a.type === "heal" ? "clinica" : "guardia").place;
           const pt = dest ? placePt(dest) : null;
           if (pt) {
             const foot = a.type === "guardia" || (a.type === "mstart" && a.mode === "pie");

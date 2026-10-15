@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  canAmbush, onStreet, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
+  canAmbush, onStreet, attackVal, defenseVal, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -99,11 +99,11 @@ describe("pandillas", () => {
   });
   it("las partidas de la versión con policía se convierten", () => {
     const old = veteran("Viejo") as PlayerState & { side?: string };
-    old.side = "plata"; old.gear.arma = "tonfa"; delete (old as Partial<PlayerState>).v;
+    old.side = "plata"; (old as unknown as { gear: object }).gear = { arma: "tonfa", armadura: null }; delete (old as Partial<PlayerState>).v;
     const s = upgradeState(old, T0);
-    expect(s.v).toBe(3);
+    expect(s.v).toBe(4);
     expect(gangOf(s)).toBe("familia");
-    expect(s.gear.arma).toBe("manopla");
+    expect(s.gear.blanca).toBe("manopla");                 // la tonfa de la policía pasa a ser una manopla, en el lugar del arma blanca
     expect(s.tabs).toContain("casa");
   });
 });
@@ -127,18 +127,28 @@ describe("casa", () => {
     applyAction(s, { type: "withdraw", amount: 50 }, ctx());
     expect(s.home.safe).toBe(safeCap(s) - 50);
   });
-  it("el armario guarda lo que dejás de usar y te lo podés volver a poner", () => {
-    const s = veteran("Ana"); s.gold = 1000; s.home.armario = 1; s.gear.arma = "llave";
+  it("comprás algo mejor: te lo ponés y lo viejo va al bolso; te lo podés volver a poner", () => {
+    const s = veteran("Ana"); s.gold = 1000; s.gear.blanca = "llave";
     applyAction(s, { type: "buy", id: "bate" }, ctx());
-    expect(s.home.closet).toEqual(["llave"]);
+    expect(s.gear.blanca).toBe("bate");
+    expect(s.inv).toEqual(["llave"]);
     applyAction(s, { type: "equip", id: "llave" }, ctx());
-    expect(s.gear.arma).toBe("llave");
-    expect(s.home.closet).toEqual(["bate"]);
+    expect(s.gear.blanca).toBe("llave");
+    expect(s.inv).toEqual(["bate"]);
   });
-  it("sin armario, lo viejo se pierde", () => {
-    const s = veteran("Ana"); s.gold = 1000; s.gear.arma = "llave";
-    applyAction(s, { type: "buy", id: "bate" }, ctx());
-    expect(s.home.closet).toEqual([]);
+  it("cinco lugares: el golpe suma las dos armas y la protección las tres prendas", () => {
+    const s = veteran("Ana");
+    Object.assign(s.gear, { blanca: "navaja", fuego: "fusil", cabeza: "casco", torso: "negro", ropa: "placas" });
+    expect(attackVal(s)).toBe(9 + 14);
+    expect(defenseVal(s)).toBe(3 + 11 + 7);
+  });
+  it("con el bolso lleno no entra nada más; vender da el 40%", () => {
+    const s = veteran("Ana"); s.gold = 5000; s.gear.blanca = "navaja"; s.inv = ["llave", "bate", "gorra", "campera"];
+    expect(applyAction(s, { type: "buy", id: "baston" }, ctx()).error).toMatch(/bolso/);
+    const g = s.gold;
+    applyAction(s, { type: "sell", id: "bate" }, ctx());
+    expect(s.gold).toBe(g + 60);
+    expect(s.inv).not.toContain("bate");
   });
 });
 

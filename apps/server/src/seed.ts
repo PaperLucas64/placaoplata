@@ -21,7 +21,7 @@ export async function seedTestPlayers(db: Db) {
       lvl, gold: 400, tut: 6, tutDone: true, respect: 60,
       tabs: ["laburos", "gimnasio", "feria", "ring", "guardia", "misiones", "calle", "casa", "ranking"],
       stats: { fue: 1 + Math.round(lvl * 1.4), dur: 1 + Math.round(lvl * 1.4), ref: 1 + Math.round(lvl * 1.4), agu: Math.round(lvl * 1.4), lab: Math.round(lvl * 1.4) },
-      gear: { arma: "manopla", armadura: "gruesa" }
+      gear: { blanca: "manopla", fuego: null, cabeza: null, torso: null, ropa: "gruesa" }, inv: []
     });
     s.aff[gang] = 20; // ya hizo un par de cosas para su pandilla
     s.c.valija = 1; s.hp = maxHp(s);

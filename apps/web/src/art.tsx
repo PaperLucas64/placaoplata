@@ -24,7 +24,7 @@ export const bossImg = (g: Gang) => portraitOf(GANGS[g].boss);
 export function sceneFor(tab: TabKey, gang: Gang | null) {
   const map: Partial<Record<TabKey, string>> = {
     laburos: gang ?? "laburos", gimnasio: "gimnasio", ring: "gimnasio", feria: "feria", guardia: "guardia",
-    misiones: "misiones", calle: "calle", casa: "casa", ranking: "ranking", negocios: "bar", amigos: "bar"
+    misiones: "misiones", calle: "calle", casa: "casa", ranking: "ranking", negocios: "bar", amigos: "bar", equipo: "feria"
   };
   return img(`fondos/${map[tab] ?? "calle"}`);
 }

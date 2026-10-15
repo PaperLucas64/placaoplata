@@ -6,19 +6,19 @@ import {
   ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSIONS, POLICE_NAMES
 } from "./gangs.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
-import { abandonMission, BOARD_REROLL_COST, CARE_MINS, findMission, meetsReq, missionEnergy, missionPlace, needsTrip, newBoard, POLICE_LVL, startTimedMission } from "./missions.js";
+import { abandonMission, BOARD_REROLL_COST, CARE_MINS, startReturn, findMission, meetsReq, missionEnergy, missionPlace, needsTrip, newBoard, POLICE_LVL, startTimedMission } from "./missions.js";
 import { arcChapterKey } from "./arcs.js";
 import { hasMod, hasVehicle, MODS, nearestCare, travelModes, tripCost, tripMins, VEHICLES, type FromPoint, type ModKey, type TravelMode } from "./geo.js";
 import { PROPS, propIncome, propOf } from "./negocios.js";
 import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
 import { HOUSES, homePlace, houseOf } from "./casas.js";
-import { routeTo } from "./geo.js";
+import { routeTo, TRAVEL, tripEvent } from "./geo.js";
 import {
-  addAff, addHeat, addRespect, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
+  addAff, addHeat, addRespect, bagSize, battle, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
-import type { Action, ActionResult, Gang, Mission, PlayerState, Rng, Target } from "./types.js";
+import type { Action, ActionResult, Gang, Job, Mission, PlayerState, Rng, Target } from "./types.js";
 
 /* from: si venías volviendo de algo, desde dónde salís (el servidor lo calcula por las cuadras) */
 export interface Ctx { now: number; rng: Rng; from?: FromPoint }
@@ -80,6 +80,7 @@ const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "s
 const busyText = (s: PlayerState) =>
   s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión."
   : s.busy?.kind === "caza" ? `Saliste a buscar a ${s.busy.targetName}.` : s.busy?.kind === "vuelta" ? "Estás volviendo a casa."
+  : s.busy?.kind === "salida" ? `Estás en ${s.busy.place}, ${s.busy.what === "golpe" ? "en un golpe" : "haciendo un encargo"}.`
   : s.busy?.clinic ? "Te están curando en la clínica." : "Estás en la guardia.";
 /* volviendo a casa podés arrancar otra cosa que te lleve a otro lado (salís desde donde estés) */
 export const onTheWayHome = (s: PlayerState) => s.busy?.kind === "vuelta";
@@ -121,51 +122,19 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.lvl < j.lvl) return fail(`Pide nivel ${j.lvl}.`);
       if (s.energy < j.cost) return fail("No te alcanza la energía.");
       s.energy -= j.cost;
-      const golpe = isGolpe(j.id);
-      /* en los golpes, con calor alto es más fácil que te agarre la policía (con 50 de calor, ~1 de cada 7) */
-      if (golpe && rng() < s.heat / 400 + j.risk * 0.01) {
-        const fine = Math.min(s.gold, Math.round(s.gold * 0.1) + s.lvl * 5);
-        s.gold -= fine; addHeat(s, -35);
-        log(s, now, `${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.`, "bad");
-      } else if (rng() < [0, 0.06, 0.18, 0.3][j.risk]) {
-        const dmg = Math.round(maxHp(s) * 0.14 * j.risk);
-        s.hp = Math.max(1, s.hp - dmg);
-        log(s, now, `${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
-      } else {
-        const perk = golpe && gangOf(s) === "familia" ? 1.1 : 1; // La Familia saca más de cada golpe
-        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015) * perk * (golpe ? turfMult(s) : 1));
-        if (golpe) addInfluence(s, gangOf(s), pick(rng, BARRIOS), 1); // cada golpe marca territorio para tu pandilla
-        const xp = rnd(rng, ...j.xp);
-        s.gold += gold; gainXp(s, now, xp); s.c.jobs++;
-        if (j.resp) addRespect(s, now, j.resp);
-        if (j.heat) addHeat(s, j.heat);
-        log(s, now, `${j.name}: +${money(gold)}, +${xp} XP${j.resp ? `, +${j.resp} de respeto` : ""}.`, "good");
-      }
+      if (!isGolpe(j.id)) { resolveJob(s, j, now, rng); return {}; }   // los laburos honestos, al instante
+      startSalida(s, "golpe", j.id, j.name, golpePlace(s, rng), ctx);  // los golpes: salís a un barrio cercano
       return {};
     }
 
-    /* encargo de una pandilla: repetible, suma afinidad con ella */
+    /* encargo de una pandilla: repetible, suma afinidad con ella. Se hace en su barrio. */
     case "encargo": {
       const e = ENCARGOS[a.gang];
       if (!e || !s.tutDone) return fail("Ese encargo no existe.");
       if (s.energy < ENCARGO_COST) return fail("No te alcanza la energía.");
       if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return fail("Estás muy golpeado. Pasá por la clínica.");
       s.energy -= ENCARGO_COST;
-      const diff = Math.round(Math.max(5, 0.5 + s.lvl * 1.4) * 0.85);
-      const g = GANGS[a.gang];
-      if (rng() * 100 < checkChance(s.stats[e.stat], diff)) {
-        const gold = Math.round(rnd(rng, s.lvl * 10, s.lvl * 18) * (1 + s.stats.lab * 0.015) * turfMult(s));
-        addInfluence(s, a.gang, HOME_BARRIO[a.gang], 1);
-        const xp = 6 + s.lvl * 3;
-        s.gold += gold; gainXp(s, now, xp); addRespect(s, now, 3); addHeat(s, 3);
-        log(s, now, `${e.name} para ${g.name}: ${e.ok} +${money(gold)}, +${xp} XP.`, "good");
-        addAff(s, now, a.gang, ENCARGO_AFF);
-      } else {
-        const dmg = Math.round(maxHp(s) * 0.12);
-        s.hp = Math.max(1, s.hp - dmg);
-        log(s, now, `${e.name} para ${g.name}: ${e.ko} Perdiste ${dmg} de vida.`, "bad");
-        addAff(s, now, a.gang, 1); // aunque salga mal, se acuerdan de que diste la cara
-      }
+      startSalida(s, "encargo", a.gang, `${e.name} para ${GANGS[a.gang].name}`, HOME_BARRIO[a.gang], ctx);
       return {};
     }
 
@@ -194,26 +163,53 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
         return {};
       }
       if (s.gold < it.price) return fail("No te alcanza la plata.");
-      if (it.slot !== "consumible" && (s.gear[it.slot] === it.id || s.home.closet.includes(it.id))) return fail("Ya lo tenés.");
+      if (it.slot === "consumible") { s.gold -= it.price; s.c.buy++; s.potions++; log(s, now, "Compraste un botiquín."); return {}; }
+      if (s.gear[it.slot] === it.id || s.inv.includes(it.id)) return fail("Ya lo tenés.");
+      const empty = !s.gear[it.slot];
+      if (!empty && s.inv.length >= bagSize(s)) return fail("No te entra en el bolso. Vendé algo o agrandá el armario.");
       s.gold -= it.price; s.c.buy++;
-      if (it.slot === "consumible") { s.potions++; log(s, now, "Compraste un botiquín."); return {}; }
-      const old = s.gear[it.slot];
-      s.gear[it.slot] = it.id;
-      log(s, now, `Te llevaste ${it.name.toLowerCase()} (−${money(it.price)}).`, "gold");
-      if (old) stash(s, now, old);
+      /* si el lugar está vacío (o es mejor que lo que tenés), te lo ponés; lo otro va al bolso */
+      const cur = itemOf(s.gear[it.slot]);
+      if (empty || it.val > (cur?.val ?? 0)) {
+        if (cur) s.inv.push(cur.id);
+        s.gear[it.slot] = it.id;
+        log(s, now, `Te llevaste ${it.name.toLowerCase()} y te lo pusiste (−${money(it.price)}).`, "gold");
+      } else {
+        s.inv.push(it.id);
+        log(s, now, `Te llevaste ${it.name.toLowerCase()} (−${money(it.price)}). Está en tu bolso.`, "gold");
+      }
       return {};
     }
 
-    /* sacar algo del armario: lo que tenías puesto vuelve al armario */
+    /* ponerte algo del bolso: lo que tenías en ese lugar vuelve al bolso */
     case "equip": {
-      const it = SHOP.find(i => i.id === a.id);
-      const k = s.home.closet.indexOf(a.id);
-      if (!it || k < 0 || it.slot === "consumible") return fail("Eso no está en tu armario.");
-      s.home.closet.splice(k, 1);
+      const it = itemOf(a.id);
+      const k = s.inv.indexOf(a.id);
+      if (!it || k < 0 || it.slot === "consumible") return fail("Eso no está en tu bolso.");
+      s.inv.splice(k, 1);
       const old = s.gear[it.slot];
       s.gear[it.slot] = it.id;
-      if (old) s.home.closet.push(old);
+      if (old) s.inv.push(old);
       log(s, now, `Te pusiste ${it.name.toLowerCase()}.`);
+      return {};
+    }
+
+    case "unequip": {
+      const id = s.gear[a.slot];
+      if (!id) return fail("No tenés nada ahí.");
+      if (s.inv.length >= bagSize(s)) return fail("No te entra en el bolso.");
+      s.gear[a.slot] = null; s.inv.push(id);
+      log(s, now, `Te sacaste ${itemOf(id)?.name.toLowerCase()}.`);
+      return {};
+    }
+
+    /* vender en la feria: te dan el 40% */
+    case "sell": {
+      const it = itemOf(a.id), k = s.inv.indexOf(a.id);
+      if (!it || k < 0) return fail("Eso no está en tu bolso.");
+      const gold = Math.round(it.price * SELL_RATE);
+      s.inv.splice(k, 1); s.gold += gold;
+      log(s, now, `Vendiste ${it.name.toLowerCase()} en la feria: +${money(gold)}.`);
       return {};
     }
 
@@ -255,7 +251,8 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (b.kind === "mision") { abandonMission(s, now); return {}; }
       if (b.kind === "vuelta") return fail("Ya estás volviendo a casa.");
       s.busy = null;
-      if (b.kind === "caza") log(s, now, `Dejaste de buscar a ${b.targetName} y volviste a la pensión.`);
+      if (b.kind === "salida") { log(s, now, "Te volviste antes de hacerlo. La energía no vuelve.", "bad"); startReturn(s, b.trip?.mode ?? "pie", b.place, now, rng); return {}; }
+      if (b.kind === "caza") log(s, now, `Dejaste de buscar a ${b.targetName} y volviste a casa.`);
       else if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
       else {
         /* te vas antes: te llevás la parte de la curación que alcanzaste */
@@ -440,15 +437,96 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
   }
 }
 
+/* ---------- golpes y encargos: salidas cortas ---------- */
+export const SALIDA_WORK = { golpe: 1, encargo: 2 }; // minutos haciéndolo
+/* los golpes se hacen en alguno de los barrios más cerca de tu casa */
+export function golpePlace(s: PlayerState, rng: Rng) {
+  const home = homePlace(s);
+  const near = [...BARRIOS].sort((x, y) => (x === home ? 0 : routeTo(home, x)?.calle ?? 99) - (y === home ? 0 : routeTo(home, y)?.calle ?? 99)).slice(0, 4);
+  return pick(rng, near);
+}
+/* salís: caminando si es cerca, si no lo más barato. El viaje de las salidas es más corto que el de las misiones. */
+function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, name: string, place: string, ctx: Ctx) {
+  const { now, rng } = ctx;
+  const street = onTheWayHome(s);
+  const from = street ? ctx.from : undefined;
+  if (street && !from) place = s.busy?.kind === "vuelta" ? s.busy.place : place;  // ya andás por la calle: lo hacés ahí nomás
+  const home = homePlace(s);
+  const r = from ? { calle: from.km, pie: from.km } : !street ? routeTo(home, place) : undefined;
+  let mode: TravelMode | undefined;
+  if (r) mode = (r.pie ?? 99) <= 3 ? "pie" : defaultMode(s, place, from);
+  const go = r && mode ? Math.max(1, Math.round(tripMins(s, mode, place, from) / 2)) * 60_000 : 0;
+  if (go && mode) s.gold = Math.max(0, s.gold - Math.round(tripCost(s, mode, place, from) / 2));
+  const work = SALIDA_WORK[what] * 60_000;
+  s.busy = { kind: "salida", what, ref, place, since: now, until: now + go + work,
+    trip: go && mode ? { mode, place, go, back: 0, ev: 0, from: home, ...(from?.path ? { path: from.path } : {}) } : null };
+  log(s, now, go ? `Saliste ${TRAVEL[mode!].verb} a ${place}: ${name}. Lo hacés en ${Math.round((go + work) / 60_000)} min.`
+                 : `${name}, acá en ${place}. Lo hacés en ${Math.round(work / 60_000)} min.`);
+  void rng;
+}
+/* se resuelve al llegar y hacerlo; después, a casa */
+export function salidaCatchUp(s: PlayerState, { now, rng }: { now: number; rng: Rng }): boolean {
+  const b = s.busy;
+  if (b?.kind !== "salida") return false;
+  let changed = false;
+  if (b.trip && !(b.trip.ev & 1) && now >= b.since + b.trip.go) {
+    b.trip.ev |= 1; changed = true;
+    tripEvent(s, b.trip.mode, b.place, false, b.since + b.trip.go, rng);
+  }
+  if (now >= b.until) {
+    s.busy = null; changed = true;
+    if (b.what === "golpe") { const j = jobList(s).find(x => x.id === b.ref); if (j) resolveJob(s, j, b.until, rng, b.place); }
+    else resolveEncargo(s, b.ref as Gang, b.until, rng);
+    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng);
+    const v = s.busy as PlayerState["busy"];
+    if (v?.kind === "vuelta" && now >= v.until) { s.busy = null; log(s, v.until, "Llegaste a casa."); }
+  }
+  return changed;
+}
+function resolveJob(s: PlayerState, j: Job, now: number, rng: Rng, place?: string) {
+  const golpe = isGolpe(j.id);
+  /* en los golpes, con calor alto es más fácil que te agarre la policía (con 50 de calor, ~1 de cada 7) */
+  if (golpe && rng() < s.heat / 400 + j.risk * 0.01) {
+    const fine = Math.min(s.gold, Math.round(s.gold * 0.1) + s.lvl * 5);
+    s.gold -= fine; addHeat(s, -35);
+    log(s, now, `${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.`, "bad");
+  } else if (rng() < [0, 0.06, 0.18, 0.3][j.risk]) {
+    const dmg = Math.round(maxHp(s) * 0.14 * j.risk);
+    s.hp = Math.max(1, s.hp - dmg);
+    log(s, now, `${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
+  } else {
+    const perk = golpe && gangOf(s) === "familia" ? 1.1 : 1; // La Familia saca más de cada golpe
+    const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015) * perk * (golpe ? turfMult(s) : 1));
+    if (golpe) addInfluence(s, gangOf(s), place ?? pick(rng, BARRIOS), 1); // cada golpe marca territorio para tu pandilla, ahí donde lo hiciste
+    const xp = rnd(rng, ...j.xp);
+    s.gold += gold; gainXp(s, now, xp); s.c.jobs++;
+    if (j.resp) addRespect(s, now, j.resp);
+    if (j.heat) addHeat(s, j.heat);
+    log(s, now, `${j.name}${place ? ` en ${place}` : ""}: +${money(gold)}, +${xp} XP${j.resp ? `, +${j.resp} de respeto` : ""}.`, "good");
+  }
+}
+function resolveEncargo(s: PlayerState, gang: Gang, now: number, rng: Rng) {
+  const e = ENCARGOS[gang], g = GANGS[gang];
+  const diff = Math.round(Math.max(5, 0.5 + s.lvl * 1.4) * 0.85);
+  if (rng() * 100 < checkChance(s.stats[e.stat], diff)) {
+    const gold = Math.round(rnd(rng, s.lvl * 10, s.lvl * 18) * (1 + s.stats.lab * 0.015) * turfMult(s));
+    addInfluence(s, gang, HOME_BARRIO[gang], 1);
+    const xp = 6 + s.lvl * 3;
+    s.gold += gold; gainXp(s, now, xp); addRespect(s, now, 3); addHeat(s, 3);
+    log(s, now, `${e.name} para ${g.name}: ${e.ok} +${money(gold)}, +${xp} XP.`, "good");
+    addAff(s, now, gang, ENCARGO_AFF);
+  } else {
+    const dmg = Math.round(maxHp(s) * 0.12);
+    s.hp = Math.max(1, s.hp - dmg);
+    log(s, now, `${e.name} para ${g.name}: ${e.ko} Perdiste ${dmg} de vida.`, "bad");
+    addAff(s, now, gang, 1); // aunque salga mal, se acuerdan de que diste la cara
+  }
+}
+
 /* con el taller propio, los arreglos salen 30% menos */
 export const modCost = (s: PlayerState, price: number) => (s.props?.taller !== undefined ? Math.round(price * 0.7) : price);
 
-/* lo que dejás de usar va al armario si hay lugar; si no, se pierde */
-function stash(s: PlayerState, now: number, id: string) {
-  const it = SHOP.find(i => i.id === id);
-  if (s.home.closet.length < closetSlots(s)) { s.home.closet.push(id); log(s, now, `Guardaste ${it?.name.toLowerCase()} en el armario.`); }
-  else log(s, now, `No tenías lugar en el armario: ${it?.name.toLowerCase()} quedó en la feria.`);
-}
+export const SELL_RATE = 0.4;
 
 export function checkDuel(s: PlayerState, i: number): string | null {
   if (s.busy) return `${busyText(s)} Esperá a que termine o cancelalo.`;
@@ -545,6 +623,7 @@ export function onStreet(s: PlayerState, now: number) {
   if (!b) return false;
   if (b.kind === "vuelta") return !b.safe;
   if (b.kind === "caza") return true;
+  if (b.kind === "salida") return !!b.trip && now < b.since + b.trip.go;
   if (b.kind === "mision" && b.trip) return now < b.since + b.trip.go || (!!b.trip.back && now >= b.until - b.trip.back);
   return false;
 }

@@ -6,7 +6,7 @@
    de "su" pandilla y pelea en la calle contra rivales accesibles. */
 import {
   affShare, ambushCatchUp, applyAction, boardCatchUp, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, healCost, HOME, itemLocked,
-  meetsReq, missionCatchUp, PROPS, propIncome, missionEnergy, missionReq, nextMissionEvent,
+  meetsReq, missionCatchUp, salidaCatchUp, PROPS, propIncome, missionEnergy, missionReq, nextMissionEvent,
   jobList, maxHp, MISSIONS, newPlayer, nextLevel, npcTarget, rankOf, regen, SHOP, TARGETS, trainCost, TUT, VALIJA,
   type Action, type Gang, type Rng, type StatKey
 } from "@pop/shared";
@@ -79,6 +79,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       now = nextMissionEvent(s) ?? s.busy.until; continue;
     }
     if (s.busy?.kind === "guardia") missionCatchUp(s, { now, rng }); // curarse con viaje lo termina missionCatchUp
+    if (s.busy?.kind === "salida") { const g2 = s.gold; salidaCatchUp(s, { now, rng }); if (s.gold > g2) run.goldIn.trabajo = (run.goldIn.trabajo ?? 0) + s.gold - g2; }
     if (s.busy) { now = Math.max(now + 1, nextMissionEvent(s) ?? s.busy.until); continue; } // entrenando, curándose o volviendo: esperar
     boardCatchUp(s, { now, rng });
     const g0 = s.gold; ambushCatchUp(s, { now, rng });
@@ -159,6 +160,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
     now += Math.max(1, energyMax(s) - s.energy) * ENERGY_EVERY;
   }
   run.final = { lvl: s.lvl, respect: s.respect, gold: s.gold + s.home.safe, stats: { ...s.stats }, energy: spent };
+  (run as unknown as { state: PlayerState }).state = s; // para depurar
   run.finalShare = affShare(s, gang);
   return run;
 }

@@ -110,7 +110,16 @@ emboscadas rechazadas (+2/+3). Perder una pelea que iniciaste: −2.
 6 encargos que destraban Trabajos, Gimnasio, Feria, Ring, Clínica y Misiones, más la misión «La valija».
 Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los encargos de las pandillas. Dura ~32 de energía.
 
+### 5.2b Pestañas
+Cinco pestañas con secciones: **Calle** (Trabajos, Misiones, Pelear, Negocios) · **Gimnasio** (Entrenar, Ring) ·
+**Mercado** · **Casa** (Tu casa, Equipo, Clínica) · **Ciudad** (Barrios y ranking, Amigos). Las secciones aparecen a
+medida que el tutorial las destraba.
+
 ### 5.3 Trabajos
+**Golpes y encargos son salidas cortas:** el golpe se hace en uno de los 4 barrios más cerca de tu casa y el encargo en el
+barrio de la pandilla. Vas caminando si queda a menos de 3 km (si no, lo más barato), con la mitad del viaje de una misión;
+1 min para el golpe y 2 para el encargo; el resultado se sabe al hacerlo y después volvés a casa. Volviendo podés encadenar
+otro desde donde estás. Los laburos honestos y cobrar los negocios siguen siendo al instante.
 - **Encargos de las pandillas** (4, repetibles): 4 de energía, prueba de un atributo según la pandilla
   (Familia: labia · Sindicato: fuerza · Barra: dureza · Amarillos: reflejos). Paga `nivel × 10–18`, XP, +3 respeto, +3 calor, +3 afinidad.
 - **Golpes** (6, después del tutorial): pagan bien, suman respeto y calor. Con calor, te puede agarrar la policía
@@ -131,8 +140,21 @@ Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los enca
 **Nivel de búsqueda** (antes «calor») de 0 a 100. Lo suben los golpes, los encargos, las peleas en la calle y las misiones. Con calor alto, te detienen en
 los golpes y las emboscadas pasan a ser de la policía. El **abogado** baja 40 de calor por `20 + nivel × 8`.
 
-### 5.5 Feria y mercado negro
-1 arma + 1 protección equipadas. Lo que dejás de usar va al **armario** si hay lugar; si no, se pierde.
+### 5.5 Mercado, equipo e inventario
+**Cinco lugares de equipo (estilo RPG):** arma blanca y arma de fuego (suman al **golpe**) y cabeza, chaleco y ropa
+(suman a la **protección**). Lo que comprás te lo ponés si el lugar está vacío o es mejor; lo otro va al **bolso**
+(Casa › Equipo): entran 4 cosas más lo que dé el armario (+2 / +4 / +8). Desde el bolso te lo ponés, te lo sacás o lo
+**vendés** al 40%. Con lo mejor de todo: golpe +23 y protección +23 (igual que antes con dos lugares).
+
+| Lugar | Feria | Mercado negro (por rango) |
+|---|---|---|
+| Arma blanca | llave +3 ($30), bate +5 ($150), bastón +7 ($350) | manopla +7 (r1, $550), navaja +9 (r2, $1.300) |
+| Arma de fuego | revólver 38 +5 (nv 6, $450), pistola 9 mm +8 (nv 10, $1.000) | recortada +11 (r3, $2.200), fusil +14 (r4, $3.600) |
+| Cabeza | gorra +1 ($40), casco de moto +3 ($180) | casco antidisturbios +5 (r2, $1.000) |
+| Chaleco | chaleco acolchado +4 ($350) | robado a la policía +8 (r3, $1.800), del mercado negro +11 (r4, $2.900) |
+| Ropa | campera de cuero +2 ($25) | campera gruesa +5 (r1, $500), con placas +7 (r2, $1.200) |
+
+(Texto viejo de referencia:) 1 arma + 1 protección equipadas. Lo que dejás de usar va al **armario** si hay lugar; si no, se pierde.
 Neutral: llave (+3), bate (+6), bastón (+9); campera (+2), casco (+5), chaleco (+8); botiquín ($20, +50% de vida).
 **En el tutorial la feria solo vende la llave inglesa**; después muestra lo de tu nivel y avisa en qué nivel se desbloquea lo siguiente.
 **Suplemento de Don Tito** (desde nivel 3): +10 de vida máxima para siempre; cuesta `300 × (n+1)²` (el n-ésimo), hasta 10 (+100).

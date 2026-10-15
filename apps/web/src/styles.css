@@ -293,3 +293,18 @@ body{background:transparent}
 .spr.chasing .spr-ring{background:#e0524f;opacity:.9}
 .spr-name{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font:700 11px/1 var(--mono);color:var(--sodium);text-shadow:0 1px 3px #000;white-space:nowrap}
 .gps-status .crowd{float:right;color:var(--muted);font-size:.8rem;margin-left:10px}
+
+/* equipo estilo RPG */
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.slot{display:grid;gap:4px;justify-items:center;text-align:center;border:1px solid var(--line);background:#14161a;padding:10px;border-radius:6px}
+.slot.empty{opacity:.6;border-style:dashed}
+.slot .icon:empty{background:#0f1013}
+.gear-row{display:flex;gap:6px;flex-wrap:wrap}
+.gear-row .icon{width:40px;height:40px}
+.gear-row .icon svg,.gear-row .icon img{width:30px;height:30px}
+.gear-row .icon.empty{border-style:dashed;opacity:.5}
+
+/* secciones de cada pestaña */
+.subtabs{display:flex;flex-wrap:wrap;gap:4px;margin-top:-8px}
+.subtabs button{position:relative;font-size:.8rem;padding:5px 10px;background:transparent;border-color:transparent;color:var(--muted)}
+.subtabs button[aria-selected="true"]{color:var(--fg);border-color:var(--line);background:var(--panel)}
