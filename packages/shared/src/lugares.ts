@@ -1,8 +1,9 @@
 /* Los lugares de Maires, como los íconos del mapa de GTA: contactos que dan misiones, servicios, lugares para robar,
    trabajos, negocios y eventos. Cada uno está en un punto real del mapa, en un barrio (de ahí sale el viaje).
    Se destraban con el progreso (tutorial, nivel, rango) o con eventos del calendario (Halloween). */
-import { houseOf } from "./casas.js";
-import { GOLPES } from "./gangs.js";
+import { houseOf, spotIn } from "./casas.js";
+import { GEO_PLACES } from "./geo-data.js";
+import { GOLPES, VENUE_GOLPES } from "./gangs.js";
 import { POLICE_LVL } from "./missions.js";
 import { JOBS } from "./data.js";
 import { rankOf } from "./rules.js";
@@ -10,7 +11,8 @@ import type { Gang, PlayerState, TabKey } from "./types.js";
 
 export type LugarKind =
   | "bar" | "casa" | "gym" | "estadio" | "mercado" | "salud" | "contacto" | "policia"
-  | "golpe" | "laburo" | "negocio" | "concesionaria" | "evento" | "municipio" | "inmobiliaria" | "kiosco" | "subte";
+  | "golpe" | "laburo" | "negocio" | "concesionaria" | "evento" | "municipio" | "inmobiliaria" | "kiosco" | "subte" | "terminal";
+export type ShopKind = "armas" | "ropa" | "salud";
 
 export interface Lugar {
   id: string; name: string; kind: LugarKind; icon: string; barrio: string; lat: number; lng: number;
@@ -20,6 +22,7 @@ export interface Lugar {
   job?: string;             // golpe o laburo que se hace acá
   prop?: string;            // negocio que se compra acá
   care?: "guardia" | "clinica";
+  shop?: ShopKind;          // tienda de un solo rubro (si no, de todo)
   event?: string;           // solo durante ese evento
   deep?: boolean;           // se ve solo de muy cerca (los servicios de cada barrio)
   tab?: TabKey;             // pestaña que tiene que estar destrabada
@@ -30,12 +33,12 @@ export interface Lugar {
 export const KIND_COLOR: Record<LugarKind, string> = {
   bar: "#e6a14f", casa: "#e8e1d2", gym: "#5bc0de", estadio: "#5bc0de", mercado: "#8bd17c", salud: "#ff6b6b",
   contacto: "#e8e1d2", policia: "#cfd6e2", golpe: "#e0524f", laburo: "#9aa3ad", negocio: "#b98be0",
-  concesionaria: "#b98be0", evento: "#ff8c1a", municipio: "#9aa3ad", inmobiliaria: "#e8e1d2", kiosco: "#8bd17c", subte: "#5bc0de"
+  concesionaria: "#b98be0", evento: "#ff8c1a", municipio: "#9aa3ad", inmobiliaria: "#e8e1d2", kiosco: "#8bd17c", subte: "#5bc0de", terminal: "#9aa3ad"
 };
 export const KIND_NAME: Record<LugarKind, string> = {
   bar: "Contacto", casa: "Tu casa", gym: "Gimnasio", estadio: "Ring", mercado: "Mercado", salud: "Salud", contacto: "Contacto",
   policia: "Contacto", golpe: "Para robar", laburo: "Trabajo", negocio: "Negocio", concesionaria: "Vehículos", evento: "Evento", municipio: "Ciudad",
-  inmobiliaria: "Casas en venta", kiosco: "Kiosco", subte: "Subte"
+  inmobiliaria: "Casas en venta", kiosco: "Kiosco", subte: "Subte", terminal: "Viajes"
 };
 
 const L = (l: Lugar) => l;
@@ -96,6 +99,45 @@ export const LUGARES: Lugar[] = [
   L({ id: "cementerio", name: "Cementerio de Reloquita", kind: "evento", icon: "calabaza", event: "halloween", barrio: "Reloquita", lat: -34.5876, lng: -58.3932,
       help: "Noche de Brujas: alguien está robando de las bóvedas.", tutDone: true })
 ];
+/* tiendas de un rubro: salud, armas y ropa (la feria vende de todo) */
+const tienda = (id: string, name: string, shop: ShopKind, icon: string, barrio: string, help: string): Lugar => {
+  const [lat, lng] = spotIn(barrio, id);
+  return { id, name, kind: "mercado", icon, shop, barrio, lat, lng, help, tab: "feria" };
+};
+const [tLat, tLng] = spotIn("Salida", "terminal");
+LUGARES.push(
+  tienda("drogueria-agro", "Droguería Agromanía", "salud", "farmacia", "Agromanía", "Todo lo de salud: botiquines y suplementos, sin receta y sin preguntas."),
+  tienda("farmacia-once", "Farmacia Gran Once", "salud", "farmacia", "Once y Medio", "Botiquines y suplementos. Abierta las 24 horas, aunque el cartel diga que no."),
+  tienda("armeria-cazador", "Armería El Cazador", "armas", "armeria", "Floreros", "Armas blancas y de fuego. «Para caza y pesca», dice el cartel."),
+  tienda("cuchilleria-mosecraft", "Cuchillería La Colonial", "armas", "armeria", "Mosecraft", "Cuchillos, bastones y alguna cosa que no está en la vidriera."),
+  tienda("galeria-avellanedita", "Galería Avellanedita", "ropa", "ropa", "Floreros", "Ropa, cascos y chalecos a precio de fábrica."),
+  tienda("roperia-soja", "Ropería Palermo Soja", "ropa", "ropa", "Palermo Soja", "Lo mismo que en Avellanedita, pero el triple de caro y con música."),
+  { id: "terminal-salida", name: "Terminal de Ómnibus de Salida", kind: "terminal", icon: "terminal", barrio: "Salida", lat: tLat, lng: tLng,
+    help: "Micros a todo el país. Próximamente vas a poder viajar a otras provincias." }
+);
+
+/* Locales para robar en cada barrio: uno o dos por barrio, siempre los mismos. Se ven al entrar al barrio. */
+const VENUE_INFO: Record<string, { icon: string; names: string[] }> = {
+  "r-kiosco":   { icon: "kiosco",   names: ["Kiosco El Bichito", "Maxikiosco La Esquina", "Kiosco Los Pibes", "Drugstore 24", "Kiosco El Turco"] },
+  "r-mascotas": { icon: "mascotas", names: ["Pet Shop Firulais", "Veterinaria Patitas", "Forrajería El Rodeo", "Pet Shop Huellitas"] },
+  "r-cyber":    { icon: "cyber",    names: ["Cyber Matrix", "Ciber Pibes", "Locutorio y Cyber Planeta", "Cyber Counter"] },
+  "r-farmacia": { icon: "farmacia", names: ["Farmacia del Pueblo", "Farmacia Central", "Farmacia La Cruz Verde", "Farmacia Social"] },
+  "r-electro":  { icon: "electro",  names: ["Electro Mundo", "Casa Ofertón", "Electro Hogar", "La Casa del Lavarropas"] },
+  "r-joyeria":  { icon: "joyeria",  names: ["Joyería Brillantes", "Relojería Suiza", "Joyería El Diamante", "Compro Oro"] }
+};
+const hashOf = (k: string) => { let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) | 0; return Math.abs(h); };
+for (const [idx, b] of Object.keys(GEO_PLACES).entries()) {
+  const n = 1 + (hashOf(b) % 2), first = idx % VENUE_GOLPES.length; // todos los rubros, repartidos por la ciudad
+  for (let i = 0; i < n; i++) {
+    const job = VENUE_GOLPES[(first + i * 3) % VENUE_GOLPES.length]; // si son dos, de rubros distintos
+    const info = VENUE_INFO[job], id = `${job}-${b}`;
+    const [lat, lng] = spotIn(b, id);
+    const j = GOLPES.find(x => x.id === job)!;
+    LUGARES.push({ id, name: info.names[hashOf(`${id}#nombre`) % info.names.length], kind: "golpe", icon: info.icon, job, barrio: b, lat, lng, deep: true, tutDone: true,
+      help: `${j.name.replace("Robar", "Se puede robar")}. Desde nivel ${j.lvl}.` });
+  }
+}
+
 
 /* hospitales y clínicas: ya existen, se ubican cerca del centro de su barrio */
 export const careLugar = (name: string, place: string, care: "guardia" | "clinica", lat: number, lng: number): Lugar =>

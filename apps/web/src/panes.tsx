@@ -6,7 +6,7 @@ import {
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
   tripPhase, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
-  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, spotIn, missionPt
+  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, type ShopKind, spotIn, missionPt
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
 import SUBTE from "@pop/shared/subte.json";
@@ -154,7 +154,7 @@ export function PlacePanel(ui: Ui) {
     {l.kind === "casa" && <><House {...ui} /><Equipment {...ui} /></>}
     {l.kind === "gym" && <><Gym {...pane} /><Ring {...pane} /></>}
     {l.kind === "estadio" && <Tournament {...ui} />}
-    {l.kind === "mercado" && <Shop {...ui} />}
+    {l.kind === "mercado" && <Shop {...ui} only={l.shop} />}
     {l.kind === "salud" && <Hospital {...ui} />}
     {(l.kind === "negocio" || l.kind === "concesionaria") && <Business {...ui} />}
     {l.kind === "municipio" && <Ranking {...ui} />}
@@ -353,11 +353,12 @@ function Gym({ s, act, busy }: Ui) {
   </>;
 }
 
-function Shop({ s, act, busy }: Ui) {
-  const items = SHOP.filter(it => forSale(s, it) && it.lvl <= s.lvl + 3 && (!it.rank || s.tutDone));
+const SHOP_SLOTS: Record<ShopKind, string[]> = { armas: ["blanca", "fuego"], ropa: ["cabeza", "torso", "ropa"], salud: ["consumible"] };
+function Shop({ s, act, busy, only }: Ui & { only?: ShopKind }) {
+  const items = SHOP.filter(it => forSale(s, it) && it.lvl <= s.lvl + 3 && (!it.rank || s.tutDone) && (!only || (SHOP_SLOTS[only].includes(it.slot) && !it.rank)));
   return <>
-    <h2>Mercado</h2>
-    <p>{s.tutDone
+    {!only && <h2>Mercado</h2>}
+    <p>{only ? "" : s.tutDone
       ? "Armas blancas y de fuego, cascos, chalecos y ropa. Si el lugar está vacío (o lo nuevo es mejor) te lo ponés al toque; lo otro va a tu bolso, en Casa › Equipo. Cada nivel trae cosas nuevas; al fondo, el mercado negro, que se desbloquea subiendo de rango."
       : "Por ahora el puestero te vende una sola cosa: «Cuando Marga te dé el visto bueno, te muestro lo demás.»"}</p>
     <div className="list">{items.map(it => {

@@ -29,8 +29,16 @@ export const GOLPES: Job[] = [
   { id:"desarme",  name:"Laburo en el desarmadero",        cost:3, risk:2, gold:[38,75],   xp:[14,20], resp:2, heat:3, lvl:5,  fail:"Se te cayó un motor arriba del pie." },
   { id:"estacion", name:"Asalto a una estación de servicio", cost:4, risk:2, gold:[70,130], xp:[24,34], resp:3, heat:5, lvl:8,  fail:"El playero tenía un matafuegos y buena puntería." },
   { id:"contra",   name:"Contrabando en el puerto",        cost:5, risk:3, gold:[120,220], xp:[38,53], resp:4, heat:6, lvl:11, fail:"La carga se desarmó y te aplastó contra el contenedor." },
-  { id:"financ",   name:"Asalto a una financiera",         cost:6, risk:3, gold:[200,360], xp:[55,74], resp:5, heat:8, lvl:15, fail:"El de seguridad no estaba dormido." }
+  { id:"financ",   name:"Asalto a una financiera",         cost:6, risk:3, gold:[200,360], xp:[55,74], resp:5, heat:8, lvl:15, fail:"El de seguridad no estaba dormido." },
+  /* los locales de cada barrio (se hacen ahí, en el mapa) */
+  { id:"r-kiosco",   name:"Robar un kiosco",                cost:2, risk:1, gold:[15,30],   xp:[6,10],  resp:1, heat:2, lvl:2,  fail:"El kiosquero tenía un bate abajo del mostrador." },
+  { id:"r-mascotas", name:"Robar un pet shop",              cost:2, risk:1, gold:[16,34],   xp:[7,11],  resp:1, heat:1, lvl:3,  fail:"Un caniche te mordió el tobillo y no te soltó." },
+  { id:"r-cyber",    name:"Robar un cyber",                 cost:3, risk:1, gold:[30,60],   xp:[11,17], resp:2, heat:2, lvl:4,  fail:"Los pibes del Counter dejaron de jugar y te sacaron a patadas." },
+  { id:"r-farmacia", name:"Robar una farmacia",             cost:4, risk:2, gold:[60,110],  xp:[20,28], resp:2, heat:4, lvl:7,  fail:"La farmacéutica apretó el botón antipánico." },
+  { id:"r-electro",  name:"Robar una casa de electrodomésticos", cost:5, risk:2, gold:[100,180], xp:[30,42], resp:3, heat:5, lvl:10, fail:"Te quedaste trabado con un lavarropas en la puerta." },
+  { id:"r-joyeria",  name:"Robar una joyería",              cost:6, risk:3, gold:[180,320], xp:[48,64], resp:4, heat:7, lvl:14, fail:"La vidriera era blindada. Tu mano, no." }
 ];
+export const VENUE_GOLPES = ["r-kiosco", "r-mascotas", "r-cyber", "r-farmacia", "r-electro", "r-joyeria"];
 
 /* Encargos: trabajitos repetibles que cada pandilla te ofrece. Suman afinidad con esa pandilla. */
 export interface Encargo { gang: Gang; name: string; stat: "fue" | "dur" | "ref" | "lab"; ok: string; ko: string }
