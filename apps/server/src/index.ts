@@ -49,7 +49,7 @@ async function requireUser(req: any, reply: any): Promise<number | null> {
 app.get("/api/health", async () => ({ ok: true }));
 
 app.post("/api/auth/register", authLimit, async (req, reply) => {
-  const { username, password } = (req.body ?? {}) as Record<string, unknown>;
+  const { username, password, avatar } = (req.body ?? {}) as Record<string, unknown>;
   if (!validUsername(username)) return reply.code(400).send({ error: "El nombre va de 3 a 20 letras, números o espacios." });
   if (!validPassword(password)) return reply.code(400).send({ error: "La contraseña necesita al menos 6 caracteres." });
   const taken = await db.query(`SELECT 1 FROM users WHERE lower(username) = lower($1)`, [username]);
@@ -58,7 +58,7 @@ app.post("/api/auth/register", authLimit, async (req, reply) => {
   const token = await db.tx(async q => {
     const u = await q.query<{ id: number }>(`INSERT INTO users (username, pass_hash) VALUES ($1, $2) RETURNING id`, [username, hash]);
     const id = u.rows[0].id;
-    const s = newPlayer(username, Date.now());
+    const s = newPlayer(username, Date.now(), [1, 2, 3, 4].includes(avatar as number) ? avatar as number : 1);
     await q.query(`INSERT INTO players (user_id, name, gold, state) VALUES ($1, $2, $3, $4)`, [id, username, s.gold, JSON.stringify(s)]);
     return createSession(q, id);
   });

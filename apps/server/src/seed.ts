@@ -15,7 +15,7 @@ export async function seedTestPlayers(db: Db) {
   for (const [name, side, lvl] of PEOPLE) {
     const exists = await db.query(`SELECT 1 FROM users WHERE lower(username) = lower($1)`, [name]);
     if (exists.rows.length) continue;
-    const s = newPlayer(name, Date.now());
+    const s = newPlayer(name, Date.now(), 1 + PEOPLE.findIndex(p => p[0] === name) % 4);
     Object.assign(s, {
       lvl, gold: 400, side, tut: 6, tutDone: true, respect: 60,
       tabs: ["laburos", "gimnasio", "feria", "ring", "guardia", "misiones", "calle", "ranking"],

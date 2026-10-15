@@ -36,13 +36,13 @@ function catchUp(s: PlayerState, now: number) { regen(s, now); ambushCatchUp(s, 
 /* Rivales de La calle: primero jugadores reales del otro bando con nivel parecido, después personajes del juego */
 async function fillTargets(q: Queryable, id: number, s: PlayerState) {
   if (!s.side) return;
-  const real = await q.query<{ id: number; name: string; lvl: number; gold: number }>(
-    `SELECT p.id, p.name, p.lvl, p.gold FROM players p
+  const real = await q.query<{ id: number; name: string; lvl: number; gold: number; avatar: number | null }>(
+    `SELECT p.id, p.name, p.lvl, p.gold, (p.state->>'avatar')::int AS avatar FROM players p
       WHERE p.side = $1 AND p.id <> $2 AND p.lvl BETWEEN $3 AND $4
         AND NOT EXISTS (SELECT 1 FROM pvp_log l WHERE l.attacker_id = $2 AND l.defender_id = p.id AND l.at > now() - $5 * interval '1 millisecond')
       ORDER BY random() LIMIT 3`,
     [foeSide(s.side), id, s.lvl - 3, s.lvl + (s.lvl < 8 ? 1 : 3), PVP_SAME_TARGET_EVERY]);
-  const targets: Target[] = real.rows.map(r => ({ kind: "player", id: r.id, name: r.name, lvl: r.lvl, gold: Math.round(r.gold / 10) * 10 }));
+  const targets: Target[] = real.rows.map(r => ({ kind: "player", id: r.id, name: r.name, lvl: r.lvl, gold: Math.round(r.gold / 10) * 10, avatar: r.avatar ?? 1 }));
   const used = new Set(targets.map(t => t.name));
   while (targets.length < TARGETS) {
     const t = npcTarget(rng, s.side, s.lvl);

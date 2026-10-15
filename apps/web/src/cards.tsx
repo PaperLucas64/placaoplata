@@ -2,12 +2,17 @@
 import { useState } from "react";
 import { lawyerCost, MISSIONS, money, RANK_AT, RANKS, rankOf, salary, salaryLeft, TUT, type Side } from "@pop/shared";
 import type { Act, Ui } from "./Game";
+import { img, Portrait } from "./art";
+
+/* fondo de la tarjeta: la escena oscurecida para que el texto se lea */
+const cardBg = (scene: string) => ({ backgroundImage: `linear-gradient(90deg, rgba(20,16,10,.92) 30%, rgba(20,16,10,.7)), url(${img(`fondos/${scene}`)})` });
 
 export function Boss({ s, act, busy }: Ui) {
   const t = TUT[s.tut]; if (!t) return null;
   const done = t.goal(s);
   return (
-    <section className="boss" aria-live="polite">
+    <section className="boss" aria-live="polite" style={cardBg("bar")}>
+      <Portrait src={img("retratos/marga")} size={96} />
       <div className="head"><span className="tag">Marga, dueña del bar La Esquina · encargo {s.tut + 1} de {TUT.length}</span><h3>{t.title}</h3></div>
       <p className="say">«{t.say}»</p>
       <div className="goal">{done
@@ -22,6 +27,7 @@ export function Choice({ act, busy }: { act: Act; busy: boolean }) {
   const [pick, setPick] = useState<Side | null>(null);
   const card = (side: Side, who: string, title: string, say: string, items: string[]) => (
     <button className={`side-card ${side}`} aria-pressed={pick === side} onClick={() => setPick(side)}>
+      <span className="body"><img src={img(`retratos/${side === "placa" ? "rios" : "senora"}_cuerpo`)} alt="" /></span>
       <span className="tag">{who}</span><h3>{title}</h3><span className="say">«{say}»</span>
       <ul>{items.map(i => <li key={i}>{i}</li>)}</ul>
     </button>
@@ -60,7 +66,8 @@ export function Faction({ s, now, act, busy }: Ui) {
   const nextAt = RANK_AT[rk + 1];
   const left = salaryLeft(s, now);
   return (
-    <section className={`boss ${side}`} aria-live="polite">
+    <section className={`boss ${side}`} aria-live="polite" style={cardBg(side)}>
+      <Portrait src={img(`retratos/${p ? "rios" : "senora"}`)} side={side} size={96} />
       <div className="head"><span className="tag">{p ? "Comisaria Inés Ríos · Comisaría 4ª" : "La Señora · el depósito del puerto"}</span><h3>{RANKS[side][rk]}</h3></div>
       <p className="say">«{say}»</p>
       <div className="goal">

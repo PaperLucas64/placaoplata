@@ -5,6 +5,8 @@ import {
 } from "@pop/shared";
 import { api, type RankRow } from "./api";
 import type { Ui } from "./Game";
+import { avatarImg, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
+import { ItemIcon } from "./icons";
 
 const riskTxt = ["", "bajo", "medio", "alto"];
 
@@ -41,8 +43,10 @@ function Jobs({ s, act, busy }: Ui) {
 
 function Gym({ s, act, busy }: Ui) {
   return <>
-    <h2>Gimnasio de Don Tito</h2>
-    <p>Cada punto cuesta más que el anterior.</p>
+    <div className="with-art">
+      <Portrait src={img("retratos/tito")} size={72} />
+      <div><h2>Gimnasio de Don Tito</h2><p className="say">«Cada punto cuesta más que el anterior, pibe. Así es la vida.»</p></div>
+    </div>
     <div className="list">{(Object.keys(STAT_NAMES) as StatKey[]).map(k => {
       const c = trainCost(s.stats[k]);
       return <div className="item" key={k}>
@@ -60,9 +64,9 @@ function Shop({ s, act, busy }: Ui) {
     <div className="list">{SHOP.filter(it => it.lvl <= s.lvl + 3 && (!it.side || it.side === s.side)).map(it => {
       const own = it.slot !== "consumible" && s.gear[it.slot] === it.id;
       return <div className="item" key={it.id}>
-        <div><h3>{it.name}{it.side && <span className={`badge ${it.side}`} style={{ marginLeft: 6 }}>{it.side === "placa" ? "armería" : "mercado negro"}</span>}</h3>
+        <div className="with-art"><ItemIcon id={it.id} /><div><h3>{it.name}{it.side && <span className={`badge ${it.side}`} style={{ marginLeft: 6 }}>{it.side === "placa" ? "armería" : "mercado negro"}</span>}</h3>
           <div className="meta num">{it.slot === "consumible" ? "Se usa desde la guardia" : `${it.slot === "arma" ? "golpe" : "protección"} +${it.val}`} · {money(it.price)}
-            {s.lvl < it.lvl && ` · desde nivel ${it.lvl}`}{it.rank && it.side && rankOf(s) < it.rank ? ` · desde rango ${RANKS[it.side][it.rank]}` : ""}</div></div>
+            {s.lvl < it.lvl && ` · desde nivel ${it.lvl}`}{it.rank && it.side && rankOf(s) < it.rank ? ` · desde rango ${RANKS[it.side][it.rank]}` : ""}</div></div></div>
         <div className="act"><button disabled={busy || own || s.gold < it.price || itemLocked(s, it)} onClick={() => act({ type: "buy", id: it.id })}>{own ? "Lo tenés" : "Comprar"}</button></div>
       </div>;
     })}</div>
@@ -75,8 +79,9 @@ function Ring({ s, act, busy }: Ui) {
     <p>Peleas de gimnasio. Cada una gasta 3 de energía. Si perdés, no perdés plata: solo orgullo.</p>
     <div className="list">{RING.map((m, i) => (
       <div className="item" key={m.name}>
-        <div><h3>{m.name}<span className={`risk r${m.mult < 0.9 ? 1 : m.mult < 1.3 ? 2 : 3}`}>×{m.mult.toFixed(1)}</span></h3>
-          <div className="meta">{s.lvl < m.lvl ? `Pelea con gente de nivel ${m.lvl} para arriba` : m.lore}</div></div>
+        <div className="with-art"><Portrait src={silhouette(m.name)} silhouetteOf size={52} />
+          <div><h3>{m.name}<span className={`risk r${m.mult < 0.9 ? 1 : m.mult < 1.3 ? 2 : 3}`}>×{m.mult.toFixed(1)}</span></h3>
+          <div className="meta">{s.lvl < m.lvl ? `Pelea con gente de nivel ${m.lvl} para arriba` : m.lore}</div></div></div>
         <div className="act"><button disabled={busy || s.energy < 3 || s.hp < 2 || s.lvl < m.lvl} onClick={() => act({ type: "spar", i })}>Pelear</button></div>
       </div>))}
     </div>
@@ -106,7 +111,7 @@ function MissionRun({ M, ...ui }: Ui & { M: Mission }) {
     <ol className="steps">{M.steps.map((st, i) => (
       <li key={i} className={i < step ? "ok" : i === step ? "now" : ""}>
         <span className="n">{i < step ? "✓" : i + 1}</span>
-        <span>{st.text}{i === step && <><br /><span className="tag">{st.fight ? "pelea" : st.auto ? "entrega" : `prueba de ${STAT_NAMES[st.stat!].toLowerCase()}`} · {st.energy} energía</span></>}</span>
+        <span>{i === step && st.fight && hasPortrait(st.fight.name) && <span style={{ float: "right", marginLeft: 10 }}><Portrait src={portraitOf(st.fight.name)} size={72} /></span>}{st.text}{i === step && <><br /><span className="tag">{st.fight ? "pelea" : st.auto ? "entrega" : `prueba de ${STAT_NAMES[st.stat!].toLowerCase()}`} · {st.energy} energía</span></>}</span>
       </li>))}
     </ol>
     {mission && <p className={`result ${mission.ok ? "good" : "bad"}`}>{mission.text}</p>}
@@ -152,8 +157,10 @@ function Street({ s, act, busy }: Ui) {
     <div className="list">{s.targets.map((t, i) => {
       const d = t.lvl - s.lvl;
       return <div className="item" key={`${t.name}-${i}`}>
-        <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">jugador</span>}</h3>
-          <div className="meta num">Lleva unos {money(t.gold)}</div></div>
+        <div className="with-art">
+          <Portrait src={t.kind === "player" ? avatarImg(t.avatar) : silhouette(t.name)} side={p ? "plata" : "placa"} silhouetteOf={t.kind !== "player"} size={56} />
+          <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">jugador</span>}</h3>
+          <div className="meta num">Lleva unos {money(t.gold)}</div></div></div>
         <div className="act"><button disabled={busy || s.energy < DUEL_COST || weak} onClick={() => act({ type: "duel", i })}>{p ? "Arrestar" : "Atacar"}</button></div>
       </div>;
     })}</div>

@@ -29,10 +29,11 @@ export interface LogEntry { t: number; msg: string; cls?: "good" | "bad" | "gold
 /* Rivales de La calle: personajes del juego o jugadores reales del otro bando */
 export type Target =
   | { kind: "npc"; name: string; lvl: number; gold: number }
-  | { kind: "player"; id: number; name: string; lvl: number; gold: number };
+  | { kind: "player"; id: number; name: string; lvl: number; gold: number; avatar?: number };
 
 export interface PlayerState {
   name: string; lvl: number; xp: number; gold: number; energy: number; hp: number;
+  avatar?: number; // retrato elegido al crear el personaje (1 a 4)
   stats: Record<StatKey, number>;
   gear: { arma: string | null; armadura: string | null };
   potions: number; wins: number; losses: number;

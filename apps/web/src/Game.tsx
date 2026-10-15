@@ -4,6 +4,7 @@ import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Choice, Faction } from "./cards";
 import { Chronicle, Fight, Sheet } from "./parts";
 import { Pane } from "./panes";
+import { sceneFor } from "./art";
 
 export type Act = (a: Action) => Promise<void>;
 export interface Ui { s: PlayerState; now: number; act: Act; busy: boolean; mission: { ok: boolean; text: string } | null }
@@ -79,8 +80,11 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
               </button>
             ))}
           </nav>
-          <section className="pane"><Pane tab={tab} {...ui} /></section>
-          {showFight && <Fight f={fight} />}
+          <section className="pane">
+            <div className="scene" style={{ backgroundImage: `url(${sceneFor(tab, s.side)})` }} aria-hidden="true" />
+            <Pane tab={tab} {...ui} />
+          </section>
+          {showFight && <Fight f={fight} avatar={s.avatar} side={s.side} />}
         </main>
       </div>
       <Chronicle s={s} onOut={onOut} />

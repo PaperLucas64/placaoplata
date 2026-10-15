@@ -23,9 +23,9 @@ export const lawyerCost = (s: PlayerState) => 20 + s.lvl * 8;
 export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * 0.25));
 export const itemLocked = (s: PlayerState, it: Item) => s.lvl < it.lvl || (!!it.rank && rankOf(s) < it.rank);
 
-export function newPlayer(name: string, now: number): PlayerState {
+export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
   const s: PlayerState = {
-    name, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
+    name, avatar, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
     stats: { fue: 5, dur: 5, ref: 5, agu: 5, lab: 5 },
     gear: { arma: null, armadura: null }, potions: 0, wins: 0, losses: 0,
     tut: 0, tutDone: false, tabs: ["laburos"], seenTab: {},

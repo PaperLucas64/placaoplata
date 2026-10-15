@@ -3,6 +3,8 @@ import {
   clamp, ENERGY_EVERY, ENERGY_MAX, maxHp, money, RANKS, rankOf, SHOP, STAT_NAMES, xpNeed,
   type FightView, type PlayerState, type StatKey
 } from "@pop/shared";
+import { avatarImg, Portrait, portraitOf } from "./art";
+import { ItemIcon } from "./icons";
 
 export function Bar({ cls, label, v, max, note }: { cls: string; label: string; v: number; max: number; note?: string }) {
   return (
@@ -19,10 +21,13 @@ export function Sheet({ s, now }: { s: PlayerState; now: number }) {
   const w = SHOP.find(i => i.id === s.gear.arma), a = SHOP.find(i => i.id === s.gear.armadura);
   return (
     <aside className="sheet">
+      <div className="who-row">
+      <Portrait src={avatarImg(s.avatar)} side={s.side} size={84} />
       <div className="who">
         <h2>{s.name}</h2>
         {s.side === "placa" ? <span className="badge placa">Policía</span> : s.side === "plata" ? <span className="badge plata">Delincuente</span> : <span className="badge">Recién llegado</span>}
         <span className="tag">Nivel {s.lvl}</span>
+      </div>
       </div>
       <Bar cls="hp" label="Vida" v={Math.round(s.hp)} max={mh} />
       <Bar cls="en" label="Energía" v={s.energy} max={ENERGY_MAX} note={nextE ? `+1 en ${nextE}s` : ""} />
@@ -37,8 +42,8 @@ export function Sheet({ s, now }: { s: PlayerState; now: number }) {
       )}
       {s.tabs.includes("feria") && (
         <div className="gear">
-          <span>Mano: {w ? `${w.name} (+${w.val})` : "nada"}</span>
-          <span>Encima: {a ? `${a.name} (+${a.val})` : "ropa de calle"}</span>
+          <span className="with-art">{w && <ItemIcon id={w.id} />}<span>Mano: {w ? `${w.name} (+${w.val})` : "nada"}</span></span>
+          <span className="with-art">{a && <ItemIcon id={a.id} />}<span>Encima: {a ? `${a.name} (+${a.val})` : "ropa de calle"}</span></span>
           {s.potions > 0 && <span>Botiquines: {s.potions}</span>}
         </div>
       )}
@@ -46,13 +51,14 @@ export function Sheet({ s, now }: { s: PlayerState; now: number }) {
   );
 }
 
-export function Fight({ f }: { f: FightView }) {
+export function Fight({ f, avatar, side }: { f: FightView; avatar?: number; side?: PlayerState["side"] }) {
+  const foe = side === "placa" ? "plata" : side === "plata" ? "placa" : null;
   return (
     <section className={`fight ${f.won ? "" : "shake"}`} aria-live="polite">
       <div className="vs">
-        <div className="side"><h3>{f.p.name}</h3><Bar cls="hp" label="Vida" v={f.p.hp} max={f.p.max} /></div>
+        <div className="side"><Portrait src={avatarImg(avatar)} side={side} size={72} /><h3>{f.p.name}</h3><Bar cls="hp" label="Vida" v={f.p.hp} max={f.p.max} /></div>
         <div className="mid">VS</div>
-        <div className="side"><h3>{f.e.name}</h3><Bar cls="hp" label="Vida" v={f.e.hp} max={f.e.max} /></div>
+        <div className="side"><Portrait src={portraitOf(f.e.name)} side={foe} silhouetteOf size={72} /><h3>{f.e.name}</h3><Bar cls="hp" label="Vida" v={f.e.hp} max={f.e.max} /></div>
       </div>
       <div className="rounds">{f.rounds.map((r, i) => <div key={i} className={r.who}>{r.txt}</div>)}</div>
       <div className={`verdict ${f.won ? "win" : "lose"}`}>{f.won ? "Ganaste" : "Perdiste"}</div>
@@ -64,15 +70,37 @@ const hhmm = (t: number) => new Date(t).toLocaleTimeString("es-AR", { hour: "2-d
 
 export function Chronicle({ s, onOut }: { s: PlayerState; onOut: () => void }) {
   const [confirm, setConfirm] = useState(false);
+  const [credits, setCredits] = useState(false);
   return (
     <section className="log">
       <div className="foot"><h3>Crónica</h3>
         <div className="confirm">{confirm
           ? <>¿Salir de tu cuenta? <button className="primary" onClick={onOut}>Sí, salir</button><button onClick={() => setConfirm(false)}>Cancelar</button></>
-          : <button className="link" onClick={() => setConfirm(true)}>Salir</button>}
+          : <><button className="link" onClick={() => setCredits(true)}>Créditos</button><button className="link" onClick={() => setConfirm(true)}>Salir</button></>}
         </div>
       </div>
       <ol>{s.log.map((l, i) => <li key={i}><time>{hhmm(l.t)}</time><span className={l.cls}>{l.msg}</span></li>)}</ol>
+      {credits && <Credits onClose={() => setCredits(false)} />}
     </section>
+  );
+}
+
+/* Créditos del arte (algunas licencias lo piden; las demás lo agradecen). Ver docs/CREDITOS.md */
+export function Credits({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="credits" role="dialog" aria-modal="true" aria-label="Créditos" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()}>
+        <h2>Créditos</h2>
+        <p>Placa o Plata es un juego de Mauspi Lab.</p>
+        <ul>
+          <li><b>Fondos:</b> Noraneko Games (@NoranekoGames), packs de fondos para novela visual. Modificados (recorte y filtro nocturno).</li>
+          <li><b>Retratos y siluetas:</b> わたおきば / Wataokiba (わたおび), personajes de cuerpo entero. Recortados.</li>
+          <li><b>Armas de fuego:</b> arlantr, Free Guns Pixel Art (arlantr.itch.io).</li>
+          <li><b>Íconos:</b> Prinbles, Yet Another Icons (prinbles.itch.io), y Robert Brooks, gamedeveloperstudio.com.</li>
+          <li><b>Resto de íconos, código y diseño:</b> Mauspi Lab.</li>
+        </ul>
+        <div><button className="primary" onClick={onClose}>Cerrar</button></div>
+      </div>
+    </div>
   );
 }

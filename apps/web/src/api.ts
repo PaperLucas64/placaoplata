@@ -18,7 +18,7 @@ export interface Snapshot { state: PlayerState; now: number }
 export interface RankRow { name: string; side: "placa" | "plata"; resp: number; lvl: number; me: boolean; npc: boolean }
 
 export const api = {
-  register: (username: string, password: string) => call("/api/auth/register", { username, password }),
+  register: (username: string, password: string, avatar: number) => call("/api/auth/register", { username, password, avatar }),
   login: (username: string, password: string) => call("/api/auth/login", { username, password }),
   logout: () => call("/api/auth/logout", {}),
   me: () => call<Snapshot & { id: number }>("/api/me"),
