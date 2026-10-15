@@ -36,6 +36,22 @@ function darken(st: StyleSpecification): StyleSpecification {
   return { ...st, layers };
 }
 
+/* ---------- vista satélite (Esri World Imagery), oscurecida para que siga siendo de noche ---------- */
+const ESRI_KEY = (import.meta.env.VITE_ESRI_KEY as string | undefined) ?? "";
+const SAT_TILES = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}${ESRI_KEY ? `?token=${ESRI_KEY}` : ""}`;
+function satellite(base: StyleSpecification): StyleSpecification {
+  return {
+    version: 8, glyphs: base.glyphs, sprite: base.sprite,
+    sources: { sat: { type: "raster", tiles: [SAT_TILES], tileSize: 256, maxzoom: 19,
+      attribution: "Imágenes © Esri, Maxar, Earthstar Geographics" } },
+    layers: [{ id: "sat", type: "raster", source: "sat",
+      paint: { "raster-brightness-max": 0.62, "raster-saturation": -0.3, "raster-contrast": 0.08 } }]
+  };
+}
+const SAT_KEY = "maires.satelite";
+const readSat = () => { try { return localStorage.getItem(SAT_KEY) === "1"; } catch { return false; } };
+const saveSat = (v: boolean) => { try { localStorage.setItem(SAT_KEY, v ? "1" : "0"); } catch { /* sin almacenamiento: solo por esta vez */ } };
+
 const COLORS: Record<string, string> = { ambulancia: "#ff6b6b", pie: "#e8e1d2", colectivo: "#f2c94c", taxi: "#f2c94c", micro: "#e6a14f", moto: "#e0524f", auto: "#e0524f", subte: "#5bc0de", tren: "#8bd17c" };
 
 const ll = (p: Pt): [number, number] => [p[1], p[0]];
@@ -105,6 +121,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   const self = others?.find(o => o.id < 0);
   const traveling = !!place || !!self;
   const [follow, setFollow] = useState(traveling);
+  const [sat, setSat] = useState(readSat);
   useEffect(() => { if (traveling) setFollow(true); }, [traveling]);
   const followRef = useRef(follow);
   followRef.current = follow;
@@ -117,7 +134,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     if (!box.current || !data) return;
     const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME];
     const map = new maplibregl.Map({
-      container: box.current, style: data.style, center: [home.lng, home.lat], zoom: 12, locale: LOCALE,
+      container: box.current, style: sat ? satellite(data.style) : data.style, center: [home.lng, home.lat], zoom: 12, locale: LOCALE,
       attributionControl: { compact: true }, cooperativeGestures: true, dragRotate: false, pitchWithRotate: false
     });
     map.touchZoomRotate.disableRotation();
@@ -158,7 +175,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
       me.current = new maplibregl.Marker({ element: spriteEl(sprite, { me: true, label: "Vos" }), anchor: "bottom" }).setLngLat([home.lng, home.lat]).addTo(map);
     }
     return () => { map.remove(); me.current = null; mapRef.current = null; markers.current.clear(); prev.current.clear(); };
-  }, [data, place, mode, sprite, owners, homeName, path ? path.length : 0]);
+  }, [data, place, mode, sprite, owners, homeName, path ? path.length : 0, sat]);
 
   /* el camino por las cuadras cuando salís a buscar a alguien */
   const chasePath = self?.chase?.path ? JSON.stringify(self.chase.path) : "";
@@ -253,6 +270,8 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
   if (failed) return <div className={`gps off ${className}`} style={style}><span className="tag">El mapa no cargó. El juego sigue igual.</span></div>;
   return <div className={`gps ${className}`} style={style}>
     <div className="gps-canvas" ref={box} />
+    <button className={`gps-view ${sat ? "on" : ""}`} onClick={() => setSat(v => { saveSat(!v); return !v; })} aria-pressed={sat}
+      title={sat ? "Ver el mapa de calles" : "Ver las imágenes satelitales"}>{sat ? "Mapa" : "Satélite"}</button>
     {(sprite || self) && <button className={`gps-follow ${follow ? "on" : ""}`} onClick={() => setFollow(f => !f)} aria-pressed={follow}
       title={follow ? "Dejar de seguir a tu personaje" : "Seguir a tu personaje"}>{follow ? "Siguiéndote" : "Seguirme"}</button>}
   </div>;

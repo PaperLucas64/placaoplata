@@ -29,3 +29,5 @@ Si se agrega arte nuevo: anotar acá el pack, el autor y la licencia, y sumarlo 
 
 - **Personajes caminando (estilo RPG Maker MV):** «ゆうひな素材» (Yuhina) de 明石アカ. Se usan dentro del juego; según sus
   condiciones no se pueden redistribuir sueltos (ni modificados), por eso el repositorio tiene que ser privado.
+- **Vista satélite:** Esri World Imagery (imágenes © Esri, Maxar, Earthstar Geographics). Para producción, Esri pide una
+  cuenta gratis de ArcGIS Location Platform: su clave va en la variable `VITE_ESRI_KEY` del build (si no está, se usa sin clave).
