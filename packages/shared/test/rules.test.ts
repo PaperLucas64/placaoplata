@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  BARRIOS, coopMission, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
+  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -303,5 +303,31 @@ describe("territorio", () => {
     const s = veteran("Ana", "barra"); s.turf = 3;
     expect(turfMult(s)).toBeCloseTo(1.06);
     expect(turfMult(veteran("Beto"))).toBe(1); // suelto: sin bonus
+  });
+});
+
+describe("torneo del Ring", () => {
+  it("la temporada es el mes y hay una ronda por día", () => {
+    expect(seasonOf(Date.UTC(2026, 9, 15))).toBe("2026-10");
+    expect(roundsIn("2026-10")).toBe(30);
+    expect(roundAt("2026-10", 1)).toBe(Date.UTC(2026, 9, 2));
+    expect(seasonName("2026-10")).toBe("octubre 2026");
+  });
+  it("empareja por puntaje y no repite rival", () => {
+    const e = [
+      { id: 1, points: 3, opponents: [2] }, { id: 2, points: 3, opponents: [1] },
+      { id: 3, points: 1, opponents: [] }, { id: 4, points: 1, opponents: [] }
+    ];
+    const pairs = swissPairs(e, seeded(1));
+    for (const [a, b] of pairs) expect(a.opponents).not.toContain(b?.id);
+    expect(pairs.length).toBe(2);
+  });
+  it("si son impares, uno pasa sin pelear", () => {
+    const pairs = swissPairs([1, 2, 3].map(id => ({ id, points: 0, opponents: [] })), seeded(4));
+    expect(pairs.filter(([, b]) => b === null).length).toBe(1);
+  });
+  it("el desempate suma los puntos de los rivales", () => {
+    const all = [{ id: 1, points: 2, opponents: [2, 3] }, { id: 2, points: 3, opponents: [1] }, { id: 3, points: 1, opponents: [1] }];
+    expect(buchholz(all[0], all)).toBe(4);
   });
 });

@@ -12,6 +12,7 @@ import { newPlayer, type Action } from "@pop/shared";
 import { openDb } from "./db.js";
 import { checkPassword, COOKIE, createSession, deleteSession, hashPassword, SESSION_DAYS, userFromToken, validPassword, validUsername } from "./auth.js";
 import { GameError, makeGame } from "./game.js";
+import { makeRing } from "./ring.js";
 import { seedTestPlayers } from "./seed.js";
 
 const PROD = process.env.NODE_ENV === "production";
@@ -108,6 +109,19 @@ app.get("/api/territory", async (req, reply) => {
   return { map: t.map, owned: t.owned };
 });
 
+/* ---------- torneo del Ring ---------- */
+const ring = makeRing(db, game.touch, notify);
+app.get("/api/ring", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return ring.view(await game.idOf(uid));
+});
+app.post("/api/ring/join", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return ring.join(await game.idOf(uid));
+});
+/* las rondas se juegan solas: se revisa cada 5 minutos si toca alguna */
+const ringTimer = setInterval(() => ring.process().catch(e => app.log.error(e)), 5 * 60_000);
+
 /* ---------- amigos y misiones de a dos ---------- */
 const num = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : NaN);
 app.get("/api/friends", async (req, reply) => {
@@ -167,6 +181,10 @@ if (!PROD) app.post("/api/dev/seed", async (req, reply) => {
   if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) return reply.code(403).send({ error: "Solo local." });
   return { created: await seedTestPlayers(db) };
 });
+if (!PROD) app.post("/api/dev/ring-round", async (req, reply) => {
+  if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) return reply.code(403).send({ error: "Solo local." });
+  return ring.playNextNow();
+});
 
 await app.listen({ port: PORT, host: "0.0.0.0" });
 console.log(`Malos Aires escuchando en http://localhost:${PORT}`);
@@ -176,6 +194,7 @@ console.log(`Malos Aires escuchando en http://localhost:${PORT}`);
 let closing = false;
 export async function shutdown() {
   if (closing) return; closing = true;
+  clearInterval(ringTimer);
   for (const set of sockets.values()) for (const ws of set) ws.close(1012, "reiniciando");
   await app.close();
   await db.close();

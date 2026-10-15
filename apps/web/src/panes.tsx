@@ -4,7 +4,7 @@ import {
   trainTime, healCost, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionMins, missionNeed, missionReq, STREET_DIFF, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey
 } from "@pop/shared";
-import { api, type BarrioView, type FriendsView, type RankRow } from "./api";
+import { api, type BarrioView, type FriendsView, type RankRow, type RingView } from "./api";
 import type { Ui } from "./Game";
 import { avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
@@ -94,9 +94,11 @@ function Shop({ s, act, busy }: Ui) {
   </>;
 }
 
-function Ring({ s, act, busy }: Ui) {
+function Ring(ui: Ui) {
+  const { s, act, busy } = ui;
   return <>
-    <h2>El ring</h2>
+    {s.tutDone && <Tournament {...ui} />}
+    <h2>Peleas de práctica</h2>
     <p>Peleas de gimnasio. Cada una gasta 3 de energía. Si perdés, no perdés plata: solo orgullo.</p>
     <div className="list">{RING.map((m, i) => (
       <div className="item" key={m.name}>
@@ -107,6 +109,32 @@ function Ring({ s, act, busy }: Ui) {
       </div>))}
     </div>
   </>;
+}
+
+/* Torneo mensual: una ronda suiza por día, se pelea solo */
+function Tournament({ now, ping, refresh, toast }: Ui) {
+  const [t, setT] = useState<RingView | null>(null);
+  const load = () => api.ring().then(setT).catch(() => {});
+  useEffect(() => { load(); }, [ping]);
+  if (!t) return <p className="tag">Cargando el torneo…</p>;
+  const hours = (ms: number) => { const h = Math.max(0, Math.round((ms - now) / 3_600_000)); return h < 1 ? "menos de una hora" : `${h} ${h === 1 ? "hora" : "horas"}`; };
+  const best = t.history.length ? Math.min(...t.history.map(h => h.place)) : null;
+  return <div className="thread" style={{ borderColor: "var(--sodium)" }}>
+    <h2>Torneo del Ring · {t.seasonName}</h2>
+    <p>Una ronda por día, a las 21 h. Te emparejan con alguien de tu mismo puntaje, sin repetir rival, y la pelea se resuelve sola con tus atributos y tu equipo (no hace falta estar conectado). Si hay pocos anotados, se suman boxeadores del barrio. Al cerrar el mes: premio para el podio y respeto para todos.</p>
+    <p className="num">Ronda {t.done} de {t.rounds}{t.nextRoundAt ? ` · la próxima en ${hours(t.nextRoundAt)}` : ""} · cierra en {hours(t.closesAt)}</p>
+    {!t.joined
+      ? <div><button className="primary" onClick={() => api.ringJoin().then(() => { toast("Te anotaste en el torneo.", true); load(); refresh(); }).catch(e => toast(e.message))}>Anotarme gratis</button></div>
+      : !!t.matches.length && <p>{t.matches.map(m => `R${m.round}: ${m.rival ? `${m.won ? "le ganaste a" : "perdiste con"} ${m.rival}` : "pasaste sin pelear"}`).join(" · ")}</p>}
+    {t.table.some(r => !r.npc) && <ol className="ranking">{t.table.slice(0, 16).map(r => (
+      <li key={`${r.name}-${r.place}`} className={r.me ? "me" : ""}>
+        <span className="pos">{r.place}</span><span>{r.name}{r.npc && <span className="tag"> · del barrio</span>}</span>
+        <span className="tag num">{r.wins}-{r.losses}</span><span className="num">{r.points} pts</span>
+      </li>))}
+    </ol>}
+    {best && <p className="tag">Tu historial: {t.history.length} {t.history.length === 1 ? "torneo" : "torneos"} · mejor puesto: {best}º · {t.history.map(h => `${h.name}: ${h.place}º de ${h.entrants}`).join(" · ")}</p>}
+    {!!t.champions.length && <p className="tag">Campeones: {t.champions.map(c => `${c.seasonName}: ${c.name}`).join(" · ")}</p>}
+  </div>;
 }
 
 function Hospital({ s, act, busy }: Ui) {

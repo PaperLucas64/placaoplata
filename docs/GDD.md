@@ -216,6 +216,16 @@ plata encima), XP, respeto, +4 calor. **Lo guardado en la caja fuerte no se pued
 - **Dueño:** la pandilla con más influencia, si tiene al menos 10 y no está empatada; si no, **en disputa**.
 - **Premio:** cada barrio de tu pandilla te da **+2% de plata** en golpes, encargos y misiones.
 
+### 5.8c Torneo del Ring (temporada mensual)
+- **Temporada = un mes.** Te anotás gratis desde la pestaña Ring cuando quieras (después del tutorial); sumás desde la ronda siguiente.
+- **Una ronda por día**, a las 21 h de Argentina (00:00 UTC): 28 a 30 rondas por mes. **Tiempo humano:** nadie tiene que estar
+  conectado; la pelea se resuelve sola con tus atributos y tu equipo, con la vida llena y quién pega primero al azar. El resultado queda en la crónica.
+- **Formato suizo:** se empareja por puntos, al azar entre los que van igual y sin repetir rival. Si sobra uno, pasa de ronda (+1 punto).
+  Desempate: suma de puntos de tus rivales (Buchholz), después nivel.
+- **Mínimo 8 boxeadores:** si hay menos inscriptos se completa con boxeadores del barrio de nivel parecido.
+- **Premios al cerrar el mes:** 1º nivel×$300 y +100 de respeto; 2º nivel×$200 y +60; 3º nivel×$120 y +40; el resto +10 por participar.
+- **Historial:** tu puesto de cada mes queda guardado para siempre, y la pestaña muestra los últimos campeones.
+
 ### 5.9 La casa
 Se mejora con plata y **tiempo de obra** (una obra a la vez, no te bloquea).
 

@@ -16,6 +16,13 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 
 export interface Snapshot { state: PlayerState; now: number }
 export interface BarrioView { barrio: string; owner: Gang | null; points: Record<Gang, number> }
+export interface RingView {
+  season: string; seasonName: string; rounds: number; done: number; nextRoundAt: number | null; closesAt: number; joined: boolean;
+  table: { place: number; name: string; npc: boolean; me: boolean; points: number; wins: number; losses: number; lvl: number }[];
+  matches: { round: number; rival: string | null; won: boolean }[];
+  history: { season: string; name: string; place: number; points: number; entrants: number }[];
+  champions: { season: string; seasonName: string; name: string; points: number }[];
+}
 export interface Person { id: number; name: string; lvl: number; gang: Gang | null; avatar: number; online: boolean }
 export interface FriendsView {
   friends: Person[]; incoming: Person[]; outgoing: Person[];
@@ -32,6 +39,8 @@ export const api = {
   ranking: () => call<RankRow[]>("/api/ranking"),
   territory: () => call<{ map: BarrioView[]; owned: Record<Gang, number> }>("/api/territory"),
   friends: () => call<FriendsView>("/api/friends"),
+  ring: () => call<RingView>("/api/ring"),
+  ringJoin: () => call("/api/ring/join", {}),
   addFriend: (name: string) => call<{ ok: boolean; accepted: boolean }>("/api/friends/add", { name }),
   acceptFriend: (id: number) => call("/api/friends/accept", { id }),
   removeFriend: (id: number) => call("/api/friends/remove", { id }),

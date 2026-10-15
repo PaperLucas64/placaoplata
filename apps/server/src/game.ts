@@ -328,5 +328,9 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     return rows.sort((a, b) => b.resp - a.resp);
   }
 
-  return { me, act, ranking, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
+  /* cambiar el estado de un jugador desde afuera (torneo del Ring): con candado y guardado como siempre */
+  const touch = (playerId: number, fn: (s: PlayerState, now: number) => void) =>
+    session([playerId], async (_q, rows, now) => { const r = rows.get(playerId); if (r) fn(r.state, now); });
+
+  return { me, act, ranking, idOf, touch, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
 }

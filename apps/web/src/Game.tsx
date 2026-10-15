@@ -38,6 +38,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4500); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => connectLive(m => {
+    if (m.type === "ring") { setPing(p => p + 1); refresh(); }
     if (m.type === "friend" || m.type === "coop") {
       const msgs: Record<string, string> = {
         request: "Te mandaron una solicitud de amistad.", accepted: m.type === "friend" ? "Aceptaron tu solicitud de amistad." : "Aceptaron tu misión de a dos.",
