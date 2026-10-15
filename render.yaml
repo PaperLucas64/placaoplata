@@ -1,0 +1,21 @@
+# Servidor del juego en Render (https://render.com). Se crea con "New → Blueprint" eligiendo este repo.
+# La única cosa que pide a mano es DATABASE_URL (la base Postgres de Neon).
+services:
+  - type: web
+    name: placaoplata
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: npm ci --include=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: WEB_ORIGIN
+        value: https://cinectomia.com,https://www.cinectomia.com
+      - key: DATABASE_URL
+        sync: false

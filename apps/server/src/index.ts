@@ -18,8 +18,10 @@ const PROD = process.env.NODE_ENV === "production";
 /* en desarrollo siempre 3000 (Vite apunta ahí); en producción, el puerto que da el hosting */
 const PORT = Number(process.env.API_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3000);
 
+if (PROD && !process.env.DATABASE_URL) throw new Error("En producción hace falta DATABASE_URL (Postgres).");
 const db = await openDb();
-const app = Fastify({ logger: { level: PROD ? "info" : "warn" } });
+/* trustProxy: en Render el pedido llega a través de su proxy; así req.ip es la del jugador (límite de intentos de login) */
+const app = Fastify({ logger: { level: PROD ? "info" : "warn" }, trustProxy: PROD });
 await app.register(cookie);
 /* si la pantalla vive en otro sitio (p. ej. cinectomia.com/juego), WEB_ORIGIN la habilita: "https://cinectomia.com" */
 if (process.env.WEB_ORIGIN) await app.register(cors, { origin: process.env.WEB_ORIGIN.split(","), credentials: true });
@@ -41,6 +43,8 @@ async function requireUser(req: any, reply: any): Promise<number | null> {
   if (!uid) { reply.code(401).send({ error: "Tenés que entrar con tu cuenta." }); return null; }
   return uid;
 }
+
+app.get("/api/health", async () => { await db.query("SELECT 1"); return { ok: true }; });
 
 app.post("/api/auth/register", authLimit, async (req, reply) => {
   const { username, password } = (req.body ?? {}) as Record<string, unknown>;
