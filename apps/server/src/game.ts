@@ -176,6 +176,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     startChase(s, def, other.id, plan, now);
     await q.query(`INSERT INTO chases (kind, attacker_id, target_id, meet_at, place, target_since, target_until) VALUES ('caza', $1, $2, $3, $4, $5, $6)`,
       [id, other.id, plan.meet, s.busy?.kind === "caza" ? s.busy.place : "", trip.since, trip.until]);
+    chaseAdded(plan.meet);
     return {};
   }
 
@@ -197,10 +198,14 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const pos = tripPos(RUTAS, mine, best.at);
     await q.query(`INSERT INTO chases (kind, attacker_id, target_id, meet_at, place, target_since, target_until, attacker_since) VALUES ('cruce', $1, $2, $3, $4, $5, $6, $7)`,
       [id, best.other, best.at, pos ? nearestPlace(pos) : mine.trip.place, best.since, best.until, mine.since]);
+    chaseAdded(best.at);
   }
 
-  /* Resuelve los cruces que ya pasaron (lo llama un reloj cada pocos segundos) */
+  /* Resuelve los cruces que ya pasaron (lo llama un reloj cada pocos segundos).
+     Para no despertar la base de datos todo el tiempo, se acuerda en memoria de cuándo es el próximo. */
+  let nextChaseAt = 0; // 0 = no sabemos: mirar la base una vez
   async function resolveChases(now = Date.now()) {
+    if (now < nextChaseAt) return;
     const due = await db.query<{ id: number; kind: string; attacker_id: number; target_id: number; meet_at: string; place: string;
       target_since: string; target_until: string; attacker_since: string | null }>(
       `SELECT * FROM chases WHERE NOT resolved AND meet_at <= $1 ORDER BY meet_at LIMIT 20`, [now]);
@@ -233,7 +238,10 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
           : (f.won ? `Te cruzaste con ${a.name} cerca de ${c.place} y te ganó.` : `Te cruzaste con ${a.name} cerca de ${c.place} y le ganaste.`), good: !f.won });
       }).catch(() => {});
     }
+    const pending = await db.query<{ at: string | null }>(`SELECT min(meet_at) AS at FROM chases WHERE NOT resolved`);
+    nextChaseAt = pending.rows[0]?.at ? Number(pending.rows[0].at) : Infinity;
   }
+  const chaseAdded = (at: number) => { nextChaseAt = Math.min(nextChaseAt, at); };
 
   /* Quién está en una misión ahora (para verlos en el mapa). No dice qué misión es: solo a dónde va y cómo. */
   async function travelers(userId: number) {

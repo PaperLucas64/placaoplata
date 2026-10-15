@@ -104,6 +104,7 @@ function bedtime(s: PlayerState): Action | null {
 
 export function makeBots(db: Db, game: Game, ring: { join: (playerId: number) => Promise<unknown> }) {
   const next = new Map<number, number>();   // cuándo vuelve a jugar cada uno
+  let roster: { id: number; user_id: number; name: string }[] | null = null; // se lee una vez (no despierta la base cada minuto)
   const awake = new Set<number>();          // los que están "en línea"
   let running = false;
 
@@ -112,8 +113,8 @@ export function makeBots(db: Db, game: Game, ring: { join: (playerId: number) =>
     running = true;
     try {
       const now = Date.now();
-      const rows = (await db.query<{ id: number; user_id: number; name: string }>(`SELECT id, user_id, name FROM players WHERE bot`)).rows;
-      for (const r of rows) {
+      roster ??= (await db.query<{ id: number; user_id: number; name: string }>(`SELECT id, user_id, name FROM players WHERE bot`)).rows;
+      for (const r of roster) {
         const b = BOTS.find(x => x.name === r.name);
         if (!b) continue;
         const up = awakeAt(b, now);
