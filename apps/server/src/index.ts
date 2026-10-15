@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import type { WebSocket } from "ws";
-import { newPlayer, type Action } from "@pop/shared";
+import { newPlayer, validAction, type Action } from "@pop/shared";
 import { openDb } from "./db.js";
 import { checkPassword, COOKIE, createSession, deleteSession, hashPassword, SESSION_DAYS, userFromToken, validPassword, validUsername } from "./auth.js";
 import { GameError, makeGame } from "./game.js";
@@ -102,7 +102,8 @@ app.get("/api/me", async (req, reply) => {
 app.post("/api/action", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;
   const a = req.body as Action;
-  if (!a || typeof a !== "object" || typeof a.type !== "string") return reply.code(400).send({ error: "Acción inválida." });
+  const bad = validAction(a);
+  if (bad) return reply.code(400).send({ error: bad }); // sin tocar la partida
   const { state, result } = await game.act(uid, a);
   return { state, result, now: Date.now() };
 });

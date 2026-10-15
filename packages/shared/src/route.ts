@@ -49,6 +49,13 @@ export function positionAt(legs: { pts: Pt[]; w: number }[], f: number): Pt {
   const last = legs[legs.length - 1].pts;
   return last[last.length - 1];
 }
+/* ¿Sigue en el mismo viaje que se planeó? En la misión, o ya volviendo a su casa desde ella. */
+export function stillOnTrip(s: PlayerState, since: number, until: number, now = Date.now()): boolean {
+  const b = s.busy;
+  if (b?.kind === "mision") return Number(b.since) === since;
+  if (b?.kind === "vuelta") return !b.safe && (Number(b.since) === since || Math.abs(Number(b.since) - until) < 1000);
+  return !b && now >= until;
+}
 /* tu casa en el mapa */
 export const homePt = (s?: Pick<PlayerState, "home">): Pt => {
   if (s) { const h = houseOf(s); return [h.lat, h.lng]; } // la puerta de tu casa, no el centro del barrio

@@ -3,7 +3,7 @@
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
   ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
-  startChase, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, spotIn, LUGARES, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  startChase, stillOnTrip, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, spotIn, LUGARES, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -79,10 +79,10 @@ async function saveRow(q: Queryable, id: number, s: PlayerState) {
 /* el tiempo que pasó desde la última vez: recarga, misiones, tablón y emboscadas */
 function catchUp(s: PlayerState, now: number) {
   regen(s, now);
+  ambushCatchUp(s, { now, rng });    // primero las emboscadas: mientras viajabas a la misión, no después
   missionCatchUp(s, { now, rng });   // etapas de la misión en curso que ya pasaron (y las curas con viaje)
   salidaCatchUp(s, { now, rng });    // golpes y encargos
   boardCatchUp(s, { now, rng });     // tablón de la calle (cada 6 horas)
-  ambushCatchUp(s, { now, rng });
 }
 
 /* Rivales de La calle: primero jugadores reales de otras pandillas (o sueltos) con nivel parecido, después personajes */
@@ -205,7 +205,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   async function duelPlayer(q: Queryable, id: number, s: PlayerState, i: number, other: Row | undefined, now: number): Promise<ActionResult> {
     const t = s.targets[i];
     const drop = () => { s.targets.splice(i, 1); };
-    if (!other || t.kind !== "player") { drop(); return { error: "Ese rival ya no está." }; }
+    if (!other || !t || t.kind !== "player" || t.id !== other.id) return { error: "La lista de rivales cambió. Mirala de nuevo." };
     const def = other.state;
     /* si se pasó a tu pandilla mientras tanto, ya no es rival */
     const dg = gangOf(def);
@@ -291,8 +291,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
         if (!a || !d) return;
         const at = Number(c.meet_at);
         /* ¿sigue en la misma misión? (si la abandonó, no estaba ahí) */
-        const still = (s: PlayerState, since: number, until: number) =>
-          (s.busy?.kind === "mision" && Number(s.busy.since) === since) || (!s.busy && Date.now() >= until);
+        const still = (s: PlayerState, since: number, until: number) => stillOnTrip(s, since, until, at);
         if (!still(d, Number(c.target_since), Number(c.target_until))) {
           if (c.kind === "caza") log(a, at, `Llegaste cerca de ${c.place} y ${d.name} ya no estaba.`);
           return;

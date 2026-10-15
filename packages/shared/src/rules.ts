@@ -135,7 +135,9 @@ function toSlots(s: PlayerState): PlayerState {
 }
 
 export function log(s: PlayerState, now: number, msg: string, cls?: LogEntry["cls"]) {
-  s.log.unshift({ t: now, msg, ...(cls ? { cls } : {}) });
+  const e = { t: now, msg, ...(cls ? { cls } : {}) };
+  const k = s.log.findIndex(x => x.t <= now); // lo más nuevo arriba, aunque llegue tarde
+  if (k < 0) s.log.push(e); else s.log.splice(k, 0, e);
   s.log = s.log.slice(0, LOG_SIZE);
 }
 export function gainXp(s: PlayerState, now: number, n: number) {

@@ -1,7 +1,7 @@
 /* Acciones del jugador. Cada una valida, cambia el estado y devuelve lo que la pantalla tiene que mostrar.
    El servidor es el único que las ejecuta de verdad; el azar llega como `rng`. */
 import { AMBUSH_CHANCE, AMBUSH_MAX_CATCHUP, ATTACK_EVERY, DUEL_COST, MIN_HP_TO_FIGHT, SCOUT_COST } from "./config.js";
-import { RING, SHOP, STAT_NAMES, TUT, VALIJA } from "./data.js";
+import { RING, SHOP, SLOTS, STAT_NAMES, TUT, VALIJA } from "./data.js";
 import {
   ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSIONS, POLICE_NAMES
 } from "./gangs.js";
@@ -11,7 +11,7 @@ import { arcChapterKey } from "./arcs.js";
 import { hasMod, hasVehicle, MODS, nearestCare, travelModes, tripCost, tripMins, VEHICLES, type FromPoint, type ModKey, type TravelMode } from "./geo.js";
 import { PROPS, propIncome, propOf } from "./negocios.js";
 import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
-import { homePlace, houseById, houseOf } from "./casas.js";
+import { homePlace, houseById, houseOf, housesIn } from "./casas.js";
 import { EVENT_MISSIONS } from "./eventos.js";
 import { activeEvents, lugarOf } from "./lugares.js";
 import { routeTo, TRAVEL, tripEvent } from "./geo.js";
@@ -20,7 +20,7 @@ import {
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
-import type { Action, ActionResult, Gang, Job, Mission, PlayerState, Rng, Target } from "./types.js";
+import type { Action, ActionResult, Gang, Job, Mission, PlayerState, Rng, Slot, TabKey, Target } from "./types.js";
 
 /* from: si venías volviendo de algo, desde dónde salís (el servidor lo calcula por las cuadras) */
 export interface Ctx { now: number; rng: Rng; from?: FromPoint; place?: string } // place: el barrio que eligió el servidor (golpes)
@@ -30,7 +30,7 @@ const fail = (error: string): ActionResult => ({ error });
 /* Las misiones de cada pandilla van en orden y piden rango. Cualquiera puede hacerlas: así se gana afinidad.
    Las de calle están en tu tablón. Los atributos mínimos se chequean aparte (meetsReq). */
 export function canStart(s: PlayerState, m: Mission) {
-  if (m.id === VALIJA.id) return !s.c.valija;
+  if (m.id === VALIJA.id) return !s.c.valija && s.tabs.includes("misiones");
   if (!s.tutDone) return false;
   if (m.street) return s.board.some(x => x.id === m.id);
   if (m.arc) return arcOpen(s, m) && rankOf(s) >= m.rank;
@@ -96,7 +96,37 @@ const FROM_STREET = new Set<Action["type"]>(["mstart", "guardia", "heal", "job",
 /* Con una misión de a dos aceptada que todavía no arrancó, no se puede empezar otra cosa larga */
 const BLOCKED_WHEN_COOP_WAITING = new Set<Action["type"]>(["train", "guardia", "mstart", "reroll"]);
 
+/* ¿La acción está bien armada? (tipo conocido, valores del tipo correcto y claves propias de cada tabla).
+   Un pedido armado a mano no tiene que poder romper la partida: si no pasa esto, no se toca nada. */
+const own = (o: object, k: unknown) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
+const str = (v: unknown) => typeof v === "string" && v.length > 0 && v.length <= 80;
+const idx = (v: unknown) => Number.isInteger(v) && (v as number) >= 0 && (v as number) < 100;
+const TABS: TabKey[] = ["laburos", "gimnasio", "feria", "ring", "guardia", "misiones", "calle", "casa", "negocios", "amigos", "ranking", "equipo"];
+export function validAction(a: unknown): string | null {
+  if (!a || typeof a !== "object") return "Acción inválida.";
+  const x = a as Record<string, unknown>;
+  switch (x.type) {
+    case "claimTut": case "kit": case "heal": case "guardia": case "cancel": case "collect": case "reroll": case "lawyer": case "scout": return null;
+    case "seen": return TABS.includes(x.tab as TabKey) ? null : "Pestaña inválida.";
+    case "job": return str(x.id) && (x.at === undefined || str(x.at)) ? null : "Trabajo inválido.";
+    case "encargo": return own(GANGS, x.gang) ? null : "Pandilla inválida.";
+    case "train": return own(STAT_NAMES, x.stat) ? null : "Atributo inválido.";
+    case "buy": case "equip": case "sell": case "prop": case "move": return str(x.id) ? null : "Inválido.";
+    case "unequip": return SLOTS.includes(x.slot as Slot) ? null : "Lugar inválido.";
+    case "spar": case "duel": return idx(x.i) ? null : "Rival inválido.";
+    case "mstart": return str(x.id) && (x.mode === undefined || own(TRAVEL, x.mode)) ? null : "Misión inválida.";
+    case "vehicle": return x.v === "moto" || x.v === "auto" ? null : "Vehículo inválido.";
+    case "mod": return (x.v === "moto" || x.v === "auto") && own(MODS, x.mod) ? null : "Arreglo inválido.";
+    case "build": return own(HOME, x.part) ? null : "Parte inválida.";
+    case "deposit": case "withdraw": return Number.isFinite(x.amount) && (x.amount as number) > 0 ? null : "Monto inválido.";
+    case "chase": return Number.isInteger(x.id) && ["pie", "taxi", "moto", "auto"].includes(x.mode as string) ? null : "Inválido.";
+    default: return "Acción desconocida.";
+  }
+}
+
 export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
+  const bad = validAction(a);
+  if (bad) return fail(bad);
   const { now, rng } = ctx;
   finishBusy(s, now);
   if (s.busy && BLOCKED_WHEN_BUSY.has(a.type) && !(onTheWayHome(s) && FROM_STREET.has(a.type)))
@@ -128,10 +158,10 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (!j) return fail("Ese trabajo no existe.");
       if (s.lvl < j.lvl) return fail(`Pide nivel ${j.lvl}.`);
       if (s.energy < j.cost) return fail("No te alcanza la energía.");
+      const spot = a.at ? lugarOf(a.at) : undefined;
+      if (isGolpe(j.id) && a.at && spot?.job !== j.id) return fail("Eso no se hace ahí."); // antes de cobrar
       s.energy -= j.cost;
       if (!isGolpe(j.id)) { resolveJob(s, j, now, rng); return {}; }   // los laburos honestos, al instante
-      const spot = a.at ? lugarOf(a.at) : undefined;
-      if (a.at && spot?.job !== j.id) return fail("Eso no se hace ahí.");
       startSalida(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? ctx.place ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
       return {};
     }
@@ -216,6 +246,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
     case "sell": {
       const it = itemOf(a.id), k = s.inv.indexOf(a.id);
       if (!it || k < 0) return fail("Eso no está en tu bolso.");
+      if (it.event) return fail("Es un recuerdo: no se vende.");
       const gold = Math.round(it.price * SELL_RATE);
       s.inv.splice(k, 1); s.gold += gold;
       log(s, now, `Vendiste ${it.name.toLowerCase()} en la feria: +${money(gold)}.`);
@@ -342,7 +373,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
 
     case "move": {
       const h = houseById(a.id);
-      if (!h || !s.tutDone) return fail("Esa casa no existe.");
+      if (!h || !s.tutDone || !housesIn(h.place).some(x => x.id === h.id)) return fail("Esa casa no está a la venta.");
       if (houseOf(s).id === h.id) return fail("Ya vivís ahí.");
       if (s.home.obra) return fail("Esperá a que termine la obra antes de mudarte.");
       if (s.lvl < h.lvl) return fail(`Pide nivel ${h.lvl}.`);
@@ -581,14 +612,13 @@ export function startChase(att: PlayerState, def: PlayerState, defId: number, pl
 export function ambushPlayer(att: PlayerState, def: PlayerState, ctx: Ctx, where?: string): ActionResult {
   const b = def.busy;
   where ??= b?.kind === "mision" && b.trip ? b.trip.place : "la calle";
-  const r = pvp(att, def, ctx);
+  const r = pvp(att, def, ctx, false); // la energía ya la pagó al salir a buscarlo
   log(def, ctx.now, r.fight!.won ? `${att.name} te salió a buscar y te asaltó cerca de ${where}.` : `${att.name} te salió a buscar cerca de ${where} y lo rechazaste.`, r.fight!.won ? "bad" : "good");
   return r;
 }
 /* cruce casual en el camino: pelean, pero nadie gastó energía en buscarlo */
 export function crossFight(a: PlayerState, b: PlayerState, ctx: Ctx, where: string): ActionResult {
-  const r = pvp(a, b, ctx);
-  a.energy += DUEL_COST;
+  const r = pvp(a, b, ctx, false); // nadie salió a buscar: no se cobra energía
   log(a, ctx.now, `Te cruzaste con ${b.name} cerca de ${where} y se armó.`);
   log(b, ctx.now, `Te cruzaste con ${a.name} cerca de ${where} y se armó.`, r.fight!.won ? "bad" : "good");
   return r;
@@ -611,8 +641,8 @@ export function duelOutcome(s: PlayerState, t: { name: string; lvl: number; gang
 }
 
 /* Pelea contra otro jugador de verdad. Cambia los dos estados. Lo guardado en la caja fuerte no se toca. */
-export function pvp(att: PlayerState, def: PlayerState, { now, rng }: Ctx): ActionResult {
-  att.energy -= DUEL_COST;
+export function pvp(att: PlayerState, def: PlayerState, { now, rng }: Ctx, pay = true): ActionResult {
+  if (pay) att.energy = Math.max(0, att.energy - DUEL_COST);
   const fight = battle(rng, playerFighter(att), playerFighter(def));
   att.hp = Math.max(1, fight.p.hp);
   def.hp = Math.max(1, fight.e.hp);
@@ -634,7 +664,7 @@ export function pvp(att: PlayerState, def: PlayerState, { now, rng }: Ctx): Acti
 /* ¿andás por la calle? (viajando a una misión, volviendo a casa o buscando a alguien; curándote no cuenta) */
 export function onStreet(s: PlayerState, now: number) {
   const b = s.busy;
-  if (!b) return false;
+  if (!b || now < b.since || now >= b.until) return false;
   if (b.kind === "vuelta") return !b.safe;
   if (b.kind === "caza") return true;
   if (b.kind === "salida") return !!b.trip && now < b.since + b.trip.go;
@@ -646,10 +676,12 @@ export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
   if (!s.tutDone) { s.tAttack = now; return 0; }
   const windows = Math.floor((now - s.tAttack) / ATTACK_EVERY);
   if (windows <= 0) return 0;
+  const first = s.tAttack + Math.max(0, windows - 240) * ATTACK_EVERY; // como mucho, el último día
   s.tAttack += windows * ATTACK_EVERY;
   let hits = 0;
-  for (let i = 0; i < Math.min(windows, AMBUSH_MAX_CATCHUP); i++) {
-    if (!onStreet(s, now) || rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT) continue; // en tu casa (o curándote) nadie te toca
+  for (let i = 0; i < Math.min(windows, 240) && hits < AMBUSH_MAX_CATCHUP; i++) {
+    const at = first + (i + 1) * ATTACK_EVERY; // cada ventana a su hora: ¿en ese momento andabas por la calle?
+    if (!onStreet(s, at) || rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT) continue; // en tu casa (o curándote) nadie te toca
     hits++;
     const police = s.heat >= 40 && rng() < s.heat / 100;
     const gang = pick(rng, otherGangs(gangOf(s)));
@@ -658,11 +690,11 @@ export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
     s.hp = Math.max(1, fight.e.hp);
     if (fight.won) {
       const lost = Math.round(s.gold * 0.08); s.gold -= lost;
-      log(s, now, police ? `${name} te paró, te revisó y te "decomisó" ${money(lost)}.`
+      log(s, at, police ? `${name} te paró, te revisó y te "decomisó" ${money(lost)}.`
                          : `${name}, de ${GANGS[gang].name}, te emboscó en la calle y se llevó ${money(lost)}.`, "bad");
     } else {
-      addRespect(s, now, 2);
-      log(s, now, police ? `${name} te quiso detener y te le escapaste. +2 de respeto.`
+      addRespect(s, at, 2);
+      log(s, at, police ? `${name} te quiso detener y te le escapaste. +2 de respeto.`
                          : `${name}, de ${GANGS[gang].name}, te quiso emboscar y lo dejaste en el piso. +2 de respeto.`, "good");
     }
     s.seenTab.calle = false;
