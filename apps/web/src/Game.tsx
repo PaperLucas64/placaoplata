@@ -22,6 +22,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const [clock, setClock] = useState(Date.now());
   const [tab, setTab] = useState<TabKey>(initial.state.tabs[initial.state.tabs.length - 1]);
   const [fight, setFight] = useState<FightView | null>(null);
+  const [liveFight, setLiveFight] = useState<FightView | null>(null);
   const [mission, setMission] = useState<Ui["mission"]>(null);
   const [toast, setToast] = useState<{ text: string; good?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,6 +50,12 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       setPing(p => p + 1);
       refresh();
     }
+    /* peleas que pasan en el mapa (saliste a buscar a alguien, te buscaron o se cruzaron) */
+    if (m.type === "fight" && m.fight) {
+      setLiveFight(m.fight);
+      setToast({ text: m.text, good: m.good });
+      refresh();
+    }
     if (m.type === "attacked") {
       setToast(m.won ? { text: `${m.by} te atacó y lo rechazaste.`, good: true } : { text: `${m.by} te atacó y te ganó. Mirá la crónica.` });
       refresh();
@@ -71,17 +78,14 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       apply(r);
       if (r.result.error) setToast({ text: r.result.error });
       if (a.type !== "seen") { setFight(r.result.fight ?? null); if (r.result.mission || a.type === "mstart") setMission(r.result.mission ?? null); }
-      /* el asalto se hace desde el mapa: se avisa el resultado y se baja hasta la pelea */
-      if (a.type === "ambush" && r.result.fight) {
-        setToast(r.result.fight.won ? { text: `Le ganaste a ${r.result.fight.e.name} en el camino.`, good: true } : { text: `${r.result.fight.e.name} te ganó.` });
-        setTimeout(() => document.querySelector(".fight")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
-      }
+      if (a.type === "chase" && !r.result.error && r.state.busy?.kind === "caza")
+        setToast({ text: `Saliste a buscar a ${r.state.busy.targetName}. Lo cruzás cerca de ${r.state.busy.place}.`, good: true });
       if (a.type === "claimTut" && r.state.tabs.length > s.tabs.length) setTab(r.state.tabs[r.state.tabs.length - 1]);
     } catch (e: any) { setToast({ text: e.message }); }
     finally { setBusy(false); }
   };
 
-  const open = (k: TabKey) => { setTab(k); setFight(null); if (!s.seenTab[k]) act({ type: "seen", tab: k }); };
+  const open = (k: TabKey) => { setTab(k); setFight(null); setLiveFight(null); if (!s.seenTab[k]) act({ type: "seen", tab: k }); };
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }) };
@@ -116,6 +120,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
             <Pane tab={tab} {...ui} />
           </section>
           {showFight && <Fight f={fight} s={s} />}
+          {liveFight && !showFight && <Fight f={liveFight} s={s} />}
         </main>
       </div>
       <Chronicle s={s} onOut={onOut} />

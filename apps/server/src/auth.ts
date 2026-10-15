@@ -13,6 +13,7 @@ export async function hashPassword(pw: string) {
   return `scrypt$${salt.toString("hex")}$${key.toString("hex")}`;
 }
 export async function checkPassword(pw: string, stored: string) {
+  if (!stored.startsWith("scrypt$")) return false; // cuentas sin contraseña (los vecinos que juegan solos)
   const [, saltHex, keyHex] = stored.split("$");
   const key = await scrypt(pw, Buffer.from(saltHex, "hex"), 64);
   return timingSafeEqual(key, Buffer.from(keyHex, "hex"));

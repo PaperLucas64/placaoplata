@@ -11,3 +11,4 @@ export * from "./ring.js";
 export * from "./geo.js";
 export * from "./negocios.js";
 export * from "./arcs.js";
+export * from "./route.js";

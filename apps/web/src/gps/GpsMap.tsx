@@ -4,15 +4,14 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { DUEL_COST, GANGS, GEO_HOME, GEO_PLACES, TRAVEL, tripPhase, type TravelMode } from "@pop/shared";
+import {
+  CHASE_NAMES, chaseModes, DUEL_COST, GANGS, GEO_HOME, GEO_PLACES, legsFor, money, planChase, positionAt, TRAVEL, travelerPos, tripPhase,
+  type ChaseMode, type PlayerState, type Pt, type Rutas, type TravelMode
+} from "@pop/shared";
 import type { Traveler } from "../api";
 
-type Pt = [number, number]; // [lat, lng]
-type Leg = { kind: "pie" | "subte" | "tren"; line?: string; pts: Pt[] };
-export type Rutas = Record<string, { calle: Pt[]; pie?: Pt[]; riel?: Leg[] }>;
-
 let rutasCache: Promise<Rutas> | null = null;
-export const loadRutas = () => (rutasCache ??= import("./rutas.json").then(m => m.default as unknown as Rutas));
+export const loadRutas = () => (rutasCache ??= import("@pop/shared/rutas.json").then(m => m.default as unknown as Rutas));
 
 /* ---------- estilo oscuro a partir de «positron» de OpenFreeMap ---------- */
 const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
@@ -39,48 +38,8 @@ function darken(st: StyleSpecification): StyleSpecification {
 
 const COLORS: Record<string, string> = { pie: "#e8e1d2", colectivo: "#f2c94c", taxi: "#f2c94c", micro: "#e6a14f", moto: "#e0524f", auto: "#e0524f", subte: "#5bc0de", tren: "#8bd17c" };
 
-const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], (a[1] - b[1]) * Math.cos(a[0] * Math.PI / 180));
-/* punto a una fracción (por distancia) de una línea */
-function along(pts: Pt[], f: number): Pt {
-  if (pts.length < 2) return pts[0];
-  const seg = pts.slice(1).map((p, i) => dist(pts[i], p));
-  let goal = seg.reduce((a, b) => a + b, 0) * Math.min(1, Math.max(0, f));
-  for (let i = 0; i < seg.length; i++) {
-    if (goal <= seg[i]) { const t = seg[i] ? goal / seg[i] : 0; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t]; }
-    goal -= seg[i];
-  }
-  return pts[pts.length - 1];
-}
-const kmOf = (pts: Pt[]) => pts.slice(1).reduce((a, p, i) => a + dist(pts[i], p) * 111.32, 0);
-
-/* los tramos del viaje según el medio, con su peso en tiempo (para mover al personaje a la velocidad de cada tramo) */
-export function legsFor(r: Rutas[string], mode: TravelMode): { kind: string; pts: Pt[]; w: number }[] {
-  if (mode === "riel" && r.riel) return r.riel.map(l => {
-    const km = kmOf(l.pts);
-    return { kind: l.kind, pts: l.pts, w: l.kind === "pie" ? km / 5 : km / (l.kind === "subte" ? 30 : km > 50 ? 60 : 40) + 0.07 };
-  });
-  const pts = mode === "pie" && r.pie ? r.pie : r.calle;
-  return [{ kind: mode, pts, w: 1 }];
-}
-/* dónde está el personaje: f = fracción del tiempo de la ida (0 a 1) */
-export function positionAt(legs: { pts: Pt[]; w: number }[], f: number): Pt {
-  const total = legs.reduce((a, l) => a + l.w, 0);
-  let t = total * Math.min(1, Math.max(0, f));
-  for (const l of legs) { if (t <= l.w) return along(l.pts, l.w ? t / l.w : 1); t -= l.w; }
-  const last = legs[legs.length - 1].pts;
-  return last[last.length - 1];
-}
-
 const ll = (p: Pt): [number, number] => [p[1], p[0]];
 
-/* dónde está ahora otro jugador en misión */
-function travelerPos(rutas: Rutas, o: Traveler, now: number): Pt | null {
-  const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, now);
-  const r = rutas[o.trip.place], dest = GEO_PLACES[o.trip.place];
-  if (!ph || !dest) return null;
-  if (ph.phase === "alla" || !r) return [dest.lat, dest.lng];
-  return positionAt(legsFor(r, o.trip.mode), ph.phase === "vuelta" ? 1 - ph.frac : ph.frac);
-}
 function labelEl(text: string, cls = "") {
   const el = document.createElement("div");
   el.className = `gps-label ${cls}`;
@@ -98,7 +57,8 @@ interface Props {
   others?: Traveler[];       // otros jugadores en una misión
   now?: number;
   avatarOf?: (n: number) => string;
-  attack?: { why: (t: Traveler) => string | null; go: (t: Traveler) => void }; // por qué no se puede asaltar (o null) y cómo
+  /* salir a buscar a alguien: quién sos, por qué no podés (o null) y qué hacer al elegir cómo ir */
+  attack?: { s: PlayerState; why: (t: Traveler) => string | null; go: (t: Traveler, mode: ChaseMode) => void };
   height?: number;
 }
 export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now(), avatarOf, attack, height = 260 }: Props) {
@@ -172,12 +132,12 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
       let mk = markers.current.get(o.id);
       if (!mk) {
         const el = document.createElement("div");
-        el.className = "gps-other";
+        el.className = o.id < 0 ? "gps-other me" : o.chase ? "gps-other chasing" : "gps-other";
         el.style.borderColor = o.gang ? GANGS[o.gang].color : "#8a8070";
         el.innerHTML = `<img alt="" />`;
         (el.firstElementChild as HTMLImageElement).src = avatarOf?.(o.avatar) ?? "";
         el.title = o.name;
-        el.addEventListener("click", e => { e.stopPropagation(); openCard(map, o.id); });
+        if (o.id >= 0) el.addEventListener("click", e => { e.stopPropagation(); openCard(map, o.id); });
         mk = new maplibregl.Marker({ element: el }).setLngLat(ll(pos)).addTo(map);
         markers.current.set(o.id, mk);
       } else mk.setLngLat(ll(pos));
@@ -190,24 +150,36 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
     const o = list?.find(x => x.id === id);
     const mk = markers.current.get(id);
     if (!o || !mk) return;
-    const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, t);
     const el = document.createElement("div");
     el.className = "gps-card";
-    const line = (cls: string, text: string) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; el.appendChild(d); };
-    line("name", o.name);
+    const line = (cls: string, text: string) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; el.appendChild(d); return d; };
+    line("name", o.name + (o.bot ? " · vecino" : ""));
     line("tag", `nivel ${o.lvl} · ${o.gang ? GANGS[o.gang].name : "suelto"}`);
-    line("where", ph?.phase === "ida" ? `Va a ${o.trip.place} ${TRAVEL[o.trip.mode].verb}` : ph?.phase === "alla" ? `Está en ${o.trip.place}` : `Vuelve de ${o.trip.place} ${TRAVEL[o.trip.mode].verb}`);
-    if (atk) {
-      const why = atk.why(o);
-      const btn = document.createElement("button");
-      btn.className = why ? "" : "primary";
-      btn.disabled = !!why;
-      btn.textContent = `Asaltar · ${DUEL_COST} energía`;
-      btn.addEventListener("click", () => { popup.remove(); atk.go(o); });
-      el.appendChild(btn);
-      if (why) line("tag why", why);
+    if (o.chase) line("where", `Salió a buscar a ${o.chase.targetName}`);
+    else if (o.trip) {
+      const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, t);
+      line("where", ph?.phase === "ida" ? `Va a ${o.trip.place} ${TRAVEL[o.trip.mode].verb}` : ph?.phase === "alla" ? `Está en ${o.trip.place}` : `Vuelve de ${o.trip.place} ${TRAVEL[o.trip.mode].verb}`);
     }
-    const popup = new maplibregl.Popup({ offset: 18, closeButton: true, className: "gps-popup", maxWidth: "240px" })
+    if (atk && o.trip && data) {
+      const why = atk.why(o);
+      if (why) line("tag why", why);
+      else {
+        line("tag", `Salir a buscarlo (${DUEL_COST} de energía). Si lo alcanzás, pelean donde se crucen:`);
+        for (const m of chaseModes(atk.s)) {
+          const plan = planChase(atk.s, data.rutas, { since: o.since, until: o.until, trip: o.trip }, t, m);
+          const btn = document.createElement("button");
+          btn.className = plan ? "primary" : "";
+          btn.disabled = !plan || atk.s.gold < plan.cost;
+          btn.textContent = plan ? `${CHASE_NAMES[m]} · lo cruzás en ${Math.max(1, Math.round((plan.meet - t) / 60000))} min${plan.cost ? ` · ${money(plan.cost)}` : ""}`
+                                 : `${CHASE_NAMES[m]} · no llegás`;
+          btn.addEventListener("click", () => { popup.remove(); atk.go(o, m); });
+          el.appendChild(btn);
+        }
+      }
+    }
+    /* el mapa se corre para que la tarjeta entre arriba de la persona */
+    map.easeTo({ center: mk.getLngLat(), offset: [0, map.getContainer().clientHeight * 0.3], duration: 300 });
+    const popup = new maplibregl.Popup({ offset: 18, closeButton: true, className: "gps-popup", maxWidth: "240px", anchor: "bottom" })
       .setLngLat(mk.getLngLat()).setDOMContent(el).addTo(map);
   }
 

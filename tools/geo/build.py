@@ -8,7 +8,7 @@ Las respuestas quedan en tools/geo/cache/ para no volver a pedirlas.
 
 Salida:
 - packages/shared/src/geo-data.ts  lugares, distancias y tramos (lo usan el servidor y las reglas para los tiempos)
-- apps/web/src/gps/rutas.json      el dibujo de cada recorrido (solo lo usa la pantalla)
+- packages/shared/data/rutas.json  el dibujo de cada recorrido (la pantalla para el GPS y el servidor para los cruces)
 
 Datos © colaboradores de OpenStreetMap (ODbL).
 """
@@ -264,7 +264,7 @@ def main():
           f"export const GEO_PLACES: Record<string, GeoPlace> = {json.dumps(places, ensure_ascii=False)};\n"
           f"export const GEO_ROUTES: Record<string, GeoRoute> = {json.dumps(shared, ensure_ascii=False)};\n")
     with open(os.path.join(ROOT, "packages", "shared", "src", "geo-data.ts"), "w", encoding="utf-8") as f: f.write(ts)
-    out = os.path.join(ROOT, "apps", "web", "src", "gps"); os.makedirs(out, exist_ok=True)
+    out = os.path.join(ROOT, "packages", "shared", "data"); os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "rutas.json"), "w", encoding="utf-8") as f: json.dump(web, f, ensure_ascii=False, separators=(",", ":"))
     print("listo:", sum(len(json.dumps(v)) for v in web.values()) // 1024, "KB de recorridos", flush=True)
 

@@ -2,15 +2,23 @@
    Todo pasa adentro de una transacción y con un candado por jugador, así no hay acciones pisadas.
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
-  ambushCatchUp, ambushPlayer, applyAction, canAmbush, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
+  startChase, tripPos, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
 } from "@pop/shared";
+import { readFileSync } from "node:fs";
 import type { Db, Queryable } from "./db.js";
 import { makeTerritory } from "./territory.js";
 
 const rng: Rng = Math.random;
+/* los recorridos del GPS (los mismos que dibuja la pantalla), para saber dónde está cada uno */
+export const RUTAS: Rutas = JSON.parse(readFileSync(new URL("../../../packages/shared/data/rutas.json", import.meta.url), "utf8"));
+const onTrip = (b: PlayerState["busy"]): OnTrip | null =>
+  b?.kind === "mision" && b.trip ? { since: Number(b.since), until: Number(b.until), trip: b.trip } : null;
+/* la misma pelea vista desde el otro lado */
+const flip = (f: FightView): FightView => ({ p: f.e, e: f.p, won: !f.won, rounds: f.rounds.map(r => ({ ...r, who: r.who === "p" ? "e" : "p" })) });
 export class GameError extends Error {}
 
 /* candado en memoria por jugador (alcanza con un solo servidor) */
@@ -50,13 +58,13 @@ function catchUp(s: PlayerState, now: number) {
 async function fillTargets(q: Queryable, id: number, s: PlayerState) {
   if (!s.tutDone) return;
   const mine = gangOf(s);
-  const real = await q.query<{ id: number; name: string; lvl: number; gold: number; avatar: number | null; side: Gang | null }>(
-    `SELECT p.id, p.name, p.lvl, p.gold, (p.state->>'avatar')::int AS avatar, p.side FROM players p
+  const real = await q.query<{ id: number; name: string; lvl: number; gold: number; avatar: number | null; side: Gang | null; bot: boolean }>(
+    `SELECT p.id, p.name, p.lvl, p.gold, (p.state->>'avatar')::int AS avatar, p.side, p.bot FROM players p
       WHERE p.side IS DISTINCT FROM $1 AND (p.state->>'tutDone')::boolean AND p.id <> $2 AND p.lvl BETWEEN $3 AND $4
         AND NOT EXISTS (SELECT 1 FROM pvp_log l WHERE l.attacker_id = $2 AND l.defender_id = p.id AND l.at > now() - $5 * interval '1 millisecond')
       ORDER BY random() LIMIT 3`,
     [mine, id, s.lvl - 3, s.lvl + (s.lvl < 8 ? 1 : 3), PVP_SAME_TARGET_EVERY]);
-  const targets: Target[] = real.rows.map(r => ({ kind: "player", id: r.id, name: r.name, lvl: r.lvl, gold: Math.round(r.gold / 10) * 10, avatar: r.avatar ?? 1, gang: r.side }));
+  const targets: Target[] = real.rows.map(r => ({ kind: "player", id: r.id, name: r.name, lvl: r.lvl, gold: Math.round(r.gold / 10) * 10, avatar: r.avatar ?? 1, gang: r.side, bot: r.bot }));
   const used = new Set(targets.map(t => t.name));
   while (targets.length < TARGETS) {
     const t = npcTarget(rng, mine, s.lvl);
@@ -109,7 +117,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const peek = await peekState(id);
     /* pelear contra otro jugador bloquea a los dos */
     const t = a.type === "duel" ? peek?.targets[a.i] : undefined;
-    const otherId = t?.kind === "player" ? t.id : a.type === "ambush" && Number.isInteger(a.id) && a.id !== id ? a.id : null;
+    const otherId = t?.kind === "player" ? t.id : a.type === "chase" && Number.isInteger(a.id) && a.id !== id ? a.id : null;
     const ids = [id, ...(otherId ? [otherId] : []), ...(partnerOf(peek) ? [partnerOf(peek)!] : [])];
 
     return session(ids, async (q, rows, now) => {
@@ -117,10 +125,13 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
       let result: ActionResult;
       if (a.type === "duel" && otherId) {
         result = await duelPlayer(q, id, s, a.i, rows.get(otherId), now);
-      } else if (a.type === "ambush") {
-        result = otherId ? await ambush(q, id, s, rows.get(otherId), now) : { error: "Ese jugador ya no está." };
+      } else if (a.type === "chase") {
+        result = otherId ? await chase(q, id, s, rows.get(otherId), a.mode, now) : { error: "Ese jugador ya no está." };
       } else {
+        const wasChase = s.busy?.kind === "caza";
         result = applyAction(s, a, { now, rng });
+        if (!result.error && a.type === "mstart") await findCrossing(q, id, s, now);
+        if (!result.error && a.type === "cancel" && wasChase) await q.query(`UPDATE chases SET resolved = true WHERE attacker_id = $1 AND kind = 'caza' AND NOT resolved`, [id]);
         if (!result.error && (a.type === "scout" || a.type === "claimTut" || (a.type === "duel" && !s.targets.length))) await fillTargets(q, id, s);
       }
       return { state: s, result };
@@ -148,39 +159,101 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     return result;
   }
 
-  /* Asalto desde el mapa: a alguien que está en una misión */
-  async function ambush(q: Queryable, id: number, s: PlayerState, other: Row | undefined, now: number): Promise<ActionResult> {
+  /* Salir a cruzar a alguien desde el mapa: si lo alcanzás, la pelea queda agendada para cuando se crucen */
+  async function chase(q: Queryable, id: number, s: PlayerState, other: Row | undefined, mode: unknown, now: number): Promise<ActionResult> {
     if (!other) return { error: "Ese jugador ya no está." };
     const def = other.state;
     const err = canAmbush(s, def, now);
     if (err) return { error: err };
+    if (typeof mode !== "string" || !chaseModes(s).includes(mode as never)) return { error: "No podés ir así." };
     const recent = await q.query(`SELECT 1 FROM pvp_log WHERE attacker_id = $1 AND defender_id = $2 AND at > now() - $3 * interval '1 millisecond'`,
       [id, other.id, PVP_SAME_TARGET_EVERY]);
     if (recent.rows.length) return { error: `Ya te cruzaste con ${def.name} hace poco. Dejalo tranquilo una hora.` };
-    const goldBefore = def.gold;
-    const result = ambushPlayer(s, def, { now, rng });
-    await q.query(`INSERT INTO pvp_log (attacker_id, defender_id, attacker_won, gold) VALUES ($1, $2, $3, $4)`,
-      [id, other.id, result.fight!.won, goldBefore - def.gold]);
-    notify(other.id, { type: "attacked", by: s.name, won: !result.fight!.won });
-    return result;
+    const trip = onTrip(def.busy)!;
+    const plan = planChase(s, RUTAS, trip, now, mode as never);
+    if (!plan) return { error: `No llegás a cruzar a ${def.name}: va a estar lejos o de vuelta antes.` };
+    if (s.gold < plan.cost) return { error: `Ir así sale ${plan.cost} y no te alcanza.` };
+    startChase(s, def, other.id, plan, now);
+    await q.query(`INSERT INTO chases (kind, attacker_id, target_id, meet_at, place, target_since, target_until) VALUES ('caza', $1, $2, $3, $4, $5, $6)`,
+      [id, other.id, plan.meet, s.busy?.kind === "caza" ? s.busy.place : "", trip.since, trip.until]);
+    return {};
+  }
+
+  /* Al salir a una misión: si el recorrido se cruza con el de un rival, se agenda la pelea (la primera, nomás) */
+  async function findCrossing(q: Queryable, id: number, s: PlayerState, now: number) {
+    const mine = onTrip(s.busy);
+    if (!mine) return;
+    const r = await q.query<{ id: number; state: PlayerState }>(
+      `SELECT id, state FROM players WHERE id <> $1 AND state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object'
+          AND (state->'busy'->>'until')::bigint > $2 AND lvl BETWEEN $3 AND $4 LIMIT 60`, [id, now, s.lvl - CROSS_LVL_GAP, s.lvl + CROSS_LVL_GAP]);
+    let best: { at: number; other: number; since: number; until: number } | null = null;
+    for (const o of r.rows) {
+      const theirs = onTrip(o.state.busy);
+      if (!theirs || !rivals(s, o.state)) continue;
+      const at = firstCrossing(RUTAS, mine, theirs, now + 30_000);
+      if (at && (!best || at < best.at)) best = { at, other: o.id, since: theirs.since, until: theirs.until };
+    }
+    if (!best) return;
+    const pos = tripPos(RUTAS, mine, best.at);
+    await q.query(`INSERT INTO chases (kind, attacker_id, target_id, meet_at, place, target_since, target_until, attacker_since) VALUES ('cruce', $1, $2, $3, $4, $5, $6, $7)`,
+      [id, best.other, best.at, pos ? nearestPlace(pos) : mine.trip.place, best.since, best.until, mine.since]);
+  }
+
+  /* Resuelve los cruces que ya pasaron (lo llama un reloj cada pocos segundos) */
+  async function resolveChases(now = Date.now()) {
+    const due = await db.query<{ id: number; kind: string; attacker_id: number; target_id: number; meet_at: string; place: string;
+      target_since: string; target_until: string; attacker_since: string | null }>(
+      `SELECT * FROM chases WHERE NOT resolved AND meet_at <= $1 ORDER BY meet_at LIMIT 20`, [now]);
+    for (const c of due.rows) {
+      await session([c.attacker_id, c.target_id], async (q, rows) => {
+        const claimed = await q.query(`UPDATE chases SET resolved = true WHERE id = $1 AND NOT resolved RETURNING 1`, [c.id]);
+        if (!claimed.rows.length) return;
+        const a = rows.get(c.attacker_id)?.state, d = rows.get(c.target_id)?.state;
+        if (!a || !d) return;
+        const at = Number(c.meet_at);
+        /* ¿sigue en la misma misión? (si la abandonó, no estaba ahí) */
+        const still = (s: PlayerState, since: number, until: number) =>
+          (s.busy?.kind === "mision" && Number(s.busy.since) === since) || (!s.busy && Date.now() >= until);
+        if (!still(d, Number(c.target_since), Number(c.target_until))) {
+          if (c.kind === "caza") log(a, at, `Llegaste cerca de ${c.place} y ${d.name} ya no estaba.`);
+          return;
+        }
+        if (c.kind === "cruce" && !still(a, Number(c.attacker_since), Infinity)) return;
+        if (!rivals(a, d)) return; // mientras tanto se hicieron de la misma pandilla
+        const goldBefore = d.gold;
+        const result = c.kind === "caza" ? ambushPlayer(a, d, { now: at, rng }, c.place) : crossFight(a, d, { now: at, rng }, c.place);
+        await q.query(`INSERT INTO pvp_log (attacker_id, defender_id, attacker_won, gold) VALUES ($1, $2, $3, $4)`,
+          [c.attacker_id, c.target_id, result.fight!.won, goldBefore - d.gold]);
+        const f = result.fight!;
+        notify(c.attacker_id, { type: "fight", fight: f, text: c.kind === "caza"
+          ? (f.won ? `Alcanzaste a ${d.name} cerca de ${c.place} y le ganaste.` : `Alcanzaste a ${d.name} cerca de ${c.place}, pero te ganó.`)
+          : (f.won ? `Te cruzaste con ${d.name} cerca de ${c.place} y le ganaste.` : `Te cruzaste con ${d.name} cerca de ${c.place} y te ganó.`), good: f.won });
+        notify(c.target_id, { type: "fight", fight: flip(f), text: c.kind === "caza"
+          ? (f.won ? `${a.name} te salió a buscar y te asaltó cerca de ${c.place}.` : `${a.name} te salió a buscar y lo rechazaste.`)
+          : (f.won ? `Te cruzaste con ${a.name} cerca de ${c.place} y te ganó.` : `Te cruzaste con ${a.name} cerca de ${c.place} y le ganaste.`), good: !f.won });
+      }).catch(() => {});
+    }
   }
 
   /* Quién está en una misión ahora (para verlos en el mapa). No dice qué misión es: solo a dónde va y cómo. */
   async function travelers(userId: number) {
     const id = await idOf(userId);
     const now = Date.now();
-    const r = await db.query<{ id: number; name: string; lvl: number; side: Gang | null; avatar: number | null; busy: NonNullable<PlayerState["busy"]> }>(
-      `SELECT id, name, lvl, side, (state->>'avatar')::int AS avatar, state->'busy' AS busy FROM players
-        WHERE id <> $1 AND state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object'
-          AND (state->'busy'->>'until')::bigint > $2
+    const r = await db.query<{ id: number; name: string; lvl: number; side: Gang | null; avatar: number | null; bot: boolean; busy: NonNullable<PlayerState["busy"]> }>(
+      `SELECT id, name, lvl, side, bot, (state->>'avatar')::int AS avatar, state->'busy' AS busy FROM players
+        WHERE id <> $1 AND (state->'busy'->>'until')::bigint > $2
+          AND ((state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object') OR state->'busy'->>'kind' = 'caza')
         ORDER BY (state->'busy'->>'since')::bigint DESC LIMIT 40`, [id, now]);
     return {
       now,
-      people: r.rows.flatMap(p => p.busy.kind === "mision" && p.busy.trip ? [{
-        id: p.id, name: p.name, lvl: p.lvl, gang: p.side, avatar: p.avatar ?? 1,
-        since: Number(p.busy.since), until: Number(p.busy.until),
-        trip: { mode: p.busy.trip.mode, place: p.busy.trip.place, go: p.busy.trip.go, back: p.busy.trip.back }
-      }] : [])
+      people: r.rows.flatMap((p): TravelerView[] => {
+        const base = { id: p.id, name: p.name, lvl: p.lvl, gang: p.side, avatar: p.avatar ?? 1, bot: p.bot, since: Number(p.busy.since), until: Number(p.busy.until) };
+        if (p.busy.kind === "mision" && p.busy.trip)
+          return [{ ...base, trip: { mode: p.busy.trip.mode, place: p.busy.trip.place, go: p.busy.trip.go, back: p.busy.trip.back } }];
+        if (p.busy.kind === "caza")
+          return [{ ...base, chase: { meet: Number(p.busy.meet), from: p.busy.from, at: p.busy.at, targetName: p.busy.targetName } }];
+        return [];
+      })
     };
   }
 
@@ -234,11 +307,11 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   /* Lo que muestra la pestaña Amigos */
   async function friends(userId: number) {
     const id = await idOf(userId);
-    const r = await db.query<{ a_id: number; b_id: number; accepted: boolean; id: number; name: string; lvl: number; side: Gang | null; avatar: number | null }>(
-      `SELECT f.a_id, f.b_id, f.accepted, p.id, p.name, p.lvl, p.side, (p.state->>'avatar')::int AS avatar
+    const r = await db.query<{ a_id: number; b_id: number; accepted: boolean; id: number; name: string; lvl: number; side: Gang | null; avatar: number | null; bot: boolean }>(
+      `SELECT f.a_id, f.b_id, f.accepted, p.id, p.name, p.lvl, p.side, p.bot, (p.state->>'avatar')::int AS avatar
          FROM friends f JOIN players p ON p.id = CASE WHEN f.a_id = $1 THEN f.b_id ELSE f.a_id END
         WHERE f.a_id = $1 OR f.b_id = $1 ORDER BY p.name`, [id]);
-    const person = (x: typeof r.rows[number]) => ({ id: x.id, name: x.name, lvl: x.lvl, gang: x.side, avatar: x.avatar ?? 1, online: isOnline(x.id) });
+    const person = (x: typeof r.rows[number]) => ({ id: x.id, name: x.name, lvl: x.lvl, gang: x.side, avatar: x.avatar ?? 1, online: isOnline(x.id), bot: x.bot });
     const invites = await db.query<{ id: number; name: string; mission: Mission; host_id: number }>(
       `SELECT c.id, p.name, c.mission, c.host_id FROM coop c JOIN players p ON p.id = c.host_id
         WHERE c.guest_id = $1 AND c.status = 'invited' ORDER BY c.created_at DESC`, [id]);
@@ -357,10 +430,10 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
 
   /* Ranking: jugadores reales y los personajes de siempre, para que la ciudad no se vea vacía */
   async function ranking(myId?: number) {
-    const r = await db.query<{ id: number; name: string; side: Gang | null; respect: number; lvl: number }>(
-      `SELECT id, name, side, respect, lvl FROM players WHERE (state->>'tutDone')::boolean ORDER BY respect DESC, lvl DESC LIMIT 100`);
+    const r = await db.query<{ id: number; name: string; side: Gang | null; respect: number; lvl: number; bot: boolean }>(
+      `SELECT id, name, side, respect, lvl, bot FROM players WHERE (state->>'tutDone')::boolean ORDER BY respect DESC, lvl DESC LIMIT 100`);
     const rows = [
-      ...r.rows.map(p => ({ name: p.name, gang: p.side, resp: p.respect, lvl: p.lvl, me: p.id === myId, npc: false })),
+      ...r.rows.map(p => ({ name: p.name, gang: p.side, resp: p.respect, lvl: p.lvl, me: p.id === myId, npc: false, bot: p.bot })),
       ...RIVALS.map(([name, gang, resp, lvl]) => ({ name, gang: gang as Gang | null, resp, lvl, me: false, npc: true }))
     ];
     return rows.sort((a, b) => b.resp - a.resp);
@@ -370,5 +443,5 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   const touch = (playerId: number, fn: (s: PlayerState, now: number) => void) =>
     session([playerId], async (_q, rows, now) => { const r = rows.get(playerId); if (r) fn(r.state, now); });
 
-  return { me, act, ranking, travelers, idOf, touch, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
+  return { me, act, ranking, travelers, resolveChases, idOf, touch, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
 }

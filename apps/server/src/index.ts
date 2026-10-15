@@ -13,6 +13,7 @@ import { openDb } from "./db.js";
 import { checkPassword, COOKIE, createSession, deleteSession, hashPassword, SESSION_DAYS, userFromToken, validPassword, validUsername } from "./auth.js";
 import { GameError, makeGame } from "./game.js";
 import { makeRing } from "./ring.js";
+import { ensureBots, makeBots } from "./bots.js";
 import { seedTestPlayers } from "./seed.js";
 
 const PROD = process.env.NODE_ENV === "production";
@@ -34,7 +35,9 @@ const sockets = new Map<number, Set<WebSocket>>();
 const notify = (playerId: number, msg: unknown) => {
   for (const ws of sockets.get(playerId) ?? []) ws.send(JSON.stringify(msg));
 };
-const game = makeGame(db, notify, playerId => (sockets.get(playerId)?.size ?? 0) > 0);
+/* en línea: con la pantalla abierta, o un vecino que juega solo y está despierto */
+let botAwake = (_id: number) => false;
+const game = makeGame(db, notify, playerId => (sockets.get(playerId)?.size ?? 0) > 0 || botAwake(playerId));
 
 /* errores del juego (reglas): se muestran al jugador tal cual */
 app.setErrorHandler((err, _req, reply) => {
@@ -122,6 +125,17 @@ app.post("/api/ring/join", async (req, reply) => {
 /* las rondas se juegan solas: se revisa cada 5 minutos si toca alguna */
 const ringTimer = setInterval(() => ring.process().catch(e => app.log.error(e)), 5 * 60_000);
 
+/* ---------- cruces en el mapa y vecinos que juegan solos ---------- */
+const chaseTimer = setInterval(() => game.resolveChases().catch(e => app.log.error(e)), 10_000);
+let botTimer: ReturnType<typeof setInterval> | null = null;
+if (process.env.BOTS !== "0") {
+  await ensureBots(db);
+  const bots = makeBots(db, game, ring);
+  botAwake = bots.isAwake;
+  botTimer = setInterval(() => bots.tick().catch(e => app.log.error(e)), 60_000);
+  setTimeout(() => bots.tick().catch(e => app.log.error(e)), 5_000);
+}
+
 /* ---------- amigos y misiones de a dos ---------- */
 const num = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : NaN);
 app.get("/api/friends", async (req, reply) => {
@@ -200,7 +214,7 @@ console.log(`Maires escuchando en http://localhost:${PORT}`);
 let closing = false;
 export async function shutdown() {
   if (closing) return; closing = true;
-  clearInterval(ringTimer);
+  clearInterval(ringTimer); clearInterval(chaseTimer); if (botTimer) clearInterval(botTimer);
   for (const set of sockets.values()) for (const ws of set) ws.close(1012, "reiniciando");
   await app.close();
   await db.close();

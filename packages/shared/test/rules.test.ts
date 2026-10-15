@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  ambushPlayer, canAmbush, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
+  canAmbush, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -13,6 +14,7 @@ export const seeded = (seed: number): Rng => () => {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 const T0 = 1_000_000;
+const RUTAS_TEST: Rutas = JSON.parse(readFileSync(new URL("../data/rutas.json", import.meta.url), "utf8"));
 const ctx = (now = T0, seed = 1) => ({ now, rng: seeded(seed) });
 
 function veteran(name: string, gang: Gang | null = null): PlayerState {
@@ -422,18 +424,41 @@ describe("historias de la ciudad", () => {
 });
 
 describe("asaltos en el mapa y trabajos largos", () => {
-  it("se puede asaltar a alguien en misión, pero no a uno de tu pandilla ni a uno mucho más chico", () => {
+  it("se puede salir a buscar a alguien en misión, pero no a uno de tu pandilla ni a uno mucho más chico", () => {
     const att = veteran("Ana", "barra"), def = veteran("Beto", "familia");
     expect(canAmbush(att, def, T0)).toMatch(/volvió/);                // no está en ninguna misión
-    applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "colectivo" }, ctx());
+    applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "pie" }, ctx());
     expect(canAmbush(att, def, T0 + 1000)).toBeNull();
-    const r = ambushPlayer(att, def, ctx(T0 + 1000));
-    expect(r.fight).toBeTruthy();
-    expect(def.log.some(l => l.msg.includes("asaltar") || l.msg.includes("asaltaron"))).toBe(true);
     const friend = veteran("Caro", "familia");
     expect(canAmbush(friend, def, T0 + 2000)).toMatch(/tu pandilla/);
     const big = veteran("Dani", "barra"); big.lvl = 20;
     expect(canAmbush(big, def, T0 + 2000)).toMatch(/chico/);
+  });
+  it("si lo alcanzás, sale a buscarlo y vuelve; si ya volvió a su casa, no hay a quién buscar", () => {
+    const att = veteran("Ana", "barra"), def = veteran("Beto", "familia");
+    applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "pie" }, ctx());   // a Puerto Mareo, caminando
+    const b = def.busy!; const trip = { since: b.since, until: b.until, trip: b.kind === "mision" ? b.trip! : undefined! };
+    const plan = planChase(att, RUTAS_TEST, trip, T0 + 1000, "pie")!;
+    expect(plan).toBeTruthy();
+    expect(plan.meet).toBeGreaterThan(T0 + 1000);
+    startChase(att, def, 7, plan, T0 + 1000);
+    expect(att.busy?.kind).toBe("caza");
+    expect(att.energy).toBe(ENERGY_MAX - 3);
+    finishBusy(att, att.busy!.until + 1);
+    expect(att.busy).toBeNull();
+    expect(att.log[0].msg).toMatch(/pensión/);
+    expect(planChase(att, RUTAS_TEST, trip, b.until + 1000, "pie")).toBeNull();            // ya llegó a su casa
+  });
+  it("dos que salen al mismo lugar por el mismo camino se cruzan", () => {
+    const a = veteran("Ana", "barra"), d = veteran("Beto", "familia");
+    applyAction(a, { type: "mstart", id: MISSIONS.familia[0].id, mode: "colectivo" }, ctx());
+    applyAction(d, { type: "mstart", id: MISSIONS.familia[0].id, mode: "colectivo" }, ctx(T0 + 5000));
+    const ta = a.busy!, td = d.busy!;
+    const on = (b: typeof ta) => ({ since: b.since, until: b.until, trip: b.kind === "mision" ? b.trip! : undefined! });
+    expect(firstCrossing(RUTAS_TEST, on(ta), on(td), T0)).not.toBeNull();
+    const r = crossFight(a, d, ctx(T0 + 60_000), "San Telmón");
+    expect(r.fight).toBeTruthy();
+    expect(a.energy).toBe(ENERGY_MAX - missionEnergyOf(MISSIONS.familia[0]));   // cruzarse no gasta energía
   });
   it("el tablón trae trabajos largos de 2 a 12 horas en el conurbano", () => {
     const s = veteran("Ana");

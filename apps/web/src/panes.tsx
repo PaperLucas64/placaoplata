@@ -5,7 +5,7 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES
+  tripPhase, VEHICLES, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
 } from "@pop/shared";
 import { api, type BarrioView, type FriendsView, type RankRow, type RingView, type Traveler } from "./api";
 import type { Ui } from "./Game";
@@ -29,7 +29,7 @@ function useTravelers() {
 }
 /* por qué no podés asaltar a alguien (o null si podés); el servidor lo vuelve a chequear */
 function ambushWhy(s: Ui["s"], t: Traveler): string | null {
-  if (s.busy) return "Estás ocupado: para asaltar tenés que estar libre.";
+  if (s.busy) return "Estás ocupado: para salir a buscar a alguien tenés que estar libre.";
   if (t.gang && t.gang === gangOf(s)) return "Es de tu pandilla.";
   if (t.lvl < s.lvl - AMBUSH_LVL_GAP) return "Es muy chico para vos.";
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
@@ -336,14 +336,14 @@ function Street({ s, act, busy }: Ui) {
   const weak = s.hp < maxHp(s) * MIN_HP_TO_FIGHT, mine = gangOf(s);
   return <>
     <h2>La calle</h2>
-    <p>Pandilleros {mine ? `de las otras pandillas (a los de ${GANGS[mine].name} no los podés tocar)` : "de todas las pandillas: andás suelto, así que todos son rivales"}. Si ganás, te quedás con parte de lo que llevan encima. Cada pelea gasta {DUEL_COST} de energía. Los que dicen <span className="kind">jugador</span> son personas de verdad, y a vos también te pueden venir a buscar.</p>
+    <p>Pandilleros {mine ? `de las otras pandillas (a los de ${GANGS[mine].name} no los podés tocar)` : "de todas las pandillas: andás suelto, así que todos son rivales"}. Si ganás, te quedás con parte de lo que llevan encima. Cada pelea gasta {DUEL_COST} de energía. Los que dicen <span className="kind">jugador</span> son personas de verdad, y a vos también te pueden venir a buscar; los <span className="kind">vecino</span> juegan solos, pero con las mismas reglas.</p>
     {weak && <p className="result bad">Estás muy golpeado para salir a pelear. Pasá por la guardia.</p>}
     <div className="list">{s.targets.map((t, i) => {
       const d = t.lvl - s.lvl;
       return <div className="item" key={`${t.name}-${i}`}>
         <div className="with-art">
           <Portrait src={t.kind === "player" ? avatarImg(t.avatar) : silhouette(t.name)} gang={t.gang} silhouetteOf={t.kind !== "player"} size={56} />
-          <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">jugador</span>}</h3>
+          <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">{t.bot ? "vecino" : "jugador"}</span>}</h3>
           <div><GangBadge gang={t.gang} /></div>
           <div className="meta num">Lleva unos {money(t.gold)}</div></div></div>
         <div className="act"><button disabled={busy || s.energy < DUEL_COST || weak} onClick={() => act({ type: "duel", i })}>Atacar</button></div>
@@ -354,7 +354,12 @@ function Street({ s, act, busy }: Ui) {
 }
 
 function Ranking({ s, now, act }: Ui) {
-  const others = useTravelers();
+  const people = useTravelers();
+  const b = s.busy;
+  const others: Traveler[] = b?.kind === "caza"
+    ? [...people, { id: -1, name: "Vos", lvl: s.lvl, gang: gangOf(s), avatar: s.avatar ?? 1, since: b.since, until: b.until,
+        chase: { meet: b.meet, from: b.from, at: b.at, targetName: b.targetName } }]
+    : people;
   const [rows, setRows] = useState<RankRow[] | null>(null);
   const [map, setMap] = useState<{ map: BarrioView[]; owned: Record<Gang, number> } | null>(null);
   useEffect(() => {
@@ -368,11 +373,14 @@ function Ranking({ s, now, act }: Ui) {
     <p>Cada barrio es de la pandilla con más influencia. La influencia la ganás trabajando para una pandilla (misiones, encargos, golpes y peleas) y se va gastando: pierde la mitad por semana. Cada barrio de tu pandilla te da +{Math.round(TURF_BONUS * 100)}% de plata.</p>
     {mine && map && <p className="result good">{GANGS[mine].name} controla {map.owned[mine]} {map.owned[mine] === 1 ? "barrio" : "barrios"}: +{map.owned[mine] * Math.round(TURF_BONUS * 100)}% de plata para vos.</p>}
     {owners && <Suspense fallback={mapFallback}>
-      <GpsMap owners={owners} height={320} others={others} now={now} avatarOf={avatarImg}
-        attack={{ why: t => ambushWhy(s, t), go: t => act({ type: "ambush", id: t.id }) }} />
+      <GpsMap owners={owners} height={400} others={others} now={now} avatarOf={avatarImg}
+        attack={{ s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) }} />
     </Suspense>}
-    <p className="tag">{others.length ? `Ahora hay ${others.length} ${others.length === 1 ? "jugador" : "jugadores"} en una misión. Tocalos en el mapa para ver a dónde van; si no son de tu pandilla, los podés asaltar en el camino (${DUEL_COST} de energía).`
-      : "Ahora no hay nadie más en una misión. Cuando haya, los vas a ver moverse por el mapa y los vas a poder asaltar en el camino."}</p>
+    {s.busy?.kind === "caza" && <p className="result">{now < s.busy.meet
+      ? `Vas ${CHASE_NAMES[s.busy.mode].toLowerCase()} a cruzar a ${s.busy.targetName} cerca de ${s.busy.place}: faltan ${Math.max(1, Math.ceil((s.busy.meet - now) / 60000))} min.`
+      : `Volviendo a la pensión: ${Math.max(1, Math.ceil((s.busy.until - now) / 60000))} min.`}</p>}
+    <p className="tag">{others.length ? `Ahora hay ${others.length} ${others.length === 1 ? "persona" : "personas"} en la calle. Tocalos para ver a dónde van. Si no son de tu pandilla, podés salir a buscarlos (${DUEL_COST} de energía): si los alcanzás, pelean donde se crucen; si no llegás, no salís. Y si en una misión tu camino se cruza con el de un rival, se arma solo.`
+      : "Ahora no hay nadie más en la calle. Cuando haya, los vas a ver moverse por el mapa y vas a poder salir a buscarlos."}</p>
     {!map ? <p className="tag">Cargando el mapa…</p> :
       <div className="barrios">{map.map.map(b => {
         const total = GANG_KEYS.reduce((a, g) => a + b.points[g], 0) || 1;
@@ -390,7 +398,7 @@ function Ranking({ s, now, act }: Ui) {
       <ol className="ranking">{rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className={r.me ? "me" : ""}>
           <span className="pos">{i + 1}</span>
-          <span>{r.name} <GangBadge gang={r.gang} />{!r.npc && !r.me && <span className="kind">jugador</span>}</span>
+          <span>{r.name} <GangBadge gang={r.gang} />{!r.npc && !r.me && <span className="kind">{r.bot ? "vecino" : "jugador"}</span>}</span>
           <span className="tag num">nivel {r.lvl}</span><span className="num">{r.resp}</span>
         </li>))}
       </ol>}
@@ -547,7 +555,7 @@ function Friends({ s, busy, ping, refresh, toast }: Ui) {
         const sent = data.sent.find(x => x.to === p.name);
         return <div className="item" key={p.id}>
           <div className="with-art"><Portrait src={avatarImg(p.avatar)} gang={p.gang} size={48} />
-            <div><h3>{p.name} <span className={`live ${p.online ? "on" : ""}`} /></h3>
+            <div><h3>{p.name} <span className={`live ${p.online ? "on" : ""}`} />{p.bot && <span className="kind">vecino</span>}</h3>
               <div className="meta">nivel {p.lvl} · <GangBadge gang={p.gang} /> · {p.online ? "en línea" : "desconectado"}</div>
               {sent && <div className="lock">Invitación enviada: {sent.mission.title}</div>}</div></div>
           <div className="act">{sent

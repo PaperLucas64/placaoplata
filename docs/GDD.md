@@ -255,10 +255,27 @@ el resto, personajes. A los de tu pandilla no los podés atacar. 3 de energía p
 nadie con menos de 25% de vida ni internado en la guardia. Ganar: 35% de lo que lleva encima (jugadores: hasta 25% de su
 plata encima), XP, respeto, +4 calor. **Lo guardado en la caja fuerte no se puede robar.**
 
-**Asaltos en el mapa (pestaña Ciudad):** el mapa muestra en vivo a los jugadores que están en una misión (dónde van, en
-qué, y si están en el lugar o volviendo; no qué misión es). Al tocarlos, los podés **asaltar en el camino** por 3 de energía:
-es una pelea entre jugadores (como en La calle). No a los de tu pandilla, no a alguien con más de 3 niveles menos que vos,
-no si estás ocupado, y a la misma persona una vez por hora. Su misión sigue, pero golpeado y con menos plata.
+**Peleas en el mapa (pestaña Ciudad), como las del mapamundi del Monkey Island:**
+- El mapa muestra en vivo a todos los que andan en la calle: en una misión (a dónde van y en qué, no qué misión es) o
+  buscando a alguien.
+- **Salir a buscar a alguien:** al tocar a un rival que está en una misión, el juego calcula si lo alcanzás saliendo
+  ahora desde la pensión: corriendo (9 km/h), en taxi (25 km/h, $2,5/km ida y vuelta, gratis para Los Amarillos) o en tu
+  moto o tu auto. Si lo cruzás en menos de 30 minutos, salís (3 de energía) y quedás ocupado hasta volver; la pelea pasa
+  sola a la hora del cruce. Si no llegás, no salís y no pasa nada. Si mientras tanto abandona la misión, «ya no estaba».
+  Mismos límites: no a tu pandilla, no a alguien con más de 3 niveles menos, a la misma persona una vez por hora.
+- **Cruces casuales:** al salir a una misión, si tu recorrido pasa a menos de 150 m de un rival (de otra pandilla o
+  suelto, con no más de 5 niveles de diferencia) al mismo tiempo, se arma la pelea ahí. Sin gastar energía.
+- Las peleas se avisan en vivo (con la pelea entera) y quedan en la crónica.
+
+### 5.8a Vecinos que juegan solos (bots)
+- 8 vecinos (Tincho Ferreyra, La Colorada Paz, Pocho Benítez, Yésica Ramos, Nacho del Once, Juanca Godoy, Lali Torres,
+  El Chino Acuña), dos por pandilla, de nivel 3 a 9. Son jugadores con las mismas reglas: suben de nivel, entrenan,
+  compran, hacen misiones (con viaje), compran negocios, salen a buscar gente y se anotan en el torneo del Ring.
+- Cada uno tiene su horario (en hora de Argentina) y su carácter (unos salen a buscar pelea más que otros). Despiertos,
+  entran cada 2 a 7 minutos y hacen un par de cosas; antes de dormir salen a un trabajo largo.
+- Aceptan solicitudes de amistad y misiones de a dos (si están despiertos y tienen energía). Aparecen «en línea» cuando
+  están despiertos. Llevan la marca **vecino** en el ranking, en La calle, en Amigos y en el mapa.
+- No se puede entrar con sus cuentas. Se apagan con la variable `BOTS=0` en el servidor.
 
 ### 5.8b Territorio (pestaña Ciudad)
 - **12 barrios:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,

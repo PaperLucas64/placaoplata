@@ -247,3 +247,7 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .gps-card .name{font-weight:700}
 .gps-card button{margin-top:6px}
 .gps-card .why{color:#eba09e}
+.gps-other.chasing{animation:chase 1s ease-in-out infinite alternate}
+.gps-other.me{border-color:var(--sodium)!important;box-shadow:0 0 0 3px rgba(0,0,0,.5),0 0 12px var(--sodium)}
+@keyframes chase{from{box-shadow:0 0 0 2px rgba(0,0,0,.6)}to{box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 14px #e0524f}}
+.gps-card button{display:block;width:100%;text-align:left;font-size:.8rem}

@@ -133,7 +133,8 @@ export function finishBusy(s: PlayerState, now: number) {
   const b = s.busy;
   if (b && b.kind !== "mision" && now >= b.until) {
     s.busy = null;
-    if (b.kind === "gym") {
+    if (b.kind === "caza") log(s, b.until, "Volviste a la pensión.");
+    else if (b.kind === "gym") {
       s.stats[b.stat]++; s.c.train++;
       if (b.stat === "agu") s.hp += 12;
       log(s, b.until, `Terminaste de entrenar: ${STAT_NAMES[b.stat].toLowerCase()} sube a ${s.stats[b.stat]}.`, "good");

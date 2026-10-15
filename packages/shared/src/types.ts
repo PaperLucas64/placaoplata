@@ -41,7 +41,7 @@ export interface LogEntry { t: number; msg: string; cls?: "good" | "bad" | "gold
 /* Rivales de La calle: personajes del juego o jugadores reales de otra pandilla (o sueltos) */
 export type Target =
   | { kind: "npc"; name: string; lvl: number; gold: number; gang: Gang }
-  | { kind: "player"; id: number; name: string; lvl: number; gold: number; avatar?: number; gang: Gang | null };
+  | { kind: "player"; id: number; name: string; lvl: number; gold: number; avatar?: number; gang: Gang | null; bot?: boolean };
 
 export interface Home {
   cama: number; caja: number; armario: number;
@@ -80,7 +80,10 @@ export type Busy =
   | { kind: "gym"; since: number; until: number; stat: StatKey }
   | { kind: "guardia"; since: number; until: number; hpFrom: number }
   | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[]; // etapas resueltas, cuántas salieron bien y cuáles
-      trip?: TripState | null };                                                                          // el viaje: medio, destino, ida y vuelta
+      trip?: TripState | null }                                                                           // el viaje: medio, destino, ida y vuelta
+  /* saliste a cruzar a alguien: vas hasta donde lo alcanzás (meet), pelean y volvés */
+  | { kind: "caza"; since: number; until: number; meet: number; target: number; targetName: string; place: string;
+      from: [number, number]; at: [number, number]; mode: "pie" | "taxi" | "moto" | "auto" };
 
 export interface Fighter { name: string; hp: number; max: number; fue: number; dur: number; ref: number; arma: number; armadura: number }
 export interface FightView { p: Fighter; e: Fighter; rounds: { who: "p" | "e"; txt: string }[]; won: boolean }
@@ -113,4 +116,4 @@ export type Action =
   | { type: "withdraw"; amount: number }
   | { type: "scout" }
   | { type: "duel"; i: number }
-  | { type: "ambush"; id: number };     // asaltar en el mapa a un jugador que está en una misión
+  | { type: "chase"; id: number; mode: "pie" | "taxi" | "moto" | "auto" }; // salir a cruzar a un jugador que está en la calle

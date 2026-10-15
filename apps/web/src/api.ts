@@ -1,4 +1,4 @@
-import type { Action, ActionResult, Gang, Mission, PlayerState, TravelMode } from "@pop/shared";
+import type { Action, ActionResult, Gang, Mission, PlayerState, TravelerView } from "@pop/shared";
 
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
@@ -23,17 +23,14 @@ export interface RingView {
   history: { season: string; name: string; place: number; points: number; entrants: number }[];
   champions: { season: string; seasonName: string; name: string; points: number }[];
 }
-export interface Person { id: number; name: string; lvl: number; gang: Gang | null; avatar: number; online: boolean }
+export interface Person { id: number; name: string; lvl: number; gang: Gang | null; avatar: number; online: boolean; bot?: boolean }
 export interface FriendsView {
   friends: Person[]; incoming: Person[]; outgoing: Person[];
   invites: { id: number; from: string; mission: Mission }[]; sent: { id: number; to: string; mission: Mission }[];
 }
-/* alguien que está en una misión ahora (para el mapa) */
-export interface Traveler {
-  id: number; name: string; lvl: number; gang: Gang | null; avatar: number; since: number; until: number;
-  trip: { mode: TravelMode; place: string; go: number; back: number };
-}
-export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean }
+/* alguien que está en la calle ahora (para el mapa) */
+export type Traveler = TravelerView;
+export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean; bot?: boolean }
 
 export const api = {
   register: (username: string, password: string, avatar: number) => call("/api/auth/register", { username, password, avatar }),

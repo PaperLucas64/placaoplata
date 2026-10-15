@@ -10,6 +10,7 @@ import { abandonMission, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy
 import { arcChapterKey } from "./arcs.js";
 import { hasMod, hasVehicle, MODS, travelModes, tripCost, VEHICLES, type ModKey, type TravelMode } from "./geo.js";
 import { PROPS, propIncome, propOf } from "./negocios.js";
+import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
 import {
   addAff, addHeat, addRespect, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
@@ -61,7 +62,8 @@ const checkChance = (stat: number, diff: number) => clamp(50 + (stat - diff) * 7
 /* Mientras entrenás o estás internado no podés hacer estas cosas */
 const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "reroll", "duel", "scout", "guardia", "heal"]);
 const busyText = (s: PlayerState) =>
-  s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión." : "Estás internado en la guardia.";
+  s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión."
+  : s.busy?.kind === "caza" ? `Saliste a buscar a ${s.busy.targetName}.` : "Estás internado en la guardia.";
 
 /* Con una misión de a dos aceptada que todavía no arrancó, no se puede empezar otra cosa larga */
 const BLOCKED_WHEN_COOP_WAITING = new Set<Action["type"]>(["train", "guardia", "mstart", "reroll"]);
@@ -224,7 +226,8 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (b.kind === "mision" && b.id.startsWith("coop-")) return fail("La misión de a dos se cancela desde Amigos.");
       if (b.kind === "mision") { abandonMission(s, now); return {}; }
       s.busy = null;
-      if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
+      if (b.kind === "caza") log(s, now, `Dejaste de buscar a ${b.targetName} y volviste a la pensión.`);
+      else if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
       else {
         /* te vas antes: te llevás la parte de la curación que alcanzaste */
         const done = (now - b.since) / Math.max(1, b.until - b.since);
@@ -375,7 +378,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       return {};
     }
 
-    case "ambush": return fail("Los asaltos los resuelve el servidor.");
+    case "chase": return fail("Eso lo resuelve el servidor.");
 
     case "duel": {
       const err = checkDuel(s, a.i);
@@ -410,11 +413,11 @@ export function checkDuel(s: PlayerState, i: number): string | null {
   return null;
 }
 
-/* Asaltar en el mapa a alguien que está en una misión (viajando o en el lugar).
-   No a los de tu pandilla ni a alguien mucho más chico que vos. */
+/* Salir a cruzar en el mapa a alguien que está en una misión (viajando o en el lugar).
+   No a los de tu pandilla ni a alguien mucho más chico que vos. Si no lo alcanzás a tiempo, no salís. */
 export const AMBUSH_LVL_GAP = 3;
 export function canAmbush(att: PlayerState, def: PlayerState, now: number): string | null {
-  if (att.busy) return `${busyText(att)} Para asaltar a alguien tenés que estar libre.`;
+  if (att.busy) return `${busyText(att)} Para salir a buscar a alguien tenés que estar libre.`;
   if (!att.tutDone) return "Todavía no conocés la calle.";
   if (att.energy < DUEL_COST) return "No te alcanza la energía.";
   if (att.hp < maxHp(att) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
@@ -426,13 +429,29 @@ export function canAmbush(att: PlayerState, def: PlayerState, now: number): stri
   if (def.hp < maxHp(def) * MIN_HP_TO_FIGHT) return `${def.name} ya está muy golpeado.`;
   return null;
 }
+/* sale a buscarlo: queda ocupado hasta volver; la pelea la resuelve el servidor a la hora del cruce */
+export function startChase(att: PlayerState, def: PlayerState, defId: number, plan: ChasePlan, now: number) {
+  const place = nearestPlace(plan.at);
+  const until = plan.meet + (plan.meet - now);
+  att.energy -= DUEL_COST; att.gold -= plan.cost;
+  att.busy = { kind: "caza", since: now, until, meet: plan.meet, target: defId, targetName: def.name, place,
+    from: homePt(), at: plan.at, mode: plan.mode };
+  log(att, now, `Saliste a buscar a ${def.name} ${CHASE_NAMES[plan.mode].toLowerCase()}: lo cruzás cerca de ${place} en ${Math.max(1, Math.round((plan.meet - now) / 60_000))} min.`, "gold");
+}
 /* el asalto: una pelea entre jugadores, y quien lo sufre se entera de dónde fue */
-export function ambushPlayer(att: PlayerState, def: PlayerState, ctx: Ctx): ActionResult {
+export function ambushPlayer(att: PlayerState, def: PlayerState, ctx: Ctx, where?: string): ActionResult {
   const b = def.busy;
-  const where = b?.kind === "mision" && b.trip ? b.trip.place : "la calle";
-  log(att, ctx.now, `Saliste a buscar a ${def.name} por ${where}.`);
+  where ??= b?.kind === "mision" && b.trip ? b.trip.place : "la calle";
   const r = pvp(att, def, ctx);
-  log(def, ctx.now, r.fight!.won ? `Te asaltaron en el camino a ${where}.` : `Te quisieron asaltar en el camino a ${where}.`, r.fight!.won ? "bad" : "good");
+  log(def, ctx.now, r.fight!.won ? `${att.name} te salió a buscar y te asaltó cerca de ${where}.` : `${att.name} te salió a buscar cerca de ${where} y lo rechazaste.`, r.fight!.won ? "bad" : "good");
+  return r;
+}
+/* cruce casual en el camino: pelean, pero nadie gastó energía en buscarlo */
+export function crossFight(a: PlayerState, b: PlayerState, ctx: Ctx, where: string): ActionResult {
+  const r = pvp(a, b, ctx);
+  a.energy += DUEL_COST;
+  log(a, ctx.now, `Te cruzaste con ${b.name} cerca de ${where} y se armó.`);
+  log(b, ctx.now, `Te cruzaste con ${a.name} cerca de ${where} y se armó.`, r.fight!.won ? "bad" : "good");
   return r;
 }
 
