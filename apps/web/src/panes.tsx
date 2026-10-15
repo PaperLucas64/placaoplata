@@ -205,7 +205,7 @@ export function SearchPanel(ui: Ui & { query: string }) {
   const add = (name: string) => api.addFriend(name).then(r => toast(r.accepted ? `Ahora sos amigo de ${name}.` : `Le mandaste una solicitud a ${name}.`, true)).catch(e => toast(e.message));
   return <>
     {who.length > 0 && <><h3>Gente</h3><div className="places">{who.map(p => <div key={p.name} className="place-row">
-      <span><b>{p.name}</b><span className="tag">nivel {p.lvl}{p.bot ? " · vecino" : ""}</span></span>
+      <span><b>{p.name}</b><span className="tag">nivel {p.lvl}</span></span>
       <button className="primary" style={{ marginLeft: "auto" }} onClick={() => add(p.name)}>Agregar</button></div>)}</div></>}
     {barrios.length > 0 && <><h3>Barrios</h3><div className="places">{barrios.map(b => <button key={b} className="place-row" onClick={() => setLugar(`barrio:${b}`)}>
       <span><b>{b}</b><span className="tag">{TIER_NAME[tierOf(b)]}</span></span></button>)}</div></>}
@@ -700,7 +700,7 @@ function Street({ s, act, busy }: Ui) {
       return <div className="item" key={`${t.name}-${i}`}>
         <div className="with-art">
           <Portrait src={t.kind === "player" ? avatarImg(t.avatar) : silhouette(t.name)} gang={t.gang} silhouetteOf={t.kind !== "player"} size={56} />
-          <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">{t.bot ? "vecino" : "jugador"}</span>}</h3>
+          <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">jugador</span>}</h3>
           <div><GangBadge gang={t.gang} /></div>
           <div className="meta num">Lleva unos {money(t.gold)}</div></div></div>
         <div className="act"><button disabled={busy || s.energy < DUEL_COST || weak} onClick={() => act({ type: "duel", i })}>Atacar</button></div>
@@ -740,7 +740,7 @@ function Ranking({ s }: Ui) {
       <ol className="ranking">{rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className={r.me ? "me" : ""}>
           <span className="pos">{i + 1}</span>
-          <span>{r.name} <GangBadge gang={r.gang} />{!r.npc && !r.me && <span className="kind">{r.bot ? "vecino" : "jugador"}</span>}</span>
+          <span>{r.name} <GangBadge gang={r.gang} />{!r.npc && !r.me && <span className="kind">jugador</span>}</span>
           <span className="tag num">nivel {r.lvl}</span><span className="num">{r.resp}</span>
         </li>))}
       </ol>}
@@ -892,7 +892,7 @@ function Friends({ s, busy, ping, refresh, toast }: Ui) {
         const sent = data.sent.find(x => x.to === p.name);
         return <div className="item" key={p.id}>
           <div className="with-art"><Portrait src={avatarImg(p.avatar)} gang={p.gang} size={48} />
-            <div><h3>{p.name} <span className={`live ${p.online ? "on" : ""}`} />{p.bot && <span className="kind">vecino</span>}</h3>
+            <div><h3>{p.name} <span className={`live ${p.online ? "on" : ""}`} /></h3>
               <div className="meta">nivel {p.lvl} · <GangBadge gang={p.gang} /> · {p.online ? "en línea" : "desconectado"}</div>
               {sent && <div className="lock">Invitación enviada: {sent.mission.title}</div>}</div></div>
           <div className="act">{sent

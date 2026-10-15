@@ -14,14 +14,24 @@ type Game = ReturnType<typeof makeGame>;
 interface BotDef { name: string; gang: Gang; avatar: number; lvl: number; aggro: number; wake: number; sleep: number }
 /* aggro: cuánto sale a buscar pelea · wake/sleep: hora de Argentina */
 export const BOTS: BotDef[] = [
-  { name: "Tincho Ferreyra", gang: "barra",     avatar: 2, lvl: 5, aggro: 0.5, wake: 10, sleep: 1 },
-  { name: "La Colorada Paz", gang: "familia",   avatar: 3, lvl: 7, aggro: 0.3, wake: 9,  sleep: 0 },
-  { name: "Pocho Benítez",   gang: "sindicato", avatar: 1, lvl: 4, aggro: 0.2, wake: 7,  sleep: 23 },
-  { name: "Yésica Ramos",    gang: "amarillos", avatar: 4, lvl: 6, aggro: 0.4, wake: 12, sleep: 3 },
-  { name: "Nacho del Once",  gang: "amarillos", avatar: 1, lvl: 3, aggro: 0.1, wake: 15, sleep: 4 },
-  { name: "Juanca Godoy",    gang: "sindicato", avatar: 2, lvl: 8, aggro: 0.6, wake: 8,  sleep: 22 },
-  { name: "Lali Torres",     gang: "familia",   avatar: 4, lvl: 5, aggro: 0.3, wake: 11, sleep: 2 },
-  { name: "El Chino Acuña",  gang: "barra",     avatar: 2, lvl: 9, aggro: 0.7, wake: 13, sleep: 4 }
+  { name: "Malickud", gang: "barra",     avatar: 2, lvl: 5, aggro: 0.5, wake: 10, sleep: 1 },
+  { name: "Bondiabera", gang: "familia",   avatar: 3, lvl: 7, aggro: 0.3, wake: 9,  sleep: 0 },
+  { name: "Pochoclo22",   gang: "sindicato", avatar: 1, lvl: 4, aggro: 0.2, wake: 7,  sleep: 23 },
+  { name: "Yesiquita",    gang: "amarillos", avatar: 4, lvl: 6, aggro: 0.4, wake: 12, sleep: 3 },
+  { name: "Nachuflo",  gang: "amarillos", avatar: 1, lvl: 3, aggro: 0.1, wake: 15, sleep: 4 },
+  { name: "Juancarlitox",    gang: "sindicato", avatar: 2, lvl: 8, aggro: 0.6, wake: 8,  sleep: 22 },
+  { name: "Lalitrona",     gang: "familia",   avatar: 4, lvl: 5, aggro: 0.3, wake: 11, sleep: 2 },
+  { name: "ChinoLoco_",  gang: "barra",     avatar: 2, lvl: 9, aggro: 0.7, wake: 13, sleep: 4 },
+  { name: "Ferneteitor", gang: "barra", avatar: 2, lvl: 6, aggro: 0.6, wake: 14, sleep: 3 },
+  { name: "Guadalupita_ok", gang: "familia", avatar: 3, lvl: 4, aggro: 0.2, wake: 8, sleep: 23 },
+  { name: "Mostrito", gang: "sindicato", avatar: 1, lvl: 3, aggro: 0.3, wake: 16, sleep: 5 },
+  { name: "Rulo_xd", gang: "amarillos", avatar: 2, lvl: 7, aggro: 0.5, wake: 11, sleep: 2 },
+  { name: "Kchorro", gang: "barra", avatar: 1, lvl: 10, aggro: 0.8, wake: 18, sleep: 6 },
+  { name: "Tatabombo", gang: "sindicato", avatar: 2, lvl: 6, aggro: 0.4, wake: 6, sleep: 21 },
+  { name: "Milanesauria", gang: "familia", avatar: 4, lvl: 5, aggro: 0.3, wake: 12, sleep: 1 },
+  { name: "Facu_Ganzua", gang: "amarillos", avatar: 1, lvl: 8, aggro: 0.6, wake: 20, sleep: 7 },
+  { name: "Bichito77", gang: "sindicato", avatar: 3, lvl: 2, aggro: 0.1, wake: 9, sleep: 22 },
+  { name: "Morochaza", gang: "familia", avatar: 4, lvl: 9, aggro: 0.5, wake: 10, sleep: 2 }
 ];
 const rng = Math.random;
 const MIN = 60_000;

@@ -15,7 +15,7 @@ export const silhouette = (name: string) => img(`siluetas/${String((hash(name) %
 /* personajes con retrato propio; el resto son siluetas */
 const NAMED: Record<string, string> = {
   "Marga": "marga", "Don Tito": "tito", "Comisaria Inés Ríos": "rios", "El Gallego": "gallego",
-  "La Señora": "senora", "El Gordo Bermejo": "bermejo", "El Tano Lucero": "lucero", "Rita \"Taxi\" Quiroga": "rita"
+  "Elvira «La Señora» Santoro": "senora", "Don Ramón Ferrante": "bermejo", "El Tano Lucero": "lucero", "El Tucu Medina": "rita"
 };
 export const portraitOf = (name: string) => NAMED[name] ? img(`retratos/${NAMED[name]}`) : silhouette(name);
 export const hasPortrait = (name: string) => !!NAMED[name];
@@ -59,8 +59,9 @@ export function GangBadge({ gang }: { gang?: Gang | null }) {
 /* personajes del mapa (estilo RPG Maker, de «ゆうひな»): uno por retrato y uno propio por cada vecino que juega solo */
 const SPRITE_OF_AVATAR: Record<number, number> = { 1: 23, 2: 144, 3: 50, 4: 47 };
 const BOT_SPRITES: Record<string, number> = {
-  "Tincho Ferreyra": 38, "La Colorada Paz": 170, "Pocho Benítez": 7, "Yésica Ramos": 58,
-  "Nacho del Once": 13, "Juanca Godoy": 33, "Lali Torres": 32, "El Chino Acuña": 45
+  "Malickud": 38, "Bondiabera": 170, "Pochoclo22": 7, "Yesiquita": 58,
+  "Nachuflo": 13, "Juancarlitox": 33, "Lalitrona": 32, "ChinoLoco_": 45,
+  "Ferneteitor": 72, "Guadalupita_ok": 76, "Mostrito": 92, "Rulo_xd": 120, "Kchorro": 124, "Tatabombo": 132, "Milanesauria": 136, "Facu_Ganzua": 160, "Bichito77": 164, "Morochaza": 196
 };
 const spriteImg = (n: number) => img(`sprites/pj_${n}`);
 export const playerSprite = (avatar?: number) => spriteImg(SPRITE_OF_AVATAR[avatar ?? 1] ?? 23);

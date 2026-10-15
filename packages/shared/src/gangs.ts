@@ -8,13 +8,13 @@ export const GANG_MIN_POINTS = 10;   // y al menos una misión hecha (antes de e
 
 export interface GangInfo { name: string; boss: string; color: string; hood: string; perk: string; say: string }
 export const GANGS: Record<Gang, GangInfo> = {
-  familia:   { name: "La Familia", boss: "La Señora", color: "#e0524f", hood: "el puerto",
+  familia:   { name: "La Familia", boss: "Elvira «La Señora» Santoro", color: "#e0524f", hood: "el puerto",
                perk: "+10% de plata en los golpes", say: "Pagan poco por ser honesto. Yo pago bien." },
-  sindicato: { name: "El Sindicato", boss: "El Gordo Bermejo", color: "#5b9be6", hood: "los galpones",
+  sindicato: { name: "El Sindicato", boss: "Don Ramón Ferrante", color: "#5b9be6", hood: "los galpones",
                perk: "Entrenás 25% más rápido (en los galpones sobran fierros)", say: "Acá se para cuando yo digo y se cobra cuando yo digo." },
   barra:     { name: "La Barra", boss: "El Tano Lucero", color: "#6cc070", hood: "la cancha",
                perk: "+10% de fuerza en las peleas", say: "El barrio se banca con el cuerpo, pibe." },
-  amarillos: { name: "Los Amarillos", boss: "Rita \"Taxi\" Quiroga", color: "#f2c94c", hood: "las remiserías",
+  amarillos: { name: "Los Amarillos", boss: "El Tucu Medina", color: "#f2c94c", hood: "las remiserías",
                perk: "Tu nivel de búsqueda sube 30% menos", say: "Conozco cada calle de Maires. Y cada salida." }
 };
 
@@ -59,8 +59,8 @@ export const GANG_MEMBERS: Record<Gang, string[]> = {
 
 /* Ranking: personajes fijos para que la ciudad no se vea vacía. [nombre, pandilla, respeto, nivel] */
 export const RIVALS: [string, Gang, number, number][] = [
-  ["La Señora", "familia", 2900, 26], ["El Gordo Bermejo", "sindicato", 2500, 24], ["El Tano Lucero", "barra", 2100, 22],
-  ["Rita \"Taxi\" Quiroga", "amarillos", 1800, 21], ["El Gallego", "familia", 980, 16], ["\"Grúa\" Ledesma", "sindicato", 720, 14],
+  ["Elvira «La Señora» Santoro", "familia", 2900, 26], ["Don Ramón Ferrante", "sindicato", 2500, 24], ["El Tano Lucero", "barra", 2100, 22],
+  ["El Tucu Medina", "amarillos", 1800, 21], ["El Gallego", "familia", 980, 16], ["\"Grúa\" Ledesma", "sindicato", 720, 14],
   ["Chino Funes", "barra", 510, 12], ["Pirata Arce", "amarillos", 340, 10], ["La Turca", "familia", 220, 8],
   ["El Ruso Olmedo", "sindicato", 130, 6], ["Fideo Romero", "barra", 75, 5], ["Mecha Vidal", "amarillos", 10, 2]
 ];
@@ -114,15 +114,15 @@ export const MISSIONS: Record<Gang, Mission[]> = {
   ],
   sindicato: [
     { id:"paro", gang:"sindicato", tier:0, rank:0, title:"El paro", reward:R1,
-      intro:"El Gordo Bermejo te recibe en el galpón 3. «Mañana no entra ni sale un camión del puerto. Vos te encargás de que se entienda.»",
+      intro:"Don Ramón Ferrante te recibe en el galpón 3. «Mañana no entra ni sale un camión del puerto. Vos te encargás de que se entienda.»",
       steps:[
         { text:"Convencer a los estibadores del turno noche de que paren.", stat:"lab", diff:5, energy:2, dmg:0,
-          ok:"Te escuchan, se miran y apagan las grúas.", ko:"Te dicen que tienen familia y que el Gordo no les paga el alquiler." },
+          ok:"Te escuchan, se miran y apagan las grúas.", ko:"Te dicen que tienen familia y que Don Ramón no les paga el alquiler." },
         { text:"Cruzar un acoplado en la entrada del puerto antes del amanecer.", stat:"ref", diff:5, energy:2, dmg:.1,
           ok:"El acoplado queda de costado, justo en la barrera.", ko:"Le erraste al portón y te comiste el guardabarros." },
         { text:"Un capataz rompehuelgas viene con dos matones a sacar el acoplado.", fight:{ name:"El capataz rompehuelgas", mult:.85 }, energy:3,
           win:"El capataz vuelve a su oficina sin los matones.", lose:"Te sacan a la rastra y el acoplado se mueve. Hay que volver a intentarlo." },
-        { text:"Llevarle el petitorio firmado al Gordo.", energy:1, auto:true, ok:"El Gordo lo lee, lo rompe y se ríe. «Ya firmaron. Eso es lo que importa.»" }
+        { text:"Llevarle el petitorio firmado a Don Ramón.", energy:1, auto:true, ok:"Don Ramón lo lee, lo rompe y se ríe. «Ya firmaron. Eso es lo que importa.»" }
       ],
       outro:"«Paraste un puerto entero. Ahora sí podemos hablar de negocios.»" },
     { id:"deposito7", gang:"sindicato", tier:1, rank:2, title:"La carga del depósito 7", reward:R2,
@@ -136,7 +136,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           win:"El encargado termina sentado sobre una caja. El perro te lame la mano.", lose:"Te encierran en un contenedor media hora. Hay que volver a intentarlo." },
         { text:"Cargar los cajones en el camión, con el olor a pescado y el frío del puerto.", stat:"dur", diff:8, energy:3, dmg:.15,
           ok:"El último cajón entra justo. El camión arranca.", ko:"Se te vino encima una pila de cajones." },
-        { text:"Llevar el camión a los galpones.", energy:1, auto:true, ok:"El Gordo abre un cajón y silba bajito." }
+        { text:"Llevar el camión a los galpones.", energy:1, auto:true, ok:"Don Ramón abre un cajón y silba bajito." }
       ],
       outro:"«La Señora ya sabe que fuimos nosotros. Mejor. Que sepa con quién se mete.»" },
     { id:"puerto", gang:"sindicato", tier:2, rank:4, title:"Fuera del puerto", reward:R3,
@@ -152,7 +152,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           ok:"La lancha queda vacía y La Señora se va sin nada.", ko:"Se te resbaló un cajón y casi te arrastra al agua." },
         { text:"Volver a los galpones con la carga.", energy:1, auto:true, ok:"Medio Maires se entera antes del amanecer." }
       ],
-      outro:"El Gordo te da la mano delante de todos. «El puerto es del Sindicato. Y vos sos parte.»" }
+      outro:"Don Ramón te da la mano delante de todos. «El puerto es del Sindicato. Y vos sos parte.»" }
   ],
   barra: [
     { id:"trapos", gang:"barra", tier:0, rank:0, title:"Los trapos", reward:R1,
@@ -198,7 +198,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
   ],
   amarillos: [
     { id:"taximetro", gang:"amarillos", tier:0, rank:0, title:"Viaje sin taxímetro", reward:R1,
-      intro:"Rita Quiroga te tira las llaves de un remís. «Un paquete, una dirección, nada de preguntas. Y el taxímetro apagado.»",
+      intro:"El Tucu Medina te tira las llaves de un remís. «Un paquete, una dirección, nada de preguntas. Y el taxímetro apagado.»",
       steps:[
         { text:"Cruzar la avenida en hora pico con el paquete en el asiento de atrás.", stat:"ref", diff:5, energy:2, dmg:.1,
           ok:"Te mandaste por una calle que nadie usa.", ko:"Te encerraron en un embotellamiento y te comiste un cordón." },
@@ -206,7 +206,7 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           ok:"El portero te deja pasar y hasta te abre el ascensor.", ko:"El portero llama al encargado. Mejor volver más tarde." },
         { text:"El que recibe el paquete no quiere pagar el viaje.", fight:{ name:"El pasajero pesado", mult:.85 }, energy:3,
           win:"Pagó el viaje, la propina y la puerta que rompió.", lose:"Te echó a empujones. Hay que volver a cobrar." },
-        { text:"Devolverle el remís a Rita.", energy:1, auto:true, ok:"Rita revisa el auto, ve que no tiene rayones y sonríe." }
+        { text:"Devolverle el remís al Tucu.", energy:1, auto:true, ok:"El Tucu revisa el auto, ve que no tiene rayones y sonríe." }
       ],
       outro:"«Manejás bien y no preguntás. Eso vale oro en esta ciudad.»" },
     { id:"desarmadero", gang:"amarillos", tier:1, rank:2, title:"El desarmadero", reward:R2,
@@ -220,18 +220,18 @@ export const MISSIONS: Record<Gang, Mission[]> = {
           win:"El dueño decide que el auto no valía tanto.", lose:"Te sacan del garaje a patadas." },
         { text:"Desarmar el auto antes de que amanezca.", stat:"fue", diff:8, energy:3, dmg:.1,
           ok:"Cuatrocientas partes, prolijas y numeradas.", ko:"Se te cayó el motor arriba del pie." },
-        { text:"Avisarle a Rita que está listo.", energy:1, auto:true, ok:"Rita ya tiene comprador para cada pieza." }
+        { text:"Avisarle al Tucu que está listo.", energy:1, auto:true, ok:"El Tucu ya tiene comprador para cada pieza." }
       ],
       outro:"«En una noche hiciste lo que a otros les lleva una semana.»" },
     { id:"picada", gang:"amarillos", tier:2, rank:4, title:"La picada de la costanera", reward:R3,
-      intro:"«El Sindicato quiere quedarse con las remiserías. El Gordo Bermejo apostó todo a una picada por la costanera. Le vamos a ganar.»",
+      intro:"«El Sindicato quiere quedarse con las remiserías. Don Ramón Ferrante apostó todo a una picada por la costanera. Le vamos a ganar.»",
       steps:[
         { text:"Ganar la picada contra el piloto del Sindicato.", stat:"ref", diff:17, energy:4, dmg:.15,
           ok:"Cruzás la meta con medio auto de ventaja.", ko:"Te fuiste de costado en la última curva." },
-        { text:"Cobrar la apuesta antes de que el Gordo se arrepienta.", stat:"lab", diff:17, energy:3, dmg:0,
-          ok:"El Gordo paga, con cara de que no se va a olvidar.", ko:"El Gordo dice que hiciste trampa. Va a haber que convencerlo." },
-        { text:"El Gordo Bermejo no se va a ir sin pelear.", fight:{ name:"El Gordo Bermejo", mult:.9 }, energy:5,
-          win:"El Gordo se va en el auto de un amigo. Las remiserías siguen siendo amarillas.", lose:"El Gordo te encierra contra la baranda. Hay que volver a intentarlo." },
+        { text:"Cobrar la apuesta antes de que Don Ramón se arrepienta.", stat:"lab", diff:17, energy:3, dmg:0,
+          ok:"Don Ramón paga, con cara de que no se va a olvidar.", ko:"Don Ramón dice que hiciste trampa. Va a haber que convencerlo." },
+        { text:"Don Ramón Ferrante no se va a ir sin pelear.", fight:{ name:"Don Ramón Ferrante", mult:.9 }, energy:5,
+          win:"Don Ramón se va en el auto de un amigo. Las remiserías siguen siendo amarillas.", lose:"Don Ramón te encierra contra la baranda. Hay que volver a intentarlo." },
         { text:"Aguantar el choque cuando los del Sindicato te encierran a la salida.", stat:"dur", diff:17, energy:3, dmg:.15,
           ok:"Salís del auto caminando.", ko:"Te sacaron del auto en camilla." },
         { text:"Volver a la remisería con la plata.", energy:1, auto:true, ok:"Todas las remiserías prenden las balizas a la vez." }

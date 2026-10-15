@@ -296,7 +296,7 @@ export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now
     const el = document.createElement("div");
     el.className = "gps-card";
     const line = (cls: string, text: string) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; el.appendChild(d); return d; };
-    line("name", o.name + (o.bot ? " · vecino" : ""));
+    line("name", o.name);
     line("tag", `nivel ${o.lvl} · ${o.gang ? GANGS[o.gang].name : "suelto"}`);
     if (o.chase) line("where", `Salió a buscar a ${o.chase.targetName}`);
     else if (o.trip) {
