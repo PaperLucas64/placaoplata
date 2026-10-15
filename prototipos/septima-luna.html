@@ -1,0 +1,534 @@
+<title>Séptima Luna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: ficha del personaje a la izquierda (fija), pestañas que aparecen de a una a la derecha, crónica abajo.
+   Un solo mundo nocturno a propósito: monte, luna llena y brasa de fogón. */
+:root{
+  color-scheme: dark;
+  --bg:#12140f;        /* monte de noche */
+  --panel:#1b1e17;     /* tierra */
+  --line:#363a2c;
+  --fg:#e9e2cf;        /* luna */
+  --muted:#a29d8a;
+  --ember:#d9782f;     /* brasa de fogón */
+  --moon:#d8cfa8;
+  --blood:#b5413a;
+  --moss:#7fa06a;
+  --display:"IM Fell English SC", "Times New Roman", serif;
+  --body:"Spectral", Georgia, serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:20px 40px;
+  background-image:radial-gradient(circle at 88% 4%, #3a3826 0, transparent 26%);}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);line-height:1;letter-spacing:.02em}
+h1 span{color:var(--ember)}
+h2{font-size:1.7rem}
+h3{font-size:1.25rem}
+p{margin:0}
+.tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#262a20;color:var(--fg);padding:8px 14px;border-radius:3px;transition:background .15s,border-color .15s}
+button:hover:not(:disabled){border-color:var(--ember);background:#30352a}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--ember);border-color:var(--ember);color:#1a1209;font-weight:600}
+button.primary:hover:not(:disabled){background:#e88a42;border-color:#e88a42}
+button.link{border:none;background:none;color:var(--muted);text-decoration:underline;padding:4px}
+input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:9px 12px;border-radius:3px;width:100%}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+#create{max-width:720px;margin:4vh auto 0;display:grid;gap:20px}
+#create p{color:var(--muted)}
+.races{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.race{text-align:left;padding:18px;display:grid;gap:6px;background:var(--panel)}
+.race[aria-pressed="true"]{border-color:var(--ember);box-shadow:inset 0 0 0 1px var(--ember)}
+.race .sym{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--moon)}
+.race small{color:var(--muted)}
+
+.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.game{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.game{grid-template-columns:1fr}}
+.sheet{background:var(--panel);border:1px solid var(--line);padding:18px;display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:820px){.sheet{position:static}}
+.who{display:flex;gap:12px;align-items:center}
+.sigil{width:52px;height:52px;flex:none;display:grid;place-items:center;border:1px solid var(--moon);border-radius:50%;font-family:var(--display);font-size:1.7rem;color:var(--moon)}
+.bar{display:grid;gap:4px}
+.bar .row{display:flex;justify-content:space-between;font-size:.85rem}
+.track{height:8px;background:#0b0c09;border:1px solid var(--line);overflow:hidden}
+.fill{height:100%;transition:width .4s}
+.hp .fill{background:var(--blood)}
+.en .fill{background:var(--moon)}
+.xp .fill{background:var(--ember)}
+.stats{display:grid;gap:6px}
+.stat{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:.95rem;border-bottom:1px dotted var(--line);padding-bottom:4px}
+.money{display:flex;justify-content:space-between;align-items:center;font-size:1.05rem}
+.money .num{color:var(--ember);font-size:1.2rem}
+.gear{font-size:.88rem;color:var(--muted);display:grid;gap:2px}
+.omen{font-size:.88rem;font-style:italic;color:var(--moon);border-left:2px solid var(--moon);padding-left:10px}
+
+.board{display:grid;gap:16px;min-width:0}
+.hint{display:flex;gap:14px;justify-content:space-between;align-items:start;border:1px solid var(--ember);background:#231d14;padding:12px 16px}
+.hint b{display:block;font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ember);margin-bottom:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{position:relative}
+.tabs button[aria-selected="true"]{border-color:var(--ember);color:var(--ember);background:var(--panel)}
+.dot{position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--ember)}
+.pane{background:var(--panel);border:1px solid var(--line);padding:18px;display:grid;gap:14px}
+.pane > p{color:var(--muted);max-width:65ch}
+.list{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);background:#171a14}
+.item .meta{font-size:.88rem;color:var(--muted)}
+.item h3{font-size:1.15rem}
+.item .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:end}
+@media (max-width:480px){.item{grid-template-columns:1fr}.item .act{justify-content:start}}
+.risk{font-family:var(--mono);font-size:.72rem;padding:2px 6px;border:1px solid currentColor;margin-left:6px;vertical-align:middle}
+.r1{color:var(--moss)}.r2{color:var(--ember)}.r3{color:var(--blood)}
+
+.fight{border:1px solid var(--line);background:#0e0f0b;padding:14px;display:grid;gap:10px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+.vs .mid{font-family:var(--display);font-size:1.6rem;color:var(--ember)}
+.vs .side{display:grid;gap:4px;min-width:0}
+.vs .side:last-child{text-align:right}
+.rounds{font-family:var(--mono);font-size:.8rem;max-height:220px;overflow:auto;display:grid;gap:2px;color:var(--muted)}
+.rounds .p{color:var(--fg)}
+.rounds .e{color:#e0a28d}
+.verdict{font-family:var(--display);font-size:1.5rem}
+.win{color:var(--moss)}.lose{color:var(--blood)}
+
+.log{background:var(--panel);border:1px solid var(--line);padding:14px 18px;display:grid;gap:8px}
+.log ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto;font-size:.92rem}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.log time{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:3px}
+.log .good{color:#b2d29e}.log .bad{color:#e69a8f}.log .gold{color:var(--ember)}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.shake{animation:shake .25s 2}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(() => {
+const SAVE_KEY = "septima-luna-v1";
+const ENERGY_MAX = 20, ENERGY_EVERY = 20000;
+const HEAL_EVERY = 10000;
+const FRIDAY = new Date().getDay() === 5;
+
+const RACES = {
+  lobizon: { name:"Lobizón", sym:"L", foe:"salamanquero",
+    blurb:"Séptimo hijo varón. Las noches de luna se le eriza el lomo y sale al monte. Más fuerza y aguante; recupera vida cuando sale de correría.",
+    bonus:{fue:2,cue:0,man:0,agu:1,lab:0} },
+  salamanquero: { name:"Salamanquero", sym:"S", foe:"lobizon",
+    blurb:"Aprendió sus mañas en la Salamanca, la cueva donde enseña Mandinga. Más mañas y labia; saca más patacones de cada correría.",
+    bonus:{fue:0,cue:0,man:2,agu:0,lab:1} }
+};
+const STAT_NAMES = { fue:"Fuerza", cue:"Cuero", man:"Mañas", agu:"Aguante", lab:"Labia" };
+const STAT_HELP  = { fue:"Más daño en cada golpe", cue:"Menos daño recibido", man:"Más chances de acertar", agu:"Más vida", lab:"Más patacones en las correrías" };
+
+const HUNTS = [
+  { id:"gallinero", name:"Gallinero de Doña Pocha",      cost:1, risk:1, gold:[4,10],   xp:[2,4],   lvl:1, fail:"Te corrió Doña Pocha con la escoba." },
+  { id:"boliche",   name:"Asustar borrachos del boliche",cost:2, risk:1, gold:[10,22],  xp:[5,8],   lvl:2, fail:"Uno no estaba tan borracho y te tiró una silla." },
+  { id:"velorio",   name:"Aparecerse en un velorio",     cost:3, risk:2, gold:[22,45],  xp:[10,15], lvl:4, fail:"La viuda rezaba fuerte y te tuviste que ir con las costillas doloridas." },
+  { id:"diligencia",name:"Asaltar la diligencia",        cost:4, risk:2, gold:[45,90],  xp:[18,26], lvl:7, fail:"El mayoral tenía trabuco." },
+  { id:"patronal",  name:"Revolver la fiesta patronal",  cost:5, risk:3, gold:[90,170], xp:[30,45], lvl:10, fail:"El cura salió con agua bendita y la partida a caballo." }
+];
+
+const MONSTERS = [
+  { name:"Perro del Familiar",  lvl:3,  mult:.7,  lore:"Lo sueltan en los ingenios. Muerde y no suelta." },
+  { name:"Pombero",             lvl:4,  mult:.85, lore:"Silba en el monte y te desata el caballo." },
+  { name:"Luz Mala",            lvl:6,  mult:1.0, lore:"Una luz que te sigue. Donde se apaga hay huesos." },
+  { name:"La Viuda",            lvl:8,  mult:1.2, lore:"Se sube a la grupa de los que andan solos de noche." },
+  { name:"El Familiar",         lvl:11, mult:1.45,lore:"Víbora o perro negro grande como un ternero." },
+  { name:"Mandinga en persona", lvl:15, mult:1.8, lore:"Viste de gaucho fino. Pide revancha a la taba." }
+];
+
+const SHOP = [
+  { id:"cuchillo", slot:"arma",    name:"Cuchillo verijero",     val:3,  price:40,   lvl:1 },
+  { id:"rebenque", slot:"arma",    name:"Rebenque con plomo",    val:7,  price:180,  lvl:3 },
+  { id:"facon",    slot:"arma",    name:"Facón de plata",        val:13, price:650,  lvl:6 },
+  { id:"trabuco",  slot:"arma",    name:"Trabuco naranjero",     val:22, price:1900, lvl:10 },
+  { id:"poncho",   slot:"armadura",name:"Poncho grueso",         val:2,  price:35,   lvl:1 },
+  { id:"guarda",   slot:"armadura",name:"Guardamonte de cuero",  val:6,  price:200,  lvl:3 },
+  { id:"chaleco",  slot:"armadura",name:"Chaleco de cuero crudo",val:11, price:700,  lvl:6 },
+  { id:"escapul",  slot:"armadura",name:"Escapulario de siete santos",val:18, price:2000, lvl:10 },
+  { id:"cana",     slot:"consumible",name:"Caña con ruda (+50% vida)", val:.5, price:30, lvl:1 }
+];
+
+const FOE_NAMES = {
+  lobizon:["El Séptimo Ríos","Benigno Arce, el Peludo","Ciriaco Lunares","El Overo Quiroga","Anselmo Medianoche","El Hijo de la Ñata"],
+  salamanquero:["Doña Rufina","Zacarías Mandinguero","Brígida Saldaño","El Mudo Leiva","Ña Eufrasia","Telmo el Tahúr"]
+};
+
+/* Las pestañas aparecen de a una. El Viejo Vizcacha las explica con una línea. */
+const UNLOCKS = [
+  { tab:"correria",  when:s=>true,           hint:"Con la panza vacía no se pelea. Salí de correría: arrancá por el gallinero, que es lo más fácil." },
+  { tab:"curandera", when:s=>s.hp < maxHp(s)*0.75 || s.runs >= 3, hint:"Andás machucado. La curandera del pueblo te arregla por unos patacones, o esperá que la vida vuelve sola." },
+  { tab:"almacen",   when:s=>s.gold >= 35,   hint:"Ya tenés unos patacones. En el almacén de ramos generales hay cuchillos y ponchos: gastalos." },
+  { tab:"entreno",   when:s=>s.lvl >= 2,     hint:"Nivel 2. El que no se prepara, cobra. Pagá para mejorar tus atributos." },
+  { tab:"monte",     when:s=>s.lvl >= 3,     hint:"Nivel 3. En el monte andan las criaturas viejas. Pelearlas da buena experiencia, pero si perdés se te caen patacones." },
+  { tab:"duelo",     when:s=>s.lvl >= 4,     hint:"Nivel 4. Ya te conocen. Hay uno de la otra cofradía que anda preguntando por vos." }
+];
+const TAB_NAMES = { correria:"Correría", curandera:"Curandera", almacen:"Almacén", entreno:"Entrenamiento", monte:"El monte", duelo:"Duelo" };
+
+let S = load();
+let tab = "correria";
+let lastFight = null;
+let confirmReset = false;
+
+const $ = s => document.querySelector(s);
+const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const now = () => Date.now();
+
+function load(){ try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch(e){} return null; }
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){} }
+
+function newChar(name, race){
+  const b = RACES[race].bonus;
+  const s = { name, race, lvl:1, xp:0, gold:20, energy:ENERGY_MAX,
+    stats:{ fue:5+b.fue, cue:5+b.cue, man:5+b.man, agu:5+b.agu, lab:5+b.lab },
+    gear:{ arma:null, armadura:null }, potions:0, wins:0, losses:0, runs:0,
+    tabs:["correria"], seenTab:{}, hints:[UNLOCKS[0].hint],
+    tEnergy:now(), tHeal:now(), log:[] };
+  s.hp = maxHp(s);
+  return s;
+}
+function maxHp(s){ return 40 + s.stats.agu*12 + s.lvl*6; }
+const xpNeed  = s => Math.round(40*Math.pow(s.lvl,1.55));
+const trainCost = v => Math.round(6*Math.pow(v,1.7));
+const gearVal = (s,slot) => { const g = SHOP.find(i=>i.id===s.gear[slot]); return g?g.val:0; };
+const friBonus = () => (FRIDAY && S.race==="lobizon") ? 3 : 0;
+
+function log(msg, cls=""){
+  const d = new Date();
+  S.log.unshift({ t:`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`, msg, cls });
+  S.log = S.log.slice(0,40);
+}
+function checkUnlocks(){
+  UNLOCKS.forEach(u => { if (!S.tabs.includes(u.tab) && u.when(S)){ S.tabs.push(u.tab); S.hints.push(u.hint); } });
+}
+function gainXp(n){
+  S.xp += n;
+  while (S.xp >= xpNeed(S)){
+    S.xp -= xpNeed(S); S.lvl++; S.hp = maxHp(S);
+    log(`Subiste al nivel ${S.lvl}. Te curaste del todo.`, "gold");
+  }
+}
+
+function tick(){
+  if (!S) return;
+  const t = now(), before = S.energy;
+  if (S.energy < ENERGY_MAX){
+    const g = Math.floor((t - S.tEnergy)/ENERGY_EVERY);
+    if (g>0){ S.energy = Math.min(ENERGY_MAX, S.energy+g); S.tEnergy += g*ENERGY_EVERY; }
+  } else S.tEnergy = t;
+  const mh = maxHp(S);
+  if (S.hp < mh){
+    const h = Math.floor((t - S.tHeal)/HEAL_EVERY);
+    if (h>0){ S.hp = Math.min(mh, S.hp + h*Math.ceil(mh*0.02)); S.tHeal += h*HEAL_EVERY; }
+  } else S.tHeal = t;
+  save();
+  if (before !== S.energy) render(); else renderSheet();
+}
+
+/* ---------- combate ---------- */
+function makeFighter(src){ return { name:src.name, hp:src.hp, max:src.max, fue:src.fue, cue:src.cue, man:src.man, arma:src.arma||0, armadura:src.armadura||0 }; }
+function playerFighter(){
+  return makeFighter({ name:S.name, hp:S.hp, max:maxHp(S), fue:S.stats.fue + friBonus(), cue:S.stats.cue, man:S.stats.man, arma:gearVal(S,"arma"), armadura:gearVal(S,"armadura") });
+}
+function strike(a, d){
+  const chance = clamp(70 + (a.man - d.man)*3, 20, 95);
+  if (Math.random()*100 >= chance) return 0;
+  const crit = Math.random() < 0.08;
+  let dmg = a.fue*1.6 + a.arma + rnd(0,4) - d.cue*0.7 - d.armadura;
+  dmg = Math.max(1, Math.round(dmg * (crit?1.8:1)));
+  return crit ? -dmg : dmg;
+}
+function line(r, who, d){
+  return d===0 ? `R${r} · ${who} tira y erra.` : `R${r} · ${who} ${d<0?"pega un hachazo de":"lastima por"} ${Math.abs(d)}.`;
+}
+function battle(p, e){
+  const rounds = [];
+  for (let r=1; r<=12 && p.hp>0 && e.hp>0; r++){
+    let d = strike(p,e); e.hp = Math.max(0, e.hp - Math.abs(d));
+    rounds.push({ who:"p", txt: line(r, p.name, d) });
+    if (e.hp<=0) break;
+    d = strike(e,p); p.hp = Math.max(0, p.hp - Math.abs(d));
+    rounds.push({ who:"e", txt: line(r, e.name, d) });
+  }
+  const won = e.hp<=0 || (p.hp>0 && p.hp/p.max > e.hp/e.max);
+  return { won, rounds, p, e };
+}
+function scaledEnemy(name, lvl, mult){
+  const base = 5 + lvl*1.6;
+  const v = () => Math.max(3, Math.round(base*mult + rnd(-2,2)));
+  const agu = v();
+  const max = Math.round((40 + agu*12 + lvl*6) * (0.85+mult*0.15));
+  return makeFighter({ name, hp:max, max, fue:v(), cue:v(), man:v(), arma:Math.round(lvl*1.2*mult), armadura:Math.round(lvl*0.9*mult) });
+}
+
+/* ---------- acciones ---------- */
+function hunt(id){
+  const h = HUNTS.find(x=>x.id===id);
+  if (S.energy < h.cost || S.lvl < h.lvl) return;
+  S.energy -= h.cost; S.runs++;
+  const failChance = [0,0.06,0.18,0.3][h.risk];
+  if (Math.random() < failChance){
+    const dmg = Math.round(maxHp(S)*0.14*h.risk);
+    S.hp = Math.max(1, S.hp - dmg);
+    log(`${h.name}: ${h.fail} Perdiste ${dmg} de vida.`, "bad");
+  } else {
+    let gold = Math.round(rnd(...h.gold) * (1 + S.stats.lab*0.03));
+    if (S.race==="salamanquero") gold = Math.round(gold*1.15);
+    const xp = rnd(...h.xp);
+    S.gold += gold; gainXp(xp);
+    let extra = "";
+    if (S.race==="lobizon"){ const heal = Math.round(maxHp(S)*0.04); S.hp = Math.min(maxHp(S), S.hp+heal); extra = ` Comiste algo y recuperaste ${heal} de vida.`; }
+    log(`${h.name}: +${gold} patacones, +${xp} XP.${extra}`, "good");
+  }
+  checkUnlocks(); save(); render();
+}
+function fightMonster(i){
+  const m = MONSTERS[i];
+  if (S.energy < 3 || S.hp < 2 || S.lvl < m.lvl) return;
+  S.energy -= 3;
+  const e = scaledEnemy(m.name, Math.max(m.lvl, S.lvl), m.mult);
+  resolveFight(e, { gold:Math.round(e.max*0.5*m.mult), xp:Math.round(8 + m.lvl*4*m.mult) });
+}
+function fightDuel(){
+  if (S.energy < 4 || S.hp < 2 || !S.rival) return;
+  S.energy -= 4;
+  const r = S.rival;
+  const e = scaledEnemy(r.name, r.lvl, r.mult);
+  S.rival = null; newRival();
+  resolveFight(e, { gold:Math.round(S.gold*0.08 + r.lvl*12), xp:Math.round(12 + r.lvl*5) });
+}
+function resolveFight(e, reward){
+  const res = battle(playerFighter(), e);
+  S.hp = Math.max(1, res.p.hp);
+  if (res.won){
+    S.gold += reward.gold; gainXp(reward.xp); S.wins++;
+    log(`Le ganaste a ${e.name}: +${reward.gold} patacones, +${reward.xp} XP.`, "good");
+  } else {
+    const lost = Math.round(S.gold*0.1);
+    S.gold -= lost; S.losses++;
+    log(`${e.name} te dejó tirado en el barro. Perdiste ${lost} patacones.`, "bad");
+  }
+  lastFight = { ...res, reward };
+  checkUnlocks(); save(); render();
+  const f = $(".fight"); if (f && !res.won) f.classList.add("shake");
+}
+function newRival(){
+  const foe = RACES[S.race].foe;
+  S.rival = { name: FOE_NAMES[foe][rnd(0,FOE_NAMES[foe].length-1)], race:foe, lvl:Math.max(1, S.lvl + rnd(-1,2)), mult:0.85 + Math.random()*0.35 };
+}
+function train(k){
+  const c = trainCost(S.stats[k]); if (S.gold < c) return;
+  S.gold -= c; S.stats[k]++;
+  if (k==="agu") S.hp += 12;
+  log(`Entrenaste ${STAT_NAMES[k].toLowerCase()} hasta ${S.stats[k]} (−${c} patacones).`);
+  save(); render();
+}
+function buy(id){
+  const it = SHOP.find(i=>i.id===id);
+  if (S.gold < it.price || S.lvl < it.lvl) return;
+  S.gold -= it.price;
+  if (it.slot==="consumible"){ S.potions++; log(`Compraste ${it.name.split(" (")[0].toLowerCase()}.`); }
+  else { S.gear[it.slot] = it.id; log(`Te llevaste ${it.name.toLowerCase()} (−${it.price} patacones).`, "gold"); }
+  checkUnlocks(); save(); render();
+}
+function drink(){
+  if (!S.potions) return;
+  S.potions--; const h = Math.round(maxHp(S)*0.5);
+  S.hp = Math.min(maxHp(S), S.hp+h);
+  log(`Te tomaste una caña con ruda: +${h} de vida.`, "good");
+  save(); render();
+}
+const healCost = () => Math.max(0, Math.round((maxHp(S)-S.hp) * 0.6));
+function heal(){
+  const c = healCost(); if (!c || S.gold < c) return;
+  S.gold -= c; S.hp = maxHp(S);
+  log(`La curandera te tiró el cuerito y te curó de palabra (−${c} patacones).`);
+  save(); render();
+}
+function work(){
+  if (S.energy < 2) return;
+  S.energy -= 2;
+  const g = 8 + S.lvl*4; S.gold += g;
+  log(`Hiciste una changa en la esquila: +${g} patacones.`);
+  checkUnlocks(); save(); render();
+}
+
+/* ---------- vistas ---------- */
+const bar = (cls,label,v,max,note="") => `
+  <div class="bar ${cls}"><div class="row"><span>${label}${note?` <span class="tag">${note}</span>`:""}</span><span class="num">${v} / ${max}</span></div>
+  <div class="track"><div class="fill" style="width:${clamp(v/max*100,0,100)}%"></div></div></div>`;
+
+function renderSheet(){
+  const el = $("#sheet"); if (!el || !S) return;
+  const mh = maxHp(S);
+  const nextE = S.energy<ENERGY_MAX ? Math.ceil((ENERGY_EVERY-(now()-S.tEnergy))/1000) : 0;
+  const w = SHOP.find(i=>i.id===S.gear.arma), a = SHOP.find(i=>i.id===S.gear.armadura);
+  el.innerHTML = `
+    <div class="who"><div class="sigil">${RACES[S.race].sym}</div>
+      <div><h2>${esc(S.name)}</h2><div class="tag">${RACES[S.race].name} · Nivel ${S.lvl}</div></div></div>
+    ${friBonus() ? `<div class="omen">Hoy es viernes. Te pica el lomo: +3 de fuerza en las peleas.</div>` : ""}
+    ${bar("hp","Vida",Math.round(S.hp),mh)}
+    ${bar("en","Energía",S.energy,ENERGY_MAX, nextE?`+1 en ${nextE}s`:"")}
+    ${bar("xp","Experiencia",S.xp,xpNeed(S))}
+    <div class="money"><span>Patacones</span><span class="num">${S.gold}</span></div>
+    <div class="stats">${Object.keys(STAT_NAMES).map(k=>`<div class="stat"><span>${STAT_NAMES[k]}</span><span class="num">${S.stats[k]}</span></div>`).join("")}</div>
+    <div class="gear"><span>Arma: ${w?`${w.name} (+${w.val})`:"las manos"}</span><span>Ropa: ${a?`${a.name} (+${a.val})`:"camisa y bombacha"}</span>${S.potions?`<span>Cañas con ruda: ${S.potions}</span>`:""}</div>`;
+}
+
+function paneView(){
+  const riskTxt = ["","bajo","medio","alto"];
+  if (tab==="correria") return `
+    <h2>Salir de correría</h2>
+    <p>Gastá energía para hacer de las tuyas en el pago. Más riesgo, más botín. La labia te hace sacar más patacones.</p>
+    <div class="list">${HUNTS.filter(h => h.lvl <= S.lvl + 2).map(h=>`
+      <div class="item"><div><h3>${h.name}<span class="risk r${h.risk}">riesgo ${riskTxt[h.risk]}</span></h3>
+        <div class="meta num">${h.gold[0]}–${h.gold[1]} patacones · ${h.xp[0]}–${h.xp[1]} XP · ${h.cost} energía${S.lvl<h.lvl?` · desde nivel ${h.lvl}`:""}</div></div>
+        <div class="act"><button data-do="hunt:${h.id}" ${S.energy<h.cost||S.lvl<h.lvl?"disabled":""}>Salir</button></div></div>`).join("")}
+      ${S.lvl >= 2 ? `<div class="item"><div><h3>Changa en la esquila</h3><div class="meta num">${8+S.lvl*4} patacones seguros · 2 energía</div></div>
+        <div class="act"><button data-do="work" ${S.energy<2?"disabled":""}>Trabajar</button></div></div>` : ""}
+    </div>`;
+  if (tab==="monte") return `
+    <h2>El monte</h2>
+    <p>Las criaturas viejas se hacen más fuertes a medida que vos subís. Cada pelea cuesta 3 de energía. Si perdés, se te cae el 10% de los patacones.</p>
+    <div class="list">${MONSTERS.map((m,i)=>`
+      <div class="item"><div><h3>${m.name}<span class="risk r${m.mult<0.9?1:m.mult<1.3?2:3}">×${m.mult.toFixed(1)}</span></h3>
+        <div class="meta">${S.lvl<m.lvl?`Aparece desde el nivel ${m.lvl}`:m.lore}</div></div>
+        <div class="act"><button data-do="monster:${i}" ${S.energy<3||S.hp<2||S.lvl<m.lvl?"disabled":""}>Pelear</button></div></div>`).join("")}
+    </div>`;
+  if (tab==="duelo"){ if (!S.rival) newRival(); const r = S.rival; return `
+    <h2>Duelo con la otra cofradía</h2>
+    <p>Un ${RACES[r.race].name.toLowerCase()} anda diciendo cosas de vos en la pulpería. Ganarle da buenos patacones y mucha experiencia. Cuesta 4 de energía.</p>
+    <div class="item"><div><h3>${esc(r.name)}</h3><div class="meta">${RACES[r.race].name} · Nivel ${r.lvl} · ${r.mult>1.05?"tiene mala mirada":r.mult<0.95?"parece flojo":"parejo con vos"}</div></div>
+      <div class="act"><button data-do="reroll" ${S.gold<5?"disabled":""}>Buscar otro (5)</button><button class="primary" data-do="duel" ${S.energy<4||S.hp<2?"disabled":""}>Desafiar</button></div></div>`; }
+  if (tab==="entreno") return `
+    <h2>Entrenamiento</h2>
+    <p>Pagá patacones para mejorar. Cada punto cuesta más que el anterior.</p>
+    <div class="list">${Object.keys(STAT_NAMES).map(k=>{ const c=trainCost(S.stats[k]); return `
+      <div class="item"><div><h3>${STAT_NAMES[k]} <span class="num">${S.stats[k]}</span></h3><div class="meta">${STAT_HELP[k]}</div></div>
+        <div class="act"><button data-do="train:${k}" ${S.gold<c?"disabled":""}>Entrenar · <span class="num">${c}</span></button></div></div>`;}).join("")}
+    </div>`;
+  if (tab==="almacen") return `
+    <h2>Almacén de ramos generales</h2>
+    <p>Un arma y una ropa equipadas a la vez. Lo nuevo reemplaza a lo viejo.</p>
+    <div class="list">${SHOP.filter(it => it.lvl <= S.lvl + 3).map(it=>{ const own = S.gear[it.slot]===it.id; return `
+      <div class="item"><div><h3>${it.name}</h3>
+        <div class="meta num">${it.slot==="consumible"?"Se toma desde la curandera":`${it.slot==="arma"?"daño":"protección"} +${it.val}`} · ${it.price} patacones${S.lvl<it.lvl?` · desde nivel ${it.lvl}`:""}</div></div>
+        <div class="act"><button data-do="buy:${it.id}" ${own||S.gold<it.price||S.lvl<it.lvl?"disabled":""}>${own?"Lo tenés":"Comprar"}</button></div></div>`;}).join("")}
+    </div>`;
+  if (tab==="curandera"){ const c = healCost(); return `
+    <h2>La curandera</h2>
+    <p>La vida vuelve sola de a poco. Si no querés esperar, la curandera te cura por unos patacones.</p>
+    <div class="list">
+      <div class="item"><div><h3>Curación completa</h3><div class="meta num">${c?`${c} patacones`:"Estás entero"}</div></div>
+        <div class="act"><button data-do="heal" ${!c||S.gold<c?"disabled":""}>Curarme</button></div></div>
+      ${S.tabs.includes("almacen") ? `<div class="item"><div><h3>Tomar caña con ruda</h3><div class="meta num">Tenés ${S.potions} · +50% de vida</div></div>
+        <div class="act"><button data-do="drink" ${!S.potions?"disabled":""}>Tomar</button></div></div>` : ""}
+    </div>`; }
+  return "";
+}
+
+function fightView(f){
+  return `<section class="fight" aria-live="polite">
+    <div class="vs">
+      <div class="side"><h3>${esc(f.p.name)}</h3>${bar("hp","Vida",f.p.hp,f.p.max)}</div>
+      <div class="mid">vs</div>
+      <div class="side"><h3>${esc(f.e.name)}</h3>${bar("hp","Vida",f.e.hp,f.e.max)}</div>
+    </div>
+    <div class="rounds">${f.rounds.map(r=>`<div class="${r.who}">${esc(r.txt)}</div>`).join("")}</div>
+    <div class="verdict ${f.won?"win":"lose"}">${f.won?`Ganaste · +${f.reward.gold} patacones, +${f.reward.xp} XP`:"Perdiste"}</div>
+  </section>`;
+}
+
+function render(){
+  const app = $("#app");
+  if (!S){ app.innerHTML = createView(); bindCreate(); return; }
+  if (!S.tabs.includes(tab)) tab = S.tabs[0];
+  const hint = S.hints[0];
+  app.innerHTML = `
+    <header class="top">
+      <div><div class="tag">Leyendas del pago, contadas con cara seria</div><h1>Séptima <span>Luna</span></h1></div>
+      ${S.tabs.includes("monte") ? `<div class="tag num">Peleas ganadas ${S.wins} · perdidas ${S.losses}</div>` : ""}
+    </header>
+    <div class="game">
+      <aside class="sheet" id="sheet"></aside>
+      <main class="board">
+        ${hint ? `<div class="hint" role="status"><div><b>El Viejo Vizcacha aconseja</b>${esc(hint)}</div><button data-do="hintok">Entendido</button></div>` : ""}
+        <nav class="tabs" role="tablist">${S.tabs.map(k=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${TAB_NAMES[k]}${!S.seenTab[k] && tab!==k ? `<span class="dot" aria-label="nuevo"></span>` : ""}</button>`).join("")}</nav>
+        <section class="pane">${paneView()}</section>
+        ${lastFight && (tab==="monte"||tab==="duelo") ? fightView(lastFight) : ""}
+      </main>
+    </div>
+    <section class="log">
+      <div class="foot"><h3>Crónica del pago</h3>
+        <div class="confirm">${confirmReset
+          ? `¿Borrar tu personaje? <button data-do="resetYes" class="primary">Sí, borrar</button><button data-do="resetNo">Cancelar</button>`
+          : `<button class="link" data-do="reset">Nuevo personaje</button>`}</div>
+      </div>
+      <ol>${S.log.map(l=>`<li><time>${l.t}</time><span class="${l.cls}">${esc(l.msg)}</span></li>`).join("") || `<li><time>--:--</time><span>Se levanta la luna sobre el pago.</span></li>`}</ol>
+    </section>`;
+  S.seenTab[tab] = true;
+  renderSheet();
+}
+
+let pickRace = "lobizon";
+function createView(){
+  return `<section id="create">
+    <div><div class="tag">Leyendas del pago, contadas con cara seria</div><h1>Séptima <span>Luna</span></h1></div>
+    <p>En el pago de San Ciriaco del Monte hay dos cofradías que no se pueden ver: los lobizones y los que aprendieron en la Salamanca. Elegí la tuya, salí de correría, enfrentá a las criaturas del monte y ganale a la otra cofradía.</p>
+    <div class="races">${Object.entries(RACES).map(([k,r])=>`
+      <button class="race" data-race="${k}" aria-pressed="${pickRace===k}"><span class="sym">${r.sym}</span><h3>${r.name}</h3><small>${r.blurb}</small></button>`).join("")}</div>
+    <label class="tag" for="cname">Tu nombre</label>
+    <input id="cname" maxlength="24" placeholder="${pickRace==="lobizon"?"Ej.: Faustino Benítez":"Ej.: Doña Clotilde"}">
+    <div><button class="primary" id="start">Salir al pago</button></div>
+  </section>`;
+}
+function bindCreate(){
+  document.querySelectorAll("[data-race]").forEach(b=>b.onclick=()=>{ const v=$("#cname").value; pickRace=b.dataset.race; render(); $("#cname").value=v; });
+  const go = () => {
+    const n = $("#cname").value.trim() || (pickRace==="lobizon"?"Faustino Benítez":"Doña Clotilde");
+    S = newChar(n, pickRace); tab = "correria";
+    log(`${n} sale al pago como ${RACES[pickRace].name.toLowerCase()}, con 20 patacones y hambre.`, "gold");
+    save(); render();
+  };
+  $("#start").onclick = go;
+  $("#cname").onkeydown = e => { if (e.key==="Enter") go(); };
+}
+
+document.getElementById("app").addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]");
+  if (t && S){ tab = t.dataset.tab; render(); return; }
+  const b = e.target.closest("[data-do]"); if (!b || b.disabled || !S) return;
+  const [a, x] = b.dataset.do.split(":");
+  switch (a){
+    case "hintok": { S.hints.shift(); const u = UNLOCKS.find(u => !S.seenTab[u.tab] && S.tabs.includes(u.tab)); if (u) tab = u.tab; save(); render(); break; }
+    case "hunt": hunt(x); break;
+    case "work": work(); break;
+    case "monster": fightMonster(+x); break;
+    case "duel": fightDuel(); break;
+    case "reroll": if (S.gold >= 5){ S.gold -= 5; newRival(); save(); render(); } break;
+    case "train": train(x); break;
+    case "buy": buy(x); break;
+    case "drink": drink(); break;
+    case "heal": heal(); break;
+    case "reset": confirmReset = true; render(); break;
+    case "resetNo": confirmReset = false; render(); break;
+    case "resetYes": S = null; confirmReset = false; lastFight = null; try { localStorage.removeItem(SAVE_KEY); } catch(e){} render(); break;
+  }
+});
+
+render();
+setInterval(tick, 1000);
+})();
+</script>

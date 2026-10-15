@@ -1,0 +1,552 @@
+<title>La Esquina de Eulalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Alegreya:ital,wght@0,400;0,600;0,700;1,400&family=Alegreya+Sans:wght@500;700&display=swap">
+<style>
+/* Layout: una columna angosta. Arriba, el paisaje de la pampa (el sol marca las horas). Debajo, la voz de Ramón y una sola escena con pocas acciones.
+   El juego tiene dos mundos según la hora (día y noche); no sigue el tema del sistema a propósito. */
+:root{
+  color-scheme: light;
+  --sky:#cfe0ea; --panel:#f6f4ec; --ink:#25302b; --muted:#5d6a65; --line:#b7c6cc;
+  --accent:#2d6c8c; --onAccent:#ffffff; --gold:#a8761f;
+  --sun:#f2c14e; --grass:#8aa05a; --grass2:#a8b86b; --wall:#ece3cc; --roof:#9b6a43; --lamp:#5c6058; --tree:#4f6b3a;
+  --display:"Rye", "Rockwell", Georgia, serif;
+  --body:"Alegreya", Georgia, serif;
+  --ui:"Alegreya Sans", "Segoe UI", sans-serif;
+}
+:root[data-phase="noche"]{
+  color-scheme: dark;
+  --sky:#151a2c; --panel:#1f253b; --ink:#efe7d3; --muted:#a7abba; --line:#363e5c;
+  --accent:#f0b54a; --onAccent:#1d1a12; --gold:#f0b54a;
+  --sun:#f3ecd2; --grass:#26352a; --grass2:#2e3f30; --wall:#8a8270; --roof:#563b2a; --lamp:#ffcf6b; --tree:#1c281f;
+}
+*{box-sizing:border-box}
+body{background:var(--sky);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;padding-inline:16px;padding-block:16px 48px;transition:background .8s}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:16px}
+h1,h2{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;letter-spacing:.02em}
+h1{font-size:clamp(1.5rem,5vw,2.1rem);line-height:1.1}
+h2{font-size:1.25rem}
+p{margin:0}
+.ui,.chip,button{font-family:var(--ui)}
+.num{font-variant-numeric:tabular-nums}
+button{font-size:1rem;cursor:pointer;border:2px solid var(--ink);background:var(--panel);color:var(--ink);padding:10px 16px;border-radius:6px;font-weight:700;transition:transform .1s,background .2s}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.go{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+button.link{border:none;background:none;padding:4px;font-weight:500;color:var(--muted);text-decoration:underline}
+
+/* cabecera */
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:8px 16px}
+.top .when{font-family:var(--ui);font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-size:.78rem}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:700;font-size:.92rem}
+.chip small{font-weight:500;color:var(--muted)}
+.suns{display:inline-flex;gap:3px}
+.suns i{width:9px;height:9px;border-radius:50%;background:var(--sun);border:1px solid var(--gold)}
+.suns i.off{background:transparent;border-color:var(--line)}
+
+/* paisaje */
+.scene{width:100%;height:auto;aspect-ratio:600/130;max-width:100%;display:block;border-radius:8px;border:1px solid var(--line)}
+
+/* diálogo */
+.talk{background:var(--panel);border:2px solid var(--ink);border-radius:8px;padding:14px 16px;display:grid;gap:10px;box-shadow:4px 4px 0 var(--ink)}
+.talk .who{font-family:var(--ui);font-weight:700;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.talk p{font-size:1.08rem}
+.talk .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.talk .count{font-family:var(--ui);font-size:.8rem;color:var(--muted)}
+@keyframes rise{from{transform:translateY(6px);opacity:.3}to{transform:none;opacity:1}}
+.talk{animation:rise .25s ease-out}
+
+/* escena */
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:14px}
+.stage.locked{opacity:.45;pointer-events:none}
+.stage > p{color:var(--muted)}
+.places{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.place{text-align:left;display:grid;gap:2px;padding:14px;position:relative;border-width:1px;border-color:var(--line)}
+.place b{font-family:var(--body);font-size:1.1rem}
+.place span{font-weight:500;color:var(--muted);font-size:.9rem}
+.new{position:absolute;top:-9px;right:10px;background:var(--accent);color:var(--onAccent);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent)}50%{box-shadow:0 0 0 4px transparent}}
+.place.is-new{border-color:var(--accent);animation:pulse 1.6s infinite}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.flash{font-style:italic}
+.inv{display:flex;flex-wrap:wrap;gap:6px}
+
+/* pesca */
+.pond{height:120px;border-radius:8px;background:linear-gradient(var(--sky),var(--grass2));border:1px solid var(--line);position:relative;overflow:hidden;display:grid;place-items:center}
+.float{width:18px;height:18px;border-radius:50%;background:#c8412f;border:3px solid var(--panel)}
+.pond.wait .float{animation:bob 1.4s ease-in-out infinite}
+.pond.bite .float{animation:dunk .2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(4px)}}
+@keyframes dunk{50%{transform:translateY(14px)}}
+.pond .say{position:absolute;bottom:8px;font-family:var(--ui);font-weight:700}
+.big{font-size:1.25rem;padding:14px 26px}
+
+/* noche */
+.guest{display:grid;gap:6px}
+.guest .name{font-family:var(--ui);font-weight:700;color:var(--muted);font-size:.85rem;letter-spacing:.06em;text-transform:uppercase}
+.guest q{font-size:1.25rem;font-style:italic}
+.menu{display:flex;flex-wrap:wrap;gap:8px}
+.menu button small{font-weight:500;opacity:.75}
+.verse{font-style:italic;display:grid;gap:0;padding-left:12px;border-left:3px solid var(--line)}
+.verse.mine{border-left-color:var(--accent);font-style:normal}
+.opts{display:grid;gap:8px}
+.opts button{text-align:left;font-family:var(--body);font-weight:400;font-size:1.05rem}
+.sum{display:grid;gap:4px}
+.sum div{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding-block:4px}
+
+/* tienda / mejoras */
+.list{display:grid;gap:8px}
+.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.item b{font-size:1.05rem}
+.item div span{display:block;font-size:.9rem;color:var(--muted)}
+@media (max-width:460px){.item{grid-template-columns:1fr}}
+.foot{display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap;font-family:var(--ui);font-size:.9rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(() => {
+const KEY = "pulperia-eulalia-v1";
+const HOURS = 8;
+
+const MENU = {
+  bagre:   { name:"Bagre frito", need:{bagre:1},          price:3 },
+  mate:    { name:"Mate",        need:{yerba:1},          price:2 },
+  ginebra: { name:"Ginebra",     need:{ginebra:1},        price:3 },
+  empanada:{ name:"Empanada",    need:{carne:1,harina:1}, price:5 }
+};
+const INV_NAMES = { bagre:"bagres", yerba:"mates de yerba", ginebra:"vasos de ginebra", carne:"carne", harina:"harina" };
+const SHOP = [
+  { id:"yerba",   name:"Paquete de yerba",  desc:"Alcanza para 6 mates",       give:6, price:5 },
+  { id:"ginebra", name:"Botella de ginebra",desc:"Sirve 5 vasos",              give:5, price:8 },
+  { id:"harina",  name:"Bolsa de harina",   desc:"Para 4 empanadas",           give:4, price:5, flag:"harina" }
+];
+const UPGRADES = [
+  { id:"cana",      name:"Caña de tacuara nueva", price:12, desc:"Tenés más tiempo cuando pica, y a veces salen dos bagres." },
+  { id:"farol",     name:"Farol en la puerta",    price:18, desc:"Los paisanos dejan más propina." },
+  { id:"mostrador", name:"Arreglar el mostrador", price:20, desc:"Entra un paisano más cada noche." },
+  { id:"guitarra",  name:"La guitarra de Eulalia",price:25, desc:"Empiezan a venir payadores." },
+  { id:"horno",     name:"Horno de barro",        price:30, desc:"Podés vender empanadas." },
+  { id:"carreta",   name:"Carreta",               price:40, desc:"Ir al pueblo te lleva 1 hora en vez de 2." }
+];
+const NAMES = ["Doña Chola","El Tano Ricci","Pocho","Doña Rosa","El Negro Funes","Teodoro el resero","La Gringa Inés","Don Cirilo","Felipe el chasqui","Las mellizas Peralta","Don Anacleto","Juancito"];
+const LINES = {
+  bagre:   ["Un bagre frito, si hay.","¿Tiene algo del arroyo, patrón?","Algo frito pa' la panza."],
+  mate:    ["Un amargo, por favor.","¿Me ceba un mate?","Con un matecito me arreglo."],
+  ginebra: ["Una ginebrita pa'l frío.","Sirva una ginebra, amigo.","Una de las fuertes, si me hace el favor."],
+  empanada:["¿Hay empanadas?","Una empanada, de carne si puede.","Vengo con hambre de empanada."]
+};
+const PAYADORES = ["El Zorzal de Chascomús","Payador Benítez","La Calandria","Don Gumersindo"];
+const PAYADAS = [
+  { them:["Dicen que esta pulpería","anda medio venida a menos,","que hay más telas de araña","que paisanos y que truenos."],
+    me:["Será que andaba dormida,","pero ya se despertó,","y el que vino a criticarla"],
+    opts:["del mate se enamoró.","se tiene que ir a dormir.","no sabe lo que dice, che."], ok:0 },
+  { them:["Yo canté en Chascomús","y en las orillas del Salado,","no hay criollo en esta pampa","que me deje derrotado."],
+    me:["Cantará en todos los pagos,","no lo voy a discutir,","pero acá en mi mostrador"],
+    opts:["hay bagre frito con pan.","se paga antes de salir.","nadie canta como usted."], ok:1 },
+  { them:["Su ginebra es agua turbia,","su mate tiene sabor","a escoba de la cocina","y a rancho sin calor."],
+    me:["Si mi mate no le gusta","tómese un vaso de leche,","y si la ginebra es turbia"],
+    opts:["es porque usted ve doble.","vuelva mañana a probar.","que la pague y la aproveche."], ok:2 },
+  { them:["Me dijeron que en su rancho","hasta el perro está aburrido,","que duerme toda la tarde","y ni ladra de rendido."],
+    me:["Mi perro duerme la siesta","como buen perro criollo,","y si usted le canta mucho"],
+    opts:["se lo come con repollo.","le muerde los talones.","se despierta enojado."], ok:0 },
+  { them:["La luna está de testigo,","las estrellas de jurado,","a ver si este pulperito","canta o se queda callado."],
+    me:["Que la luna sea testigo","y que juzgue el firmamento:","no me quedo nunca mudo"],
+    opts:["si me convidan un mate.","cuando hay guitarra y contento.","aunque me cueste un montón."], ok:1 },
+  { them:["Traigo la voz afinada","y las cuerdas bien templadas,","vengo a ganarle esta noche","con diez coplas bien rimadas."],
+    me:["Traiga diez o traiga cien,","yo lo escucho sin apuro,","y después de cada copla"],
+    opts:["me voy a dormir tranquilo.","le sirvo una empanada.","le cobro un mate, seguro."], ok:2 }
+];
+
+/* ---------- estado ---------- */
+const fresh = () => ({
+  day:1, phase:"dia", hours:HOURS, at:"campo", pesos:0, fama:0,
+  inv:{ bagre:0, yerba:0, ginebra:0, carne:0, harina:0 },
+  f:{}, up:{}, seen:{}, isNew:{ arroyo:true }, night:null, dlg:[], payN:0
+});
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+if (!S) { S = fresh(); intro(); }
+let fish = { st:"idle", n:0 }, fishT = [];
+let flash = "";
+let confirmReset = false;
+
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const pick = a => a[rnd(0,a.length-1)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* Ramón habla una sola vez por cada momento de la historia */
+function say(id, lines){
+  if (S.seen[id]) return false;
+  S.seen[id] = true;
+  lines.forEach(([who,text]) => S.dlg.push({ who, text }));
+  return true;
+}
+function intro(){
+  say("intro", [
+    ["", "Te llegó una carta con sello del correo de campaña: tu tía Eulalia te dejó su pulpería, La Esquina de Eulalia, en medio de la pampa."],
+    ["Ramón", "¡Así que vos sos quien heredó la esquina! Soy Ramón, el vecino. Está medio venida abajo, pero se levanta, ya vas a ver."],
+    ["Ramón", "Primero lo primero: andá al arroyo a pescar algo. Sin mercadería no hay negocio."]
+  ]);
+}
+
+/* ---------- día ---------- */
+function spend(h){ S.hours = Math.max(0, S.hours - h); }
+const puebloCost = () => S.up.carreta ? 1 : 2;
+
+function go(place){
+  delete S.isNew[place];
+  flash = "";
+  if (place === "arroyo"){
+    S.at = "arroyo"; fish = { st:"idle", n:0 };
+    say("arroyo", [["Ramón","Tirá la línea y esperá. Cuando el corcho se hunda, ¡apretá rápido!"]]);
+  } else if (place === "pueblo"){
+    if (S.hours < puebloCost()) return;
+    spend(puebloCost()); S.at = "pueblo";
+    say("tito", [["Don Tito","¡Pase, pase! Yerba, ginebra, lo que necesite. Lo que me compra acá, a la noche lo vende más caro."]]);
+  } else if (place === "estancia"){
+    if (S.hours < 2) return;
+    spend(2); S.inv.carne += 3; S.pesos += 2;
+    flash = "Ayudaste a los Ocampo a pasar la hacienda al otro potrero. Te dieron 3 de carne y 2 pesos.";
+    say("estancia", [["Ramón","Los Ocampo son buena gente. Pagan en carne, que para las empanadas viene justo."]]);
+  } else if (place === "mejoras"){
+    S.at = "mejoras";
+  }
+  save(); render();
+}
+function back(){ clearFish(); S.at = "campo"; flash = ""; save(); render(); }
+
+function clearFish(){ fishT.forEach(clearTimeout); fishT = []; }
+function cast(){
+  if (S.hours < 1) return;
+  clearFish(); spend(1);
+  fish = { st:"wait", n:0 };
+  render();
+  const windowMs = S.up.cana ? 1600 : 1100;
+  fishT.push(setTimeout(() => {
+    fish.st = "bite"; render();
+    fishT.push(setTimeout(() => { if (fish.st === "bite"){ fish.st = "miss"; save(); render(); } }, windowMs));
+  }, rnd(1200, 3400)));
+  save();
+}
+function pull(){
+  if (fish.st === "wait"){ clearFish(); fish.st = "early"; render(); return; }
+  if (fish.st !== "bite") return;
+  clearFish();
+  const n = 1 + (S.up.cana && Math.random() < .4 ? 1 : 0);
+  S.inv.bagre += n; fish = { st:"got", n };
+  if (say("pez1", [
+    ["Ramón","¡Mirá qué bagre! Esta noche lo vendés frito."],
+    ["Ramón","Ojo con el sol: cada vez que tirás la línea se te va una hora. Cuando quieras, o cuando se ponga el sol, abrís la pulpería."]
+  ])) { S.f.sol = true; S.f.abrir = true; }
+  save(); render();
+}
+
+function buy(id){
+  const it = SHOP.find(x => x.id === id);
+  if (S.pesos < it.price) return;
+  S.pesos -= it.price; S.inv[id] += it.give;
+  if (id === "yerba") S.f.m_mate = true;
+  if (id === "ginebra") S.f.m_ginebra = true;
+  flash = `Compraste ${it.name.toLowerCase()}.`;
+  save(); render();
+}
+function upgrade(id){
+  const u = UPGRADES.find(x => x.id === id);
+  if (S.up[id] || S.pesos < u.price) return;
+  S.pesos -= u.price; S.up[id] = true;
+  flash = `Listo: ${u.name.toLowerCase()}.`;
+  if (id === "guitarra") say("guitarra", [["Ramón","¡La guitarra de Eulalia! Ahora van a caer payadores a desafiarte. Vos contestá con el verso que rime y tenga gracia."]]);
+  if (id === "horno"){
+    S.f.estancia = true; S.f.harina = true; S.f.m_empanada = true; S.isNew.estancia = true;
+    say("horno", [
+      ["Ramón","Con el horno andando ya podés hacer empanadas: llevan carne y harina."],
+      ["Ramón","La harina la tiene Tito. La carne te la dan en la estancia de los Ocampo si les das una mano."]
+    ]);
+  }
+  if (UPGRADES.every(x => S.up[x.id])) say("final", [
+    ["Ramón","Mirá esto... La Esquina de Eulalia está como en sus mejores tiempos. Tu tía estaría orgullosa."],
+    ["","Podés seguir atendiendo todo lo que quieras. La pampa no tiene apuro."]
+  ]);
+  save(); render();
+}
+
+/* ---------- noche ---------- */
+function pool(){
+  const p = ["bagre"];
+  if (S.f.pueblo) p.push("mate","ginebra");
+  if (S.f.m_empanada) p.push("empanada");
+  return p;
+}
+function guest(item){ return { type:"pedido", item, name:pick(NAMES), line:pick(LINES[item]) }; }
+
+function openNight(){
+  clearFish();
+  S.phase = "noche"; S.at = "noche"; flash = "";
+  let q;
+  if (S.day === 1){
+    q = [guest("bagre"), guest("bagre"), guest("mate"), guest("bagre")];
+  } else {
+    const n = Math.min(9, 3 + (S.up.mostrador?1:0) + Math.floor(S.fama/3));
+    q = Array.from({ length:n }, () => guest(pick(pool())));
+    if (S.up.guitarra && (!S.seen.payada1 || Math.random() < .55)){
+      const v = S.payN % PAYADAS.length; S.payN++;
+      q.splice(rnd(1, q.length-1), 0, { type:"payada", name:pick(PAYADORES), v });
+    }
+  }
+  S.night = { q, i:0, earned:0, tips:0, served:0, missed:0, msg:"", res:null, done:false, famaUp:0 };
+  say("noche1", [
+    ["Ramón","Prendé la vela, que ya caen los paisanos. Escuchá qué piden y alcanzáselo."],
+    ["Ramón","Si no tenés lo que piden, decile que no te queda. No pasa nada, vuelven otro día."]
+  ]);
+  checkGuest();
+  save(); render();
+}
+function checkGuest(){
+  const c = S.night.q[S.night.i];
+  if (!c) return;
+  if (c.type === "pedido" && c.item === "mate" && !S.f.pueblo){
+    say("sinYerba", [["Ramón","¿Mate? ¡Una pulpería sin yerba! Mañana temprano vamos al pueblo, que Tito tiene."]]);
+  }
+  if (c.type === "payada") say("payada1", [["Ramón","¡Uy, un payador! Escuchá su copla y elegí cómo termina la tuya. Que rime, sobre todo."]]);
+}
+function nextGuest(){
+  const N = S.night; N.msg = ""; N.res = null; N.i++;
+  if (N.i >= N.q.length) endNight(); else checkGuest();
+  save(); render();
+}
+function serve(item){
+  const N = S.night, c = N.q[N.i], m = MENU[item];
+  if (item !== c.item){ N.msg = pick(["¡Eso no pedí, che!","Mmm... no, yo pedí otra cosa.","¿Me está cargando, patrón?"]); render(); return; }
+  for (const k in m.need) if (S.inv[k] < m.need[k]) return;
+  for (const k in m.need) S.inv[k] -= m.need[k];
+  const tip = rnd(0,1) + (S.up.farol ? rnd(1,2) : 0);
+  S.pesos += m.price + tip; N.earned += m.price + tip; N.tips += tip; N.served++;
+  N.res = { ok:true, text: tip ? `«¡Gracias!» Pagó ${m.price} y dejó ${tip} de propina.` : `«¡Gracias!» Pagó ${m.price} pesos.` };
+  save(); render();
+}
+function noStock(){
+  const N = S.night;
+  N.missed++;
+  N.res = { ok:false, text: pick(["«Bueno, será otro día.»","«No hay drama, paso mañana.»","«Uh, qué lástima.»"]) };
+  if (N.q[N.i].item === "mate" && !S.f.pueblo){ S.f.pueblo = true; S.isNew.pueblo = true; }
+  save(); render();
+}
+function payada(i){
+  const N = S.night, c = N.q[N.i], P = PAYADAS[c.v];
+  if (i === P.ok){
+    const coins = rnd(3,6);
+    S.fama += 2; S.pesos += coins; N.earned += coins; N.famaUp += 2;
+    N.res = { ok:true, text:`¡La rueda estalla en aplausos! Ganaste la payada: +2 de fama y ${coins} pesos en monedas.` };
+    if (!S.f.fama){ S.f.fama = true; say("fama", [["Ramón","¿Escuchaste? Ahora la gente habla de vos. Eso es la fama: con más fama, vienen más paisanos a la noche."]]); }
+  } else {
+    N.res = { ok:false, text:`Ese verso no rimaba. La rueda se ríe, pero con cariño. La buena era «${P.opts[P.ok]}»` };
+  }
+  save(); render();
+}
+function endNight(){
+  const N = S.night; N.done = true;
+  if (S.day >= 2 && N.served >= 3 && N.missed <= 1){
+    S.fama += 1; N.famaUp += 1;
+    if (!S.f.fama){ S.f.fama = true; say("fama", [["Ramón","La gente se fue contenta y habla. Eso es la fama: con más fama, vienen más paisanos a la noche."]]); }
+  }
+}
+function sleep(){
+  S.day++; S.phase = "dia"; S.hours = HOURS; S.at = "campo"; S.night = null; flash = "";
+  if (S.f.pueblo) say("dia2", [
+    ["Ramón","Buen día. Encontré esto en la lata de galletitas de tu tía: 10 pesos. Usalos bien."],
+    ["Ramón","El pueblo queda a dos horas a caballo. Comprale yerba a Tito, y una ginebra no viene mal."]
+  ]) && (S.pesos += 10);
+  if (S.day >= 3 && say("mejoras", [
+    ["Ramón","Ya vas juntando unos pesos. Tu tía tenía esto hermoso: guitarra, farol, horno de barro..."],
+    ["Ramón","Andá arreglando de a poco. Fijate en «Arreglar la pulpería», no te lleva tiempo."]
+  ])) { S.f.mejoras = true; S.isNew.mejoras = true; }
+  save(); render();
+}
+
+/* ---------- dibujo ---------- */
+const STARS = [[40,18],[90,40],[150,12],[210,30],[260,8],[330,26],[380,14],[440,34],[500,10],[560,24],[120,60],[300,50],[470,56],[20,48],[580,50]];
+function scene(){
+  const night = S.phase === "noche";
+  const p = night ? 0 : (HOURS - S.hours) / HOURS;
+  const sx = 40 + p*520, sy = 100 - Math.sin(p*Math.PI)*78;
+  const sky = night
+    ? STARS.map(([x,y]) => `<circle cx="${x}" cy="${y}" r="1.4" fill="var(--sun)"/>`).join("") +
+      `<circle cx="90" cy="30" r="13" fill="var(--sun)"/><circle cx="96" cy="26" r="11" fill="var(--sky)"/>`
+    : `<circle cx="${sx}" cy="${sy}" r="14" fill="var(--sun)"/>`;
+  return `<svg class="scene" viewBox="0 0 600 130" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${night ? "Noche en la pampa" : "La pampa de día"}">
+    <rect width="600" height="130" fill="var(--sky)"/>
+    ${sky}
+    <path d="M0 102 Q150 94 300 100 T600 98 V130 H0Z" fill="var(--grass)"/>
+    <path d="M0 112 Q200 106 380 112 T600 110 V130 H0Z" fill="var(--grass2)"/>
+    <rect x="128" y="70" width="8" height="34" fill="var(--roof)"/>
+    <circle cx="120" cy="66" r="18" fill="var(--tree)"/><circle cx="142" cy="60" r="20" fill="var(--tree)"/><circle cx="132" cy="50" r="15" fill="var(--tree)"/>
+    <rect x="420" y="76" width="96" height="28" fill="var(--wall)"/>
+    <polygon points="412,78 468,58 524,78" fill="var(--roof)"/>
+    <rect x="432" y="86" width="14" height="18" fill="var(--roof)"/>
+    <rect x="482" y="84" width="18" height="12" fill="var(--lamp)"/>
+    ${night && S.up.farol ? `<circle cx="458" cy="82" r="4" fill="var(--lamp)"/><circle cx="458" cy="82" r="12" fill="var(--lamp)" opacity=".18"/>` : ""}
+    <rect x="452" y="68" width="34" height="7" fill="var(--panel)"/>
+  </svg>`;
+}
+
+function talkView(){
+  const d = S.dlg[0];
+  if (!d) return "";
+  return `<section class="talk" aria-live="polite">
+    ${d.who ? `<div class="who">${esc(d.who)}</div>` : ""}
+    <p>${esc(d.text)}</p>
+    <div class="row"><span class="count">${S.dlg.length > 1 ? `sigue...` : ""}</span><button class="go" data-a="ok" autofocus>${S.dlg.length > 1 ? "Seguir" : "Dale"}</button></div>
+  </section>`;
+}
+
+function place(id, title, sub, disabled){
+  const n = S.isNew[id];
+  return `<button class="place${n ? " is-new" : ""}" data-a="go:${id}" ${disabled ? "disabled" : ""}>${n ? `<span class="new">Nuevo</span>` : ""}<b>${title}</b><span>${sub}</span></button>`;
+}
+function invView(){
+  const items = Object.keys(S.inv).filter(k => S.inv[k] > 0);
+  if (!items.length) return "";
+  return `<div class="inv">${items.map(k => `<span class="chip"><span class="num">${S.inv[k]}</span><small>${INV_NAMES[k]}</small></span>`).join("")}</div>`;
+}
+
+function stageView(){
+  if (S.phase === "noche") return nightView();
+  if (S.at === "arroyo") return arroyoView();
+  if (S.at === "pueblo") return puebloView();
+  if (S.at === "mejoras") return mejorasView();
+  const dark = S.hours <= 0;
+  return `<h2>${dark ? "Se está poniendo el sol" : "¿Qué hacemos hoy?"}</h2>
+    ${flash ? `<p class="flash">${esc(flash)}</p>` : ""}
+    <div class="places">
+      ${place("arroyo","El arroyo","Pescar bagres · 1 hora por tirada", dark)}
+      ${S.f.pueblo ? place("pueblo","El pueblo",`Almacén de Don Tito · ${puebloCost()} h de viaje`, S.hours < puebloCost()) : ""}
+      ${S.f.estancia ? place("estancia","La estancia de los Ocampo","Dar una mano · 2 h · te pagan en carne", S.hours < 2) : ""}
+      ${S.f.mejoras ? place("mejoras","Arreglar la pulpería","Mejoras · no lleva tiempo", false) : ""}
+    </div>
+    ${invView()}
+    ${S.f.abrir || dark ? `<div class="actions"><button class="go" data-a="night">Abrir la pulpería</button></div>` : ""}`;
+}
+function arroyoView(){
+  const st = fish.st, active = st === "wait" || st === "bite";
+  const said = { idle:"", wait:"esperando...", bite:"¡PICÓ!", got: fish.n > 1 ? "¡Dos bagres!" : "¡Un bagre!", miss:"Se escapó...", early:"Tiraste antes de tiempo y se espantó." }[st];
+  return `<h2>El arroyo</h2>
+    <div class="pond ${st}"><div class="float"></div><div class="say">${said}</div></div>
+    <div class="actions">
+      ${active
+        ? `<button class="go big" data-a="pull">¡Tirar!</button>`
+        : S.hours >= 1 ? `<button class="go big" data-a="cast">Tirar la línea</button>` : `<p>Ya no queda luz para pescar.</p>`}
+      ${active ? "" : `<button data-a="back">Volver al rancho</button>`}
+    </div>
+    ${invView()}`;
+}
+function puebloView(){
+  const items = SHOP.filter(it => !it.flag || S.f[it.flag]);
+  return `<h2>Almacén de Don Tito</h2>
+    ${flash ? `<p class="flash">${esc(flash)}</p>` : ""}
+    <div class="list">${items.map(it => `<div class="item"><div><b>${it.name}</b><span>${it.desc}</span></div>
+      <button data-a="buy:${it.id}" ${S.pesos < it.price ? "disabled" : ""}><span class="num">${it.price}</span> pesos</button></div>`).join("")}</div>
+    ${invView()}
+    <div class="actions"><button data-a="back">Volver al rancho</button></div>`;
+}
+function mejorasView(){
+  return `<h2>Arreglar la pulpería</h2>
+    ${flash ? `<p class="flash">${esc(flash)}</p>` : ""}
+    <div class="list">${UPGRADES.map(u => `<div class="item"><div><b>${u.name}</b><span>${u.desc}</span></div>
+      ${S.up[u.id] ? `<span class="chip">Hecho</span>` : `<button data-a="up:${u.id}" ${S.pesos < u.price ? "disabled" : ""}><span class="num">${u.price}</span> pesos</button>`}</div>`).join("")}</div>
+    <div class="actions"><button data-a="back">Volver</button></div>`;
+}
+function nightView(){
+  const N = S.night;
+  if (N.done) return `<h2>Se fue el último paisano</h2>
+    <div class="sum">
+      <div><span>Atendiste</span><b class="num">${N.served}</b></div>
+      <div><span>Se fueron sin nada</span><b class="num">${N.missed}</b></div>
+      <div><span>Ganaste</span><b class="num">${N.earned} pesos${N.tips ? ` (${N.tips} de propina)` : ""}</b></div>
+      ${N.famaUp ? `<div><span>Fama</span><b class="num">+${N.famaUp}</b></div>` : ""}
+    </div>
+    <div class="actions"><button class="go" data-a="sleep">Cerrar y dormir</button></div>`;
+  const c = N.q[N.i];
+  const head = `<div class="ui num" style="color:var(--muted);font-size:.85rem">Paisano ${N.i+1} de ${N.q.length}</div>`;
+  if (c.type === "payada"){
+    const P = PAYADAS[c.v];
+    return `${head}<div class="guest"><span class="name">${esc(c.name)} saca la guitarra y canta</span>
+      <div class="verse">${P.them.map(l => `<span>${l}</span>`).join("")}</div></div>
+      <div class="guest"><span class="name">Tu respuesta</span>
+      <div class="verse mine">${P.me.map(l => `<span>${l}</span>`).join("")}<span>...</span></div></div>
+      ${N.res ? `<p class="flash">${esc(N.res.text)}</p><div class="actions"><button class="go" data-a="next">Siguiente</button></div>`
+              : `<div class="opts">${P.opts.map((o,i) => `<button data-a="pay:${i}">${o}</button>`).join("")}</div>`}`;
+  }
+  const items = pool();
+  return `${head}<div class="guest"><span class="name">${esc(c.name)}</span><q>${esc(c.line)}</q></div>
+    ${N.msg && !N.res ? `<p class="flash">${esc(N.msg)}</p>` : ""}
+    ${N.res
+      ? `<p class="flash">${esc(N.res.text)}</p><div class="actions"><button class="go" data-a="next">Siguiente</button></div>`
+      : `<div class="menu">${items.map(k => { const m = MENU[k]; const has = Object.keys(m.need).every(x => S.inv[x] >= m.need[x]);
+          const stock = Math.min(...Object.keys(m.need).map(x => S.inv[x]));
+          return `<button data-a="serve:${k}" ${has ? "" : "disabled"}>${m.name} <small class="num">(${stock})</small></button>`; }).join("")}
+          <button class="link" data-a="nostock">No me queda</button></div>`}
+    ${invView()}`;
+}
+
+function render(){
+  document.documentElement.dataset.phase = S.phase;
+  const night = S.phase === "noche";
+  const talking = S.dlg.length > 0;
+  $app.innerHTML = `
+    <header class="top">
+      <div><div class="when">Día ${S.day} · ${night ? "Noche" : "Mañana"}</div><h1>La Esquina de Eulalia</h1></div>
+      <div class="hud">
+        ${S.pesos > 0 || S.day > 1 ? `<span class="chip"><span class="num">${S.pesos}</span><small>pesos</small></span>` : ""}
+        ${S.f.fama ? `<span class="chip"><span class="num">${S.fama}</span><small>fama</small></span>` : ""}
+        ${S.f.sol && !night ? `<span class="chip" title="Horas de luz"><span class="suns">${Array.from({length:HOURS},(_,i)=>`<i class="${i < S.hours ? "" : "off"}"></i>`).join("")}</span></span>` : ""}
+      </div>
+    </header>
+    ${scene()}
+    ${talkView()}
+    <section class="stage${talking ? " locked" : ""}" ${talking ? 'aria-hidden="true"' : ""}>${stageView()}</section>
+    <div class="foot">${confirmReset
+      ? `¿Empezar de cero? Se borra todo. <button data-a="resetYes">Sí, borrar</button><button class="link" data-a="resetNo">No</button>`
+      : `<button class="link" data-a="reset">Empezar de nuevo</button>`}</div>`;
+  const f = $app.querySelector("[autofocus]"); if (f) f.focus({ preventScroll:true });
+}
+
+const $app = document.getElementById("app");
+$app.addEventListener("click", e => {
+  const b = e.target.closest("[data-a]"); if (!b || b.disabled) return;
+  const [a, arg] = b.dataset.a.split(":");
+  switch (a){
+    case "ok": S.dlg.shift(); save(); render(); break;
+    case "go": go(arg); break;
+    case "back": back(); break;
+    case "cast": cast(); break;
+    case "pull": pull(); break;
+    case "buy": buy(arg); break;
+    case "up": upgrade(arg); break;
+    case "night": openNight(); break;
+    case "serve": serve(arg); break;
+    case "nostock": noStock(); break;
+    case "pay": payada(+arg); break;
+    case "next": nextGuest(); break;
+    case "sleep": sleep(); break;
+    case "reset": confirmReset = true; render(); break;
+    case "resetNo": confirmReset = false; render(); break;
+    case "resetYes": clearFish(); S = fresh(); intro(); fish = { st:"idle", n:0 }; confirmReset = false; flash = ""; save(); render(); break;
+  }
+});
+// barra espaciadora para tirar / recoger en el arroyo
+document.addEventListener("keydown", e => {
+  if (e.code !== "Space" || S.at !== "arroyo" || S.dlg.length) return;
+  e.preventDefault();
+  if (fish.st === "wait" || fish.st === "bite") pull(); else if (S.hours >= 1) cast();
+});
+// si se recarga a mitad de una tirada, la tirada vuelve a empezar
+if (S.at === "arroyo") fish = { st:"idle", n:0 };
+render();
+})();
+</script>

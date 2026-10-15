@@ -1,0 +1,510 @@
+<title>Colmillo y Garra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: ficha del personaje fija a la izquierda, tablero de acciones a la derecha, crónica de eventos abajo. Un solo mundo oscuro a propósito. */
+:root{
+  color-scheme: dark;
+  --bg:#141016;        /* noche de ciénaga */
+  --panel:#1d1720;     /* piedra de cripta */
+  --line:#3a2e3d;
+  --fg:#e8dfd2;        /* hueso */
+  --muted:#a59a9f;
+  --gold:#c9a55a;      /* oro viejo */
+  --blood:#a3263a;     /* sangre */
+  --moss:#6f9a6a;      /* vida */
+  --ice:#7f9fc4;
+  --display:"Grenze Gotisch", "Times New Roman", serif;
+  --body:"Spectral", Georgia, serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:20px 40px;
+  background-image:radial-gradient(ellipse at 80% -10%, #2a1a2a 0%, transparent 55%);}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);line-height:1;color:var(--fg)}
+h1 span{color:var(--blood)}
+h2{font-size:1.7rem}
+h3{font-size:1.25rem}
+.tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#2a2130;color:var(--fg);padding:8px 14px;border-radius:3px;transition:background .15s,border-color .15s}
+button:hover:not(:disabled){border-color:var(--gold);background:#352a3a}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--blood);border-color:var(--blood);color:#fff}
+button.primary:hover:not(:disabled){background:#bf3048;border-color:#bf3048}
+input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:9px 12px;border-radius:3px;width:100%}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- creación ---------- */
+#create{max-width:720px;margin:4vh auto 0;display:grid;gap:22px}
+#create p{color:var(--muted);margin:0}
+.races{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.race{text-align:left;padding:18px;display:grid;gap:6px;background:var(--panel)}
+.race[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.race .sym{font-family:var(--display);font-size:2.4rem;line-height:1}
+.race small{color:var(--muted)}
+
+/* ---------- juego ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.game{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.game{grid-template-columns:1fr}}
+.sheet{background:var(--panel);border:1px solid var(--line);padding:18px;display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:820px){.sheet{position:static}}
+.who{display:flex;gap:12px;align-items:center}
+.sigil{width:52px;height:52px;flex:none;display:grid;place-items:center;border:1px solid var(--gold);font-family:var(--display);font-size:1.8rem;color:var(--gold)}
+.bar{display:grid;gap:4px}
+.bar .row{display:flex;justify-content:space-between;font-size:.85rem}
+.track{height:8px;background:#0e0b10;border:1px solid var(--line);overflow:hidden}
+.fill{height:100%;transition:width .4s}
+.hp .fill{background:var(--blood)}
+.en .fill{background:var(--ice)}
+.xp .fill{background:var(--gold)}
+.stats{display:grid;gap:6px}
+.stat{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:.95rem;border-bottom:1px dotted var(--line);padding-bottom:4px}
+.money{display:flex;justify-content:space-between;align-items:center;font-size:1.05rem}
+.money .num{color:var(--gold);font-size:1.2rem}
+.gear{font-size:.88rem;color:var(--muted);display:grid;gap:2px}
+
+.board{display:grid;gap:16px;min-width:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button[aria-selected="true"]{border-color:var(--gold);color:var(--gold);background:var(--panel)}
+.pane{background:var(--panel);border:1px solid var(--line);padding:18px;display:grid;gap:14px}
+.pane > p{margin:0;color:var(--muted);max-width:65ch}
+.list{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);background:#181319}
+.item .meta{font-size:.85rem;color:var(--muted)}
+.item h3{font-size:1.15rem}
+.item .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:end}
+@media (max-width:480px){.item{grid-template-columns:1fr}.item .act{justify-content:start}}
+.risk{font-family:var(--mono);font-size:.72rem;padding:2px 6px;border:1px solid currentColor;margin-left:6px;vertical-align:middle}
+.r1{color:var(--moss)}.r2{color:var(--gold)}.r3{color:var(--blood)}
+
+.fight{border:1px solid var(--line);background:#0f0c11;padding:14px;display:grid;gap:10px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+.vs .mid{font-family:var(--display);font-size:1.6rem;color:var(--blood)}
+.vs .side{display:grid;gap:4px;min-width:0}
+.vs .side:last-child{text-align:right}
+.rounds{font-family:var(--mono);font-size:.8rem;max-height:220px;overflow:auto;display:grid;gap:2px;color:var(--muted)}
+.rounds .p{color:var(--fg)}
+.rounds .e{color:#d98a96}
+.verdict{font-family:var(--display);font-size:1.5rem}
+.win{color:var(--moss)}.lose{color:var(--blood)}
+
+.log{background:var(--panel);border:1px solid var(--line);padding:14px 18px;display:grid;gap:8px}
+.log ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto;font-size:.92rem}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.log time{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:3px}
+.log .good{color:#a9cfa4}.log .bad{color:#e09aa5}.log .gold{color:var(--gold)}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.shake{animation:shake .25s 2}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(() => {
+const SAVE_KEY = "colmillo-garra-v1";
+const ENERGY_MAX = 20, ENERGY_EVERY = 20000; // 1 de energía cada 20 s
+const HEAL_EVERY = 10000;                    // regenera vida cada 10 s
+
+const RACES = {
+  vampiro:  { name:"Vampiro",    sym:"V", foe:"licantropo", blurb:"Señor de la noche. Más destreza, se cura al morder.", bonus:{fue:0,def:0,des:2,res:0,car:1}, hunt:"Cazar" },
+  licantropo:{ name:"Licántropo", sym:"L", foe:"vampiro",    blurb:"Bestia de la luna. Más fuerza y resistencia.",        bonus:{fue:2,def:0,des:0,res:1,car:0}, hunt:"Acechar" }
+};
+const STAT_NAMES = { fue:"Fuerza", def:"Defensa", des:"Destreza", res:"Resistencia", car:"Carisma" };
+const STAT_HELP  = { fue:"Más daño por golpe", def:"Menos daño recibido", des:"Más probabilidad de acertar", res:"Más vida máxima", car:"Más oro en cacerías" };
+
+const HUNTS = [
+  { id:"granja",  name:"Granjero solitario", cost:1, risk:1, gold:[4,10],  xp:[2,4],   lvl:1 },
+  { id:"aldea",   name:"Aldea dormida",      cost:2, risk:1, gold:[10,22], xp:[5,8],   lvl:2 },
+  { id:"guardia", name:"Patrulla de guardias",cost:3, risk:2, gold:[22,45], xp:[10,15], lvl:4 },
+  { id:"noble",   name:"Banquete de nobles", cost:4, risk:2, gold:[45,90], xp:[18,26], lvl:7 },
+  { id:"cazador", name:"Campamento de cazadores", cost:5, risk:3, gold:[90,170], xp:[30,45], lvl:10 }
+];
+
+const MONSTERS = [
+  { name:"Rata de alcantarilla", lvl:1,  mult:.6 },
+  { name:"Murciélago gigante",   lvl:2,  mult:.8 },
+  { name:"Necrófago",            lvl:4,  mult:1.0 },
+  { name:"Gárgola despierta",    lvl:7,  mult:1.2 },
+  { name:"Wendigo",              lvl:10, mult:1.45 },
+  { name:"Dragón de hueso",      lvl:15, mult:1.8 }
+];
+
+const SHOP = [
+  { id:"daga",    slot:"arma",    name:"Daga oxidada",       val:3,  price:40,   lvl:1 },
+  { id:"espada",  slot:"arma",    name:"Espada de plata",    val:7,  price:180,  lvl:3 },
+  { id:"hacha",   slot:"arma",    name:"Hacha rúnica",       val:13, price:650,  lvl:6 },
+  { id:"guadana", slot:"arma",    name:"Guadaña del eclipse",val:22, price:1900, lvl:10 },
+  { id:"capa",    slot:"armadura",name:"Capa de cuero",      val:2,  price:35,   lvl:1 },
+  { id:"cota",    slot:"armadura",name:"Cota de malla",      val:6,  price:200,  lvl:3 },
+  { id:"coraza",  slot:"armadura",name:"Coraza de obsidiana",val:11, price:700,  lvl:6 },
+  { id:"sombra",  slot:"armadura",name:"Armadura de sombra", val:18, price:2000, lvl:10 },
+  { id:"pocion",  slot:"consumible",name:"Elixir de sangre (+50% vida)", val:.5, price:30, lvl:1 }
+];
+
+const FOE_NAMES = {
+  vampiro:["Conde Vladek","Lady Morwen","Silas Noctis","Elsbeth Ashgrave","Dimitri Voss","Mirela Craven","Lucien Vale"],
+  licantropo:["Garra Gris","Ulfric Colmilloroto","Fenra","Bran Aullido","Sigrid Lunanegra","Torvald","Rhea Pelaje-Ceniza"]
+};
+
+let S = load();
+let tab = "caza";
+let lastFight = null;
+let confirmReset = false;
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const now = () => Date.now();
+
+function load(){
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch(e){}
+  return null;
+}
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){} }
+
+function newChar(name, race){
+  const b = RACES[race].bonus;
+  const s = { name, race, lvl:1, xp:0, gold:60, energy:ENERGY_MAX,
+    stats:{ fue:5+b.fue, def:5+b.def, des:5+b.des, res:5+b.res, car:5+b.car },
+    gear:{ arma:null, armadura:null }, potions:0, wins:0, losses:0,
+    tEnergy:now(), tHeal:now(), log:[] };
+  s.hp = maxHp(s);
+  return s;
+}
+const maxHp   = s => 40 + s.stats.res*12 + s.lvl*6;
+const xpNeed  = s => Math.round(40*Math.pow(s.lvl,1.55));
+const trainCost = v => Math.round(6*Math.pow(v,1.7));
+const gearVal = (s,slot) => { const g = SHOP.find(i=>i.id===s.gear[slot]); return g?g.val:0; };
+
+function log(msg, cls=""){
+  const d = new Date();
+  S.log.unshift({ t:`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`, msg, cls });
+  S.log = S.log.slice(0,40);
+}
+
+function gainXp(n){
+  S.xp += n;
+  while (S.xp >= xpNeed(S)){
+    S.xp -= xpNeed(S); S.lvl++;
+    S.hp = maxHp(S);
+    log(`Subiste al nivel ${S.lvl}. Tu vida se restauró por completo.`, "gold");
+  }
+}
+
+/* ---------- tiempo: energía y vida ---------- */
+function tick(){
+  if (!S) return;
+  const t = now();
+  if (S.energy < ENERGY_MAX){
+    const g = Math.floor((t - S.tEnergy)/ENERGY_EVERY);
+    if (g>0){ S.energy = Math.min(ENERGY_MAX, S.energy+g); S.tEnergy += g*ENERGY_EVERY; }
+  } else S.tEnergy = t;
+  const mh = maxHp(S);
+  if (S.hp < mh){
+    const h = Math.floor((t - S.tHeal)/HEAL_EVERY);
+    if (h>0){ S.hp = Math.min(mh, S.hp + h*Math.ceil(mh*0.02)); S.tHeal += h*HEAL_EVERY; }
+  } else S.tHeal = t;
+  save();
+  renderSheet();
+}
+
+/* ---------- combate ---------- */
+function makeFighter(src){
+  return { name:src.name, hp:src.hp, max:src.max, fue:src.fue, def:src.def, des:src.des, arma:src.arma||0, armadura:src.armadura||0 };
+}
+function playerFighter(){
+  return makeFighter({ name:S.name, hp:S.hp, max:maxHp(S), ...S.stats, arma:gearVal(S,"arma"), armadura:gearVal(S,"armadura") });
+}
+function strike(a, d){
+  const chance = clamp(70 + (a.des - d.des)*3, 20, 95);
+  if (Math.random()*100 >= chance) return 0;
+  const crit = Math.random() < 0.08;
+  let dmg = a.fue*1.6 + a.arma + rnd(0,4) - d.def*0.7 - d.armadura;
+  dmg = Math.max(1, Math.round(dmg * (crit?1.8:1)));
+  return crit ? -dmg : dmg; // negativo = crítico
+}
+function battle(p, e){
+  const rounds = [];
+  for (let r=1; r<=12 && p.hp>0 && e.hp>0; r++){
+    let d = strike(p,e);
+    e.hp = Math.max(0, e.hp - Math.abs(d));
+    rounds.push({ who:"p", txt: d===0 ? `R${r} · ${p.name} falla.` : `R${r} · ${p.name} ${d<0?"asesta un CRÍTICO de":"golpea por"} ${Math.abs(d)}.` });
+    if (e.hp<=0) break;
+    d = strike(e,p);
+    p.hp = Math.max(0, p.hp - Math.abs(d));
+    rounds.push({ who:"e", txt: d===0 ? `R${r} · ${e.name} falla.` : `R${r} · ${e.name} ${d<0?"asesta un CRÍTICO de":"golpea por"} ${Math.abs(d)}.` });
+  }
+  const won = e.hp<=0 || (p.hp>0 && p.hp/p.max > e.hp/e.max);
+  return { won, rounds, p, e };
+}
+
+function scaledEnemy(name, lvl, mult){
+  const base = 5 + lvl*1.6;
+  const v = () => Math.max(3, Math.round(base*mult + rnd(-2,2)));
+  const res = v();
+  const max = Math.round((40 + res*12 + lvl*6) * (0.85+mult*0.15));
+  return makeFighter({ name, hp:max, max, fue:v(), def:v(), des:v(), arma:Math.round(lvl*1.2*mult), armadura:Math.round(lvl*0.9*mult) });
+}
+
+/* ---------- acciones ---------- */
+function hunt(id){
+  const h = HUNTS.find(x=>x.id===id);
+  if (S.energy < h.cost || S.lvl < h.lvl) return;
+  S.energy -= h.cost;
+  const failChance = [0,0.05,0.18,0.3][h.risk];
+  if (Math.random() < failChance){
+    const dmg = Math.round(maxHp(S)*0.12*h.risk);
+    S.hp = Math.max(1, S.hp - dmg);
+    log(`${RACES[S.race].hunt} en «${h.name}» salió mal. Perdiste ${dmg} de vida.`, "bad");
+  } else {
+    const gold = Math.round(rnd(...h.gold) * (1 + S.stats.car*0.03));
+    const xp = rnd(...h.xp);
+    S.gold += gold; gainXp(xp);
+    let extra = "";
+    if (S.race==="vampiro"){ const heal = Math.round(maxHp(S)*0.04); S.hp = Math.min(maxHp(S), S.hp+heal); extra = ` Bebiste y recuperaste ${heal} de vida.`; }
+    log(`${RACES[S.race].hunt} en «${h.name}»: +${gold} oro, +${xp} XP.${extra}`, "good");
+  }
+  save(); render();
+}
+
+function fightMonster(i){
+  const m = MONSTERS[i];
+  if (S.energy < 3 || S.hp < 1 || S.lvl < m.lvl) return;
+  S.energy -= 3;
+  const e = scaledEnemy(m.name, Math.max(m.lvl, S.lvl), m.mult);
+  resolveFight(e, { gold:Math.round(e.max*0.5*m.mult), xp:Math.round(8 + m.lvl*4*m.mult) }, "gruta");
+}
+
+function fightDuel(){
+  if (S.energy < 4 || S.hp < 1 || !S.rival) return;
+  S.energy -= 4;
+  const r = S.rival;
+  const e = scaledEnemy(r.name, r.lvl, r.mult);
+  resolveFight(e, { gold:Math.round(S.gold*0.08 + r.lvl*12), xp:Math.round(12 + r.lvl*5) }, "duelo");
+  S.rival = null; newRival(); save(); render();
+}
+
+function resolveFight(e, reward, where){
+  const res = battle(playerFighter(), e);
+  S.hp = res.p.hp;
+  if (res.won){
+    S.gold += reward.gold; gainXp(reward.xp); S.wins++;
+    log(`Venciste a ${e.name}: +${reward.gold} oro, +${reward.xp} XP.`, "good");
+  } else {
+    const lost = Math.round(S.gold*0.1);
+    S.gold -= lost; S.losses++;
+    S.hp = Math.max(S.hp, 1);
+    log(`${e.name} te derrotó. Perdiste ${lost} de oro mientras huías.`, "bad");
+  }
+  lastFight = { ...res, where, reward };
+  save(); render();
+  const f = $(".fight"); if (f && !res.won) f.classList.add("shake");
+}
+
+function newRival(){
+  const foe = RACES[S.race].foe;
+  const lvl = Math.max(1, S.lvl + rnd(-1,2));
+  S.rival = { name: FOE_NAMES[foe][rnd(0,FOE_NAMES[foe].length-1)], race:foe, lvl, mult: 0.85 + Math.random()*0.35 };
+}
+
+function train(k){
+  const c = trainCost(S.stats[k]);
+  if (S.gold < c) return;
+  S.gold -= c; S.stats[k]++;
+  if (k==="res") S.hp += 12;
+  log(`Entrenaste ${STAT_NAMES[k]} hasta ${S.stats[k]} (−${c} oro).`);
+  save(); render();
+}
+
+function buy(id){
+  const it = SHOP.find(i=>i.id===id);
+  if (S.gold < it.price || S.lvl < it.lvl) return;
+  S.gold -= it.price;
+  if (it.slot==="consumible"){ S.potions++; log(`Compraste ${it.name}.`); }
+  else { S.gear[it.slot] = it.id; log(`Equipaste ${it.name} (−${it.price} oro).`, "gold"); }
+  save(); render();
+}
+function drink(){
+  if (!S.potions) return;
+  S.potions--; const h = Math.round(maxHp(S)*0.5);
+  S.hp = Math.min(maxHp(S), S.hp+h);
+  log(`Bebiste un elixir: +${h} de vida.`, "good");
+  save(); render();
+}
+const healCost = () => Math.max(0, Math.round((maxHp(S)-S.hp) * 0.6));
+function heal(){
+  const c = healCost(); if (!c || S.gold < c) return;
+  S.gold -= c; S.hp = maxHp(S);
+  log(`La curandera cerró tus heridas (−${c} oro).`);
+  save(); render();
+}
+function work(){
+  if (S.energy < 2) return;
+  S.energy -= 2;
+  const g = 8 + S.lvl*4;
+  S.gold += g;
+  log(`Cavaste tumbas en el cementerio: +${g} oro.`);
+  save(); render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const app = $("#app");
+  if (!S){ app.innerHTML = createView(); bindCreate(); return; }
+  if (!S.rival) newRival();
+  app.innerHTML = `
+    <header class="top">
+      <div><div class="tag">Noche eterna en Valdrava</div><h1>Colmillo <span>y</span> Garra</h1></div>
+      <div class="tag num">Victorias ${S.wins} · Derrotas ${S.losses}</div>
+    </header>
+    <div class="game">
+      <aside class="sheet" id="sheet"></aside>
+      <main class="board">
+        <nav class="tabs" role="tablist">${[
+          ["caza", RACES[S.race].hunt==="Cazar"?"Caza":"Acecho"],["gruta","Gruta"],["duelo","Duelo"],
+          ["entreno","Entrenamiento"],["mercado","Mercado"],["curandera","Curandera"]
+        ].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</nav>
+        <section class="pane">${paneView()}</section>
+        ${lastFight && (tab==="gruta"||tab==="duelo") ? fightView(lastFight) : ""}
+      </main>
+    </div>
+    <section class="log">
+      <div class="foot"><h3>Crónica</h3>
+        <div class="confirm">${confirmReset
+          ? `¿Borrar tu personaje? <button id="resetYes" class="primary">Sí, borrar</button><button id="resetNo">Cancelar</button>`
+          : `<button id="reset">Nuevo personaje</button>`}</div>
+      </div>
+      <ol>${S.log.map(l=>`<li><time>${l.t}</time><span class="${l.cls}">${esc(l.msg)}</span></li>`).join("") || `<li><time>--:--</time><span>Tu historia empieza esta noche.</span></li>`}</ol>
+    </section>`;
+  renderSheet();
+  app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; render(); });
+  app.querySelectorAll("[data-do]").forEach(b=>b.onclick=()=>{
+    const [fn,arg] = b.dataset.do.split(":");
+    ({hunt,fightMonster:()=>fightMonster(+arg),fightDuel,train,buy,drink,heal,work,reroll:()=>{ if(S.gold>=5){S.gold-=5;newRival();save();render();} }})[fn](arg);
+  });
+  const r = $("#reset"); if (r) r.onclick=()=>{confirmReset=true;render();};
+  const ry = $("#resetYes"); if (ry) ry.onclick=()=>{ S=null; confirmReset=false; lastFight=null; try{localStorage.removeItem(SAVE_KEY);}catch(e){} render(); };
+  const rn = $("#resetNo"); if (rn) rn.onclick=()=>{confirmReset=false;render();};
+}
+
+function renderSheet(){
+  const el = $("#sheet"); if (!el || !S) return;
+  const mh = maxHp(S), need = xpNeed(S);
+  const nextE = S.energy<ENERGY_MAX ? Math.ceil((ENERGY_EVERY-(now()-S.tEnergy))/1000) : 0;
+  const w = SHOP.find(i=>i.id===S.gear.arma), a = SHOP.find(i=>i.id===S.gear.armadura);
+  el.innerHTML = `
+    <div class="who"><div class="sigil">${RACES[S.race].sym}</div>
+      <div><h2>${esc(S.name)}</h2><div class="tag">${RACES[S.race].name} · Nivel ${S.lvl}</div></div></div>
+    ${bar("hp","Vida",Math.round(S.hp),mh)}
+    ${bar("en","Energía",S.energy,ENERGY_MAX, nextE?`+1 en ${nextE}s`:"")}
+    ${bar("xp","Experiencia",S.xp,need)}
+    <div class="money"><span>Oro</span><span class="num">${S.gold}</span></div>
+    <div class="stats">${Object.keys(STAT_NAMES).map(k=>`<div class="stat"><span>${STAT_NAMES[k]}</span><span class="num">${S.stats[k]}</span></div>`).join("")}</div>
+    <div class="gear"><span>Arma: ${w?`${w.name} (+${w.val})`:"puños y colmillos"}</span><span>Armadura: ${a?`${a.name} (+${a.val})`:"ninguna"}</span><span>Elixires: ${S.potions}</span></div>`;
+}
+const bar = (cls,label,v,max,note="") => `
+  <div class="bar ${cls}"><div class="row"><span>${label}${note?` <span class="tag">${note}</span>`:""}</span><span class="num">${v} / ${max}</span></div>
+  <div class="track"><div class="fill" style="width:${clamp(v/max*100,0,100)}%"></div></div></div>`;
+
+function paneView(){
+  const riskTxt = ["","bajo","medio","alto"];
+  if (tab==="caza") return `
+    <h2>${RACES[S.race].hunt==="Cazar"?"Salir de caza":"Acechar presas"}</h2>
+    <p>Gasta energía para atacar humanos. Más riesgo, más botín. El Carisma aumenta el oro que obtienes.</p>
+    <div class="list">${HUNTS.map(h=>`
+      <div class="item"><div><h3>${h.name}<span class="risk r${h.risk}">riesgo ${riskTxt[h.risk]}</span></h3>
+        <div class="meta num">${h.gold[0]}–${h.gold[1]} oro · ${h.xp[0]}–${h.xp[1]} XP · ${h.cost} energía${S.lvl<h.lvl?` · requiere nivel ${h.lvl}`:""}</div></div>
+        <div class="act"><button data-do="hunt:${h.id}" ${S.energy<h.cost||S.lvl<h.lvl?"disabled":""}>${RACES[S.race].hunt}</button></div></div>`).join("")}
+      <div class="item"><div><h3>Trabajar en el cementerio</h3><div class="meta num">${8+S.lvl*4} oro seguro · 2 energía</div></div>
+        <div class="act"><button data-do="work" ${S.energy<2?"disabled":""}>Cavar</button></div></div>
+    </div>`;
+  if (tab==="gruta") return `
+    <h2>La Gruta</h2>
+    <p>Bestias que crecen contigo. Cada combate cuesta 3 de energía. Si pierdes, se te cae el 10% de tu oro.</p>
+    <div class="list">${MONSTERS.map((m,i)=>`
+      <div class="item"><div><h3>${m.name}<span class="risk r${m.mult<0.9?1:m.mult<1.3?2:3}">×${m.mult.toFixed(1)}</span></h3>
+        <div class="meta">${S.lvl<m.lvl?`Aparece a partir del nivel ${m.lvl}`:"Acecha en la oscuridad"}</div></div>
+        <div class="act"><button data-do="fightMonster:${i}" ${S.energy<3||S.hp<1||S.lvl<m.lvl?"disabled":""}>Luchar</button></div></div>`).join("")}
+    </div>`;
+  if (tab==="duelo"){ const r = S.rival; return `
+    <h2>Duelo contra la raza enemiga</h2>
+    <p>Un ${RACES[r.race].name.toLowerCase()} merodea tu territorio. Vencerlo da buen oro y mucha experiencia. Cuesta 4 de energía.</p>
+    <div class="item"><div><h3>${esc(r.name)}</h3><div class="meta">${RACES[r.race].name} · Nivel ${r.lvl} · ${r.mult>1.05?"parece peligroso":r.mult<0.95?"parece débil":"parece igualado"}</div></div>
+      <div class="act"><button data-do="reroll" ${S.gold<5?"disabled":""}>Buscar otro (5 oro)</button><button class="primary" data-do="fightDuel" ${S.energy<4||S.hp<1?"disabled":""}>Atacar</button></div></div>`; }
+  if (tab==="entreno") return `
+    <h2>Entrenamiento</h2>
+    <p>Paga oro para subir atributos. Cada punto cuesta más que el anterior.</p>
+    <div class="list">${Object.keys(STAT_NAMES).map(k=>{ const c=trainCost(S.stats[k]); return `
+      <div class="item"><div><h3>${STAT_NAMES[k]} <span class="num">${S.stats[k]}</span></h3><div class="meta">${STAT_HELP[k]}</div></div>
+        <div class="act"><button data-do="train:${k}" ${S.gold<c?"disabled":""}>Entrenar · <span class="num">${c}</span> oro</button></div></div>`;}).join("")}
+    </div>`;
+  if (tab==="mercado") return `
+    <h2>Mercado negro</h2>
+    <p>Un arma y una armadura equipadas a la vez. Comprar una nueva reemplaza la anterior.</p>
+    <div class="list">${SHOP.map(it=>{ const own = S.gear[it.slot]===it.id; return `
+      <div class="item"><div><h3>${it.name}</h3>
+        <div class="meta num">${it.slot==="consumible"?"Se bebe desde la Curandera":`${it.slot} +${it.val}`} · ${it.price} oro${S.lvl<it.lvl?` · requiere nivel ${it.lvl}`:""}</div></div>
+        <div class="act"><button data-do="buy:${it.id}" ${own||S.gold<it.price||S.lvl<it.lvl?"disabled":""}>${own?"Equipado":"Comprar"}</button></div></div>`;}).join("")}
+    </div>`;
+  if (tab==="curandera"){ const c = healCost(); return `
+    <h2>La Curandera</h2>
+    <p>Tu vida se regenera sola poco a poco. Si no quieres esperar, la curandera te sana a cambio de oro.</p>
+    <div class="list">
+      <div class="item"><div><h3>Curación completa</h3><div class="meta num">${c?`${c} oro`:"Estás en plena forma"}</div></div>
+        <div class="act"><button data-do="heal" ${!c||S.gold<c?"disabled":""}>Curarme</button></div></div>
+      <div class="item"><div><h3>Beber elixir de sangre</h3><div class="meta num">Tienes ${S.potions} · +50% de vida</div></div>
+        <div class="act"><button data-do="drink" ${!S.potions?"disabled":""}>Beber</button></div></div>
+    </div>`; }
+}
+
+function fightView(f){
+  return `<section class="fight" aria-live="polite">
+    <div class="vs">
+      <div class="side"><h3>${esc(f.p.name)}</h3>${bar("hp","Vida",f.p.hp,f.p.max)}</div>
+      <div class="mid">vs</div>
+      <div class="side"><h3>${esc(f.e.name)}</h3>${bar("hp","Vida",f.e.hp,f.e.max)}</div>
+    </div>
+    <div class="rounds">${f.rounds.map(r=>`<div class="${r.who}">${esc(r.txt)}</div>`).join("")}</div>
+    <div class="verdict ${f.won?"win":"lose"}">${f.won?`Victoria · +${f.reward.gold} oro, +${f.reward.xp} XP`:"Derrota"}</div>
+  </section>`;
+}
+
+/* ---------- creación ---------- */
+let pickRace = "vampiro";
+function createView(){
+  return `<section id="create">
+    <div><div class="tag">Valdrava, año de la luna roja</div><h1>Colmillo <span>y</span> Garra</h1></div>
+    <p>Vampiros y licántropos se disputan las noches de Valdrava. Elige tu linaje, caza humanos, baja a la gruta y humilla a la raza enemiga.</p>
+    <div class="races">${Object.entries(RACES).map(([k,r])=>`
+      <button class="race" data-race="${k}" aria-pressed="${pickRace===k}"><span class="sym">${r.sym}</span><h3>${r.name}</h3><small>${r.blurb}</small></button>`).join("")}</div>
+    <label class="tag" for="cname">Nombre de tu personaje</label>
+    <input id="cname" maxlength="20" placeholder="${pickRace==="vampiro"?"Ej.: Valeria de Sangrenoche":"Ej.: Kael Aullalunas"}">
+    <div><button class="primary" id="start">Despertar</button></div>
+  </section>`;
+}
+function bindCreate(){
+  document.querySelectorAll("[data-race]").forEach(b=>b.onclick=()=>{ const v=$("#cname").value; pickRace=b.dataset.race; render(); $("#cname").value=v; });
+  const go = () => {
+    const n = $("#cname").value.trim() || (pickRace==="vampiro"?"Valeria de Sangrenoche":"Kael Aullalunas");
+    S = newChar(n, pickRace);
+    log(`${n} despierta como ${RACES[pickRace].name.toLowerCase()}. Tienes 60 de oro y hambre.`, "gold");
+    save(); render();
+  };
+  $("#start").onclick = go;
+  $("#cname").onkeydown = e => { if (e.key==="Enter") go(); };
+}
+
+render();
+setInterval(tick, 1000);
+})();
+</script>

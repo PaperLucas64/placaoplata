@@ -1,0 +1,475 @@
+<title>Pulpería La Esquina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Alegreya:ital,wght@0,400;0,700;1,400&family=Alegreya+Sans:wght@500;700&display=swap">
+<style>
+/* Layout: libreta del pulpero a la izquierda (fija), pestañas de administración a la derecha, libro de cuentas abajo.
+   Paleta de pulpería pintada: cal, celeste de puerta, paja y madera. */
+:root{
+  --bg:#dfe7e9; --panel:#fbfaf5; --ink:#24302c; --muted:#5f6c68; --line:#bccbcf;
+  --accent:#2d6c8c; --onAccent:#fff; --wood:#8a5a36; --straw:#c99a2e; --good:#3f7a43; --bad:#b04a3a;
+  --display:"Rye", Rockwell, Georgia, serif;
+  --body:"Alegreya", Georgia, serif;
+  --ui:"Alegreya Sans", "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#161c24; --panel:#1f2731; --ink:#ece6d6; --muted:#a2a9b2; --line:#34404d;
+  --accent:#7fb6d4; --onAccent:#10202a; --wood:#c08a5c; --straw:#e2b94e; --good:#86c08a; --bad:#e58b7c; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#161c24; --panel:#1f2731; --ink:#ece6d6; --muted:#a2a9b2; --line:#34404d;
+  --accent:#7fb6d4; --onAccent:#10202a; --wood:#c08a5c; --straw:#e2b94e; --good:#86c08a; --bad:#e58b7c; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:18px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1,h2{font-family:var(--display);font-weight:400;letter-spacing:.02em}
+h1{font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.05}
+h2{font-size:1.4rem}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0}
+.tag{font-family:var(--ui);font-size:.74rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--ui);font-weight:700}
+button{font-family:var(--ui);font-weight:700;font-size:.95rem;cursor:pointer;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:5px}
+button:hover:not(:disabled){background:var(--bg)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.38;cursor:not-allowed}
+button.go{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+button.go:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+button.link{border:none;background:none;color:var(--muted);text-decoration:underline;padding:4px}
+
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+.game{display:grid;grid-template-columns:290px 1fr;gap:18px;align-items:start}
+@media (max-width:820px){.game{grid-template-columns:1fr}}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:grid;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:820px){.sheet{position:static}}
+.bar{display:grid;gap:3px}
+.bar .row{display:flex;justify-content:space-between;font-family:var(--ui);font-size:.85rem}
+.track{height:8px;background:var(--bg);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.fill{height:100%;transition:width .4s}
+.en .fill{background:var(--accent)}
+.xp .fill{background:var(--straw)}
+.job .fill{background:var(--wood)}
+.money{display:flex;justify-content:space-between;align-items:baseline}
+.money .num{font-size:1.4rem;color:var(--wood)}
+.kv{display:grid;gap:4px}
+.kv div{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding-bottom:3px;font-size:.95rem}
+
+.board{display:grid;gap:14px;min-width:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border-width:1px;border-color:var(--line);position:relative}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.dot{position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:var(--straw);border:2px solid var(--bg)}
+.hint{display:flex;gap:12px;align-items:start;justify-content:space-between;background:var(--panel);border:2px solid var(--straw);border-radius:6px;padding:12px 14px}
+.hint b{font-family:var(--ui);color:var(--wood);letter-spacing:.06em;text-transform:uppercase;font-size:.78rem;display:block}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;display:grid;gap:14px}
+.pane > p{color:var(--muted);max-width:65ch}
+.list{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:5px}
+.item .meta{font-size:.9rem;color:var(--muted)}
+.item .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:end}
+@media (max-width:500px){.item{grid-template-columns:1fr}.item .act{justify-content:start}}
+.staff{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:5px}
+.staff .head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:baseline}
+.pill{font-family:var(--ui);font-size:.75rem;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid currentColor}
+.busy{color:var(--wood)}.free{color:var(--good)}
+.contest{border:1px solid var(--line);border-radius:5px;padding:14px;display:grid;gap:8px}
+.rounds{display:grid;gap:4px;font-size:.95rem}
+.rounds .w{color:var(--good)}.rounds .l{color:var(--bad)}
+.verdict{font-family:var(--display);font-size:1.3rem}
+.win{color:var(--good)}.lose{color:var(--bad)}
+.log{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 18px;display:grid;gap:8px}
+.log ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto;font-size:.95rem}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.log time{font-family:var(--ui);font-size:.78rem;color:var(--muted);padding-top:2px}
+.log .good{color:var(--good)}.log .bad{color:var(--bad)}.log .gold{color:var(--wood);font-weight:700}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
+#create{max-width:640px;margin:5vh auto 0;display:grid;gap:18px}
+#create p{color:var(--muted)}
+input{font:inherit;background:var(--panel);color:var(--ink);border:1.5px solid var(--ink);border-radius:5px;padding:9px 12px;width:100%}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(() => {
+const KEY = "pulperia-esquina-v1";
+const EN_MAX = 20, EN_EVERY = 20000;
+
+const STATS = {
+  sabor:   { name:"Sabor",    help:"Cada cosa se vende más cara" },
+  atencion:{ name:"Atención", help:"Atendés más clientes por tanda" },
+  encanto: { name:"Encanto",  help:"Más propinas y más votos en concursos" },
+  oficio:  { name:"Oficio",   help:"Cocinás más cantidad cuando lo hacés vos" }
+};
+const RECIPES = {
+  pan:       { name:"Pan casero",  cost:2,  qty:4, price:2,  secs:60,  lvl:1 },
+  facturas:  { name:"Facturas",    cost:6,  qty:4, price:4,  secs:120, lvl:2 },
+  empanadas: { name:"Empanadas",   cost:10, qty:4, price:7,  secs:240, lvl:3 },
+  pastelitos:{ name:"Pastelitos",  cost:15, qty:4, price:10, secs:360, lvl:5 }
+};
+const UPGRADES = [
+  { id:"horno",     name:"Horno de barro",        price:60,  lvl:3, desc:"Los empleados cocinan un 25% más rápido." },
+  { id:"mostrador", name:"Mostrador de quebracho",price:90,  lvl:3, desc:"+1 cliente en cada tanda." },
+  { id:"farol",     name:"Farol en la puerta",    price:70,  lvl:3, desc:"+30% de propinas." },
+  { id:"cuartito",  name:"Cuartito del fondo",    price:150, lvl:4, desc:"Podés tener un empleado más." },
+  { id:"guitarra",  name:"Guitarra para las noches",price:200,lvl:5, desc:"+3 en los concursos." },
+  { id:"cartel",    name:"Cartel pintado con fileteado",price:320,lvl:6, desc:"+20% de clientes y fama al ganar." }
+];
+const NAMES = ["Rosendo","Chola","Pocho","Irma","Tito","Nélida","Cacho","Amalia","Beto","Elvira","Ramoncito","Teresa"];
+const RIVALS = ["Almacén Los Hermanos Ferro","Panadería La Espiga","Pulpería El Ombú","Boliche de Don Zoilo","Confitería La Perla","Despensa El Resero","Almacén La Tranquera"];
+const CONTESTS = [
+  { id:"empanadas", name:"Concurso de empanadas", a:"sabor",    b:"oficio",   lvl:4 },
+  { id:"pan",       name:"Feria del pan casero",  a:"sabor",    b:"atencion", lvl:4 },
+  { id:"payada",    name:"Noche de payadas",      a:"encanto",  b:"atencion", lvl:5 }
+];
+const JUDGES = ["El cura del pueblo","La maestra rural","El comisario","Doña Fermina","El juez de paz"];
+
+/* Las pestañas aparecen de a una, con una sola explicación corta */
+const UNLOCKS = [
+  { tab:"cocina",    when:s=>true,                 hint:"Bienvenido. Empezá por la Cocina: comprá harina y hacé pan con tus propias manos." },
+  { tab:"mostrador", when:s=>s.made>0,             hint:"¡Ya hay pan! Andá al Mostrador y atendé a los vecinos para venderlo." },
+  { tab:"aprender",  when:s=>s.sold>=8,            hint:"Con lo que ganes podés mejorar tus atributos. Mirá la pestaña Aprender." },
+  { tab:"personal",  when:s=>s.lvl>=2,             hint:"Nivel 2: ya podés contratar a alguien. Mandalo a cocinar mientras vos atendés." },
+  { tab:"mejoras",   when:s=>s.lvl>=3,             hint:"Nivel 3: hay mejoras para la pulpería. También se destrabaron las empanadas." },
+  { tab:"concursos", when:s=>s.lvl>=4,             hint:"Nivel 4: otras pulperías te desafían en concursos. Ganar da plata y fama." }
+];
+const TAB_NAMES = { cocina:"Cocina", mostrador:"Mostrador", aprender:"Aprender", personal:"Personal", mejoras:"Mejoras", concursos:"Concursos" };
+
+let S = null;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+let tab = "cocina", lastContest = null, confirmReset = false;
+
+const $ = s => document.querySelector(s);
+const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const pick = a => a[rnd(0,a.length-1)];
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const now = () => Date.now();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+const fmtT = ms => { const s = Math.max(0, Math.ceil(ms/1000)); return s >= 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}` : `${s}s`; };
+
+function newGame(name){
+  return { name, lvl:1, xp:0, pesos:30, energy:EN_MAX, tEn:now(), fama:0,
+    stats:{ sabor:3, atencion:3, encanto:3, oficio:3 },
+    stock:{ pan:0, facturas:0, empanadas:0, pastelitos:0 },
+    staff:[], up:{}, tabs:["cocina"], seenTab:{}, hints:[UNLOCKS[0].hint],
+    made:0, sold:0, wins:0, losses:0, log:[], rival:null };
+}
+const xpNeed = () => Math.round(30*Math.pow(S.lvl,1.5));
+const trainCost = v => Math.round(5*Math.pow(v,1.75));
+const staffMax = () => 1 + (S.up.cuartito?1:0) + (S.lvl>=7?1:0);
+const hireCost = () => 40 + S.staff.length*60;
+const coachCost = st => Math.round(15*Math.pow(st.skill,1.6));
+const recipeOk = k => S.lvl >= RECIPES[k].lvl;
+
+function log(msg, cls=""){
+  const d = new Date();
+  S.log.unshift({ t:`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`, msg, cls });
+  S.log = S.log.slice(0,40);
+}
+function gainXp(n){
+  S.xp += n;
+  while (S.xp >= xpNeed()){ S.xp -= xpNeed(); S.lvl++; S.energy = EN_MAX; log(`¡Subiste al nivel ${S.lvl}! La energía se te recargó.`, "gold"); }
+  checkUnlocks();
+}
+function checkUnlocks(){
+  UNLOCKS.forEach(u => {
+    if (!S.tabs.includes(u.tab) && u.when(S)){ S.tabs.push(u.tab); S.hints.push(u.hint); }
+  });
+}
+
+/* ---------- tiempo ---------- */
+function tick(){
+  if (!S) return;
+  const t = now(), before = S.energy;
+  if (S.energy < EN_MAX){
+    const g = Math.floor((t - S.tEn)/EN_EVERY);
+    if (g > 0){ S.energy = Math.min(EN_MAX, S.energy+g); S.tEn += g*EN_EVERY; }
+  } else S.tEn = t;
+  let changed = before !== S.energy;
+  S.staff.forEach(st => {
+    if (st.job && t >= st.job.until){
+      S.stock[st.job.r] += st.job.qty; S.made += st.job.qty;
+      log(`${st.name} terminó: ${st.job.qty} de ${RECIPES[st.job.r].name.toLowerCase()} listos para vender.`, "good");
+      st.job = null; changed = true;
+    }
+  });
+  if (changed){ checkUnlocks(); save(); render(); return; }
+  save();
+  renderSheet();
+  document.querySelectorAll("[data-job]").forEach(el => {
+    const st = S.staff.find(x => x.id === el.dataset.job); if (!st || !st.job) return;
+    const p = 1 - (st.job.until - t)/(st.job.until - st.job.start);
+    el.querySelector(".fill").style.width = clamp(p*100,0,100)+"%";
+    el.querySelector(".left").textContent = fmtT(st.job.until - t);
+  });
+}
+
+/* ---------- acciones ---------- */
+function cookSelf(k){
+  const r = RECIPES[k];
+  if (S.energy < 2 || S.pesos < r.cost || !recipeOk(k)) return;
+  S.energy -= 2; S.pesos -= r.cost;
+  const q = r.qty + Math.floor(S.stats.oficio/3);
+  S.stock[k] += q; S.made += q;
+  gainXp(1);
+  log(`Hiciste ${q} de ${r.name.toLowerCase()} (−${r.cost} pesos de ingredientes).`);
+  checkUnlocks(); save(); render();
+}
+
+function serveRound(){
+  const want = 2 + Math.floor(S.stats.atencion/3) + (S.up.mostrador?1:0) + (S.up.cartel && Math.random()<.2 ? 1 : 0);
+  const avail = Object.keys(RECIPES).filter(recipeOk);
+  let earned = 0, tips = 0, sold = 0, lost = 0;
+  for (let i=0;i<want;i++){
+    const k = pick(avail);
+    const alt = Object.keys(S.stock).filter(x => S.stock[x] > 0);
+    const got = S.stock[k] > 0 ? k : (alt.length && Math.random() < .5 ? pick(alt) : null);
+    if (!got){ lost++; continue; }
+    S.stock[got]--; sold++;
+    earned += Math.round(RECIPES[got].price * (1 + S.stats.sabor*0.04));
+    if (Math.random() < 0.15 + S.stats.encanto*0.02) tips += Math.max(1, Math.round(rnd(1,3) * (S.up.farol?1.3:1)));
+  }
+  return { earned, tips, sold, lost };
+}
+function attend(times){
+  if (S.energy < times) return;
+  S.energy -= times;
+  let tot = { earned:0, tips:0, sold:0, lost:0 };
+  for (let i=0;i<times;i++){ const r = serveRound(); for (const k in tot) tot[k] += r[k]; }
+  S.pesos += tot.earned + tot.tips; S.sold += tot.sold;
+  gainXp(tot.sold);
+  if (tot.sold) log(`Atendiste ${times > 1 ? `${times} tandas` : "una tanda"}: vendiste ${tot.sold} y ganaste ${tot.earned} pesos${tot.tips?` + ${tot.tips} de propina`:""}.`, "good");
+  if (tot.lost) log(`${tot.lost} ${tot.lost>1?"vecinos se fueron":"vecino se fue"} sin nada porque no había lo que buscaban.`, "bad");
+  if (!tot.sold && !tot.lost) log("No vino nadie esta vez.");
+  checkUnlocks(); save(); render();
+}
+
+function train(k){
+  const c = trainCost(S.stats[k]); if (S.pesos < c) return;
+  S.pesos -= c; S.stats[k]++;
+  log(`Aprendiste ${STATS[k].name.toLowerCase()}: ahora tenés ${S.stats[k]} (−${c} pesos).`);
+  save(); render();
+}
+
+function hire(){
+  if (S.staff.length >= staffMax() || S.pesos < hireCost()) return;
+  S.pesos -= hireCost();
+  const used = S.staff.map(s=>s.name);
+  const name = pick(NAMES.filter(n => !used.includes(n)));
+  S.staff.push({ id:"e"+now(), name, skill:1, job:null });
+  log(`Contrataste a ${name} como ayudante.`, "gold");
+  save(); render();
+}
+function jobTime(st, k){
+  let s = RECIPES[k].secs * (S.up.horno ? .75 : 1) * Math.max(.5, 1 - st.skill*0.05);
+  return Math.round(s*1000);
+}
+const jobQty = (st,k) => Math.round(6 * (1 + st.skill*0.15));
+function sendJob(id, k){
+  const st = S.staff.find(s=>s.id===id), r = RECIPES[k];
+  if (!st || st.job || S.pesos < r.cost || !recipeOk(k)) return;
+  S.pesos -= r.cost;
+  const t = now();
+  st.job = { r:k, start:t, until:t + jobTime(st,k), qty:jobQty(st,k) };
+  log(`Mandaste a ${st.name} a hacer ${r.name.toLowerCase()}.`);
+  save(); render();
+}
+function coach(id){
+  const st = S.staff.find(s=>s.id===id); const c = coachCost(st);
+  if (st.job || S.pesos < c) return;
+  S.pesos -= c; st.skill++;
+  log(`Capacitaste a ${st.name}: ahora tiene oficio ${st.skill}. Cocina más rápido y hace más cantidad.`);
+  save(); render();
+}
+
+function buyUp(id){
+  const u = UPGRADES.find(x=>x.id===id);
+  if (S.up[id] || S.pesos < u.price || S.lvl < u.lvl) return;
+  S.pesos -= u.price; S.up[id] = true;
+  log(`Pusiste ${u.name.toLowerCase()} en la pulpería.`, "gold");
+  save(); render();
+}
+
+function newRival(){
+  const c = pick(CONTESTS.filter(x => S.lvl >= x.lvl));
+  S.rival = { name:pick(RIVALS), lvl:Math.max(1, S.lvl + rnd(-1,2)), mult:.85 + Math.random()*.35, c:c.id };
+}
+function compete(){
+  if (S.energy < 4 || !S.rival) return;
+  S.energy -= 4;
+  const R = S.rival, C = CONTESTS.find(x=>x.id===R.c);
+  const base = 6 + R.lvl*1.4;
+  const mine = S.stats[C.a] + S.stats[C.b] + (S.up.guitarra?3:0) + Math.floor(S.fama/5);
+  const theirs = Math.round(base*2*R.mult);
+  const rounds = []; let w = 0;
+  for (let i=0;i<3;i++){
+    const a = mine + rnd(0,8), b = theirs + rnd(0,8);
+    const ok = a >= b; if (ok) w++;
+    rounds.push({ ok, txt:`${pick(JUDGES)} vota por ${ok ? "vos" : R.name} (${a} a ${b}).` });
+  }
+  const won = w >= 2;
+  const reward = { pesos: Math.round(20 + R.lvl*10*R.mult), xp: Math.round(10 + R.lvl*4), fama: S.up.cartel ? 3 : 2 };
+  if (won){
+    S.pesos += reward.pesos; S.fama += reward.fama; S.wins++; gainXp(reward.xp);
+    log(`Ganaste el ${C.name.toLowerCase()} contra ${R.name}: +${reward.pesos} pesos, +${reward.fama} de fama.`, "good");
+  } else {
+    S.losses++; gainXp(Math.round(reward.xp/3));
+    log(`${R.name} ganó el ${C.name.toLowerCase()}. Te llevás la experiencia y un aplauso.`, "bad");
+  }
+  lastContest = { won, rounds, R, C, reward, mine, theirs };
+  S.rival = null; newRival();
+  save(); render();
+}
+
+/* ---------- vistas ---------- */
+const bar = (cls,label,v,max,note="") => `
+  <div class="bar ${cls}"><div class="row"><span>${label}${note?` · <span style="color:var(--muted)">${note}</span>`:""}</span><span class="num">${v} / ${max}</span></div>
+  <div class="track"><div class="fill" style="width:${clamp(v/max*100,0,100)}%"></div></div></div>`;
+
+function renderSheet(){
+  const el = $("#sheet"); if (!el) return;
+  const nextE = S.energy < EN_MAX ? fmtT(EN_EVERY - (now()-S.tEn)) : "";
+  const stockKeys = Object.keys(RECIPES).filter(k => recipeOk(k) || S.stock[k]);
+  el.innerHTML = `
+    <div><h2>${esc(S.name)}</h2><div class="tag">Pulpero · Nivel ${S.lvl}${S.fama?` · Fama ${S.fama}`:""}</div></div>
+    <div class="money"><span>Pesos</span><span class="num">${S.pesos}</span></div>
+    ${bar("en","Energía",S.energy,EN_MAX,nextE?`+1 en ${nextE}`:"")}
+    ${bar("xp","Experiencia",S.xp,xpNeed())}
+    <div><div class="tag" style="margin-bottom:4px">En el estante</div>
+      <div class="kv">${stockKeys.map(k=>`<div><span>${RECIPES[k].name}</span><span class="num">${S.stock[k]}</span></div>`).join("")}</div></div>
+    ${S.tabs.includes("aprender") ? `<div><div class="tag" style="margin-bottom:4px">Atributos</div>
+      <div class="kv">${Object.keys(STATS).map(k=>`<div><span>${STATS[k].name}</span><span class="num">${S.stats[k]}</span></div>`).join("")}</div></div>` : ""}`;
+}
+
+function paneView(){
+  if (tab === "cocina") return `
+    <h2>Cocina</h2>
+    <p>Cocinar vos mismo es inmediato pero gasta 2 de energía. Los ingredientes se pagan aparte.</p>
+    <div class="list">${Object.entries(RECIPES).map(([k,r]) => `
+      <div class="item"><div><h3>${r.name}</h3>
+        <div class="meta num">Hacés ${r.qty + Math.floor(S.stats.oficio/3)} · ingredientes ${r.cost} pesos · se vende a ${r.price}${!recipeOk(k)?` · desde nivel ${r.lvl}`:""}</div></div>
+        <div class="act"><button data-do="cook:${k}" ${S.energy<2||S.pesos<r.cost||!recipeOk(k)?"disabled":""}>Cocinar</button></div></div>`).join("")}</div>`;
+  if (tab === "mostrador") return `
+    <h2>Mostrador</h2>
+    <p>Cada tanda de vecinos gasta 1 de energía. Piden lo que tengas en el estante; si no hay lo que buscan, se van.</p>
+    <div class="item"><div><h3>Atender una tanda</h3><div class="meta">Vienen unos ${2 + Math.floor(S.stats.atencion/3) + (S.up.mostrador?1:0)} vecinos · 1 de energía</div></div>
+      <div class="act"><button class="go" data-do="attend:1" ${S.energy<1?"disabled":""}>Atender</button></div></div>
+    <div class="item"><div><h3>Atender toda la tarde</h3><div class="meta">5 tandas seguidas · 5 de energía</div></div>
+      <div class="act"><button data-do="attend:5" ${S.energy<5?"disabled":""}>Toda la tarde</button></div></div>`;
+  if (tab === "aprender") return `
+    <h2>Aprender</h2>
+    <p>Pagá para mejorar tus atributos. Cada punto cuesta más que el anterior.</p>
+    <div class="list">${Object.entries(STATS).map(([k,s]) => { const c = trainCost(S.stats[k]); return `
+      <div class="item"><div><h3>${s.name} <span class="num">${S.stats[k]}</span></h3><div class="meta">${s.help}</div></div>
+        <div class="act"><button data-do="train:${k}" ${S.pesos<c?"disabled":""}>Aprender · <span class="num">${c}</span></button></div></div>`; }).join("")}</div>`;
+  if (tab === "personal"){
+    const canHire = S.staff.length < staffMax();
+    return `
+    <h2>Personal</h2>
+    <p>Mandá a tus empleados a cocinar. Tardan un rato, pero hacen más cantidad y no gastan tu energía. Capacitarlos los hace más rápidos.</p>
+    <div class="list">${S.staff.map(st => {
+      const j = st.job;
+      return `<div class="staff">
+        <div class="head"><h3>${esc(st.name)} <span class="tag">oficio ${st.skill}</span></h3>
+          <span class="pill ${j?"busy":"free"}">${j?`Haciendo ${RECIPES[j.r].name.toLowerCase()}`:"Libre"}</span></div>
+        ${j ? `<div class="bar job" data-job="${st.id}"><div class="row"><span>${j.qty} de ${RECIPES[j.r].name.toLowerCase()}</span><span class="num left">${fmtT(j.until-now())}</span></div><div class="track"><div class="fill" style="width:0%"></div></div></div>`
+            : `<div class="act" style="display:flex;flex-wrap:wrap;gap:6px">${Object.entries(RECIPES).filter(([k])=>recipeOk(k)).map(([k,r]) =>
+                `<button data-do="job:${st.id}:${k}" ${S.pesos<r.cost?"disabled":""}>${r.name} · ${jobQty(st,k)} en ${fmtT(jobTime(st,k))}</button>`).join("")}
+                <button class="link" data-do="coach:${st.id}" ${S.pesos<coachCost(st)?"disabled":""}>Capacitar (${coachCost(st)} pesos)</button></div>`}
+      </div>`; }).join("") || `<p class="meta">Todavía no tenés a nadie.</p>`}</div>
+    <div class="item"><div><h3>Contratar ayudante</h3><div class="meta">${canHire ? `${S.staff.length} de ${staffMax()} lugares ocupados` : "No hay más lugar. El cuartito del fondo suma uno."}</div></div>
+      <div class="act"><button class="go" data-do="hire" ${!canHire||S.pesos<hireCost()?"disabled":""}>Contratar · <span class="num">${hireCost()}</span></button></div></div>`;
+  }
+  if (tab === "mejoras") return `
+    <h2>Mejoras</h2>
+    <p>Arreglos para la pulpería. Se pagan una sola vez y quedan para siempre.</p>
+    <div class="list">${UPGRADES.map(u => `
+      <div class="item"><div><h3>${u.name}</h3><div class="meta">${u.desc}${S.lvl<u.lvl?` · desde nivel ${u.lvl}`:""}</div></div>
+        <div class="act">${S.up[u.id] ? `<span class="pill free">Hecho</span>` : `<button data-do="up:${u.id}" ${S.pesos<u.price||S.lvl<u.lvl?"disabled":""}><span class="num">${u.price}</span> pesos</button>`}</div></div>`).join("")}</div>`;
+  if (tab === "concursos"){
+    if (!S.rival) newRival();
+    const R = S.rival, C = CONTESTS.find(x=>x.id===R.c);
+    return `
+    <h2>Concursos</h2>
+    <p>Tres jurados votan. Cuentan tus atributos (${STATS[C.a].name.toLowerCase()} y ${STATS[C.b].name.toLowerCase()} en este), tus mejoras y tu fama. Participar gasta 4 de energía.</p>
+    <div class="item"><div><h3>${C.name}</h3><div class="meta">Contra ${esc(R.name)} · nivel ${R.lvl} · ${R.mult>1.05?"vienen fuertes":R.mult<.95?"no parecen gran cosa":"parejo"}</div></div>
+      <div class="act"><button data-do="reroll" ${S.pesos<5?"disabled":""}>Otro desafío (5)</button><button class="go" data-do="compete" ${S.energy<4?"disabled":""}>Participar</button></div></div>
+    ${lastContest ? `<div class="contest">
+      <div class="tag">Último: ${lastContest.C.name} contra ${esc(lastContest.R.name)}</div>
+      <div class="rounds">${lastContest.rounds.map(r=>`<div class="${r.ok?"w":"l"}">${esc(r.txt)}</div>`).join("")}</div>
+      <div class="verdict ${lastContest.won?"win":"lose"}">${lastContest.won?`Ganaste · +${lastContest.reward.pesos} pesos, +${lastContest.reward.fama} de fama`:"Perdiste esta vez"}</div></div>` : ""}`;
+  }
+  return "";
+}
+
+function render(){
+  const app = $("#app");
+  if (!S){ app.innerHTML = createView(); bindCreate(); return; }
+  if (!S.tabs.includes(tab)) tab = S.tabs[0];
+  const hint = S.hints[0];
+  app.innerHTML = `
+    <header class="top">
+      <div><div class="tag">Un almacén de ramos generales en la pampa</div><h1>Pulpería La Esquina</h1></div>
+      ${S.tabs.includes("concursos") ? `<div class="tag num">Concursos: ${S.wins} ganados · ${S.losses} perdidos</div>` : ""}
+    </header>
+    <div class="game">
+      <aside class="sheet" id="sheet"></aside>
+      <main class="board">
+        ${hint ? `<div class="hint" role="status"><div><b>Ramón, el vecino</b>${esc(hint)}</div><button data-do="hintok">Entendido</button></div>` : ""}
+        <nav class="tabs" role="tablist">${S.tabs.map(k => `<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${TAB_NAMES[k]}${!S.seenTab[k] && tab!==k ? `<span class="dot" aria-label="nuevo"></span>` : ""}</button>`).join("")}</nav>
+        <section class="pane">${paneView()}</section>
+      </main>
+    </div>
+    <section class="log">
+      <div class="foot"><h3>Libro de cuentas</h3>
+        <div>${confirmReset
+          ? `¿Empezar de cero? <button data-do="resetYes">Sí, borrar</button> <button class="link" data-do="resetNo">No</button>`
+          : `<button class="link" data-do="reset">Empezar de nuevo</button>`}</div></div>
+      <ol>${S.log.map(l=>`<li><time>${l.t}</time><span class="${l.cls}">${esc(l.msg)}</span></li>`).join("") || `<li><time>--:--</time><span>Abriste las puertas por primera vez.</span></li>`}</ol>
+    </section>`;
+  S.seenTab[tab] = true;
+  renderSheet();
+}
+
+function createView(){
+  return `<section id="create">
+    <div><div class="tag">Un almacén de ramos generales en la pampa</div><h1>Pulpería La Esquina</h1></div>
+    <p>Te quedaste con una pulpería chiquita al costado del camino. Cociná, atendé a los vecinos, contratá ayudantes y ganale los concursos a las pulperías de la zona.</p>
+    <label class="tag" for="pname">Tu nombre</label>
+    <input id="pname" maxlength="20" placeholder="Ej.: Doña Eulalia">
+    <div><button class="go" id="start">Abrir la pulpería</button></div>
+  </section>`;
+}
+function bindCreate(){
+  const go = () => { S = newGame($("#pname").value.trim() || "Doña Eulalia"); tab = "cocina"; save(); render(); };
+  $("#start").onclick = go;
+  $("#pname").onkeydown = e => { if (e.key === "Enter") go(); };
+}
+
+document.getElementById("app").addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]");
+  if (t){ tab = t.dataset.tab; render(); return; }
+  const b = e.target.closest("[data-do]"); if (!b || b.disabled || !S) return;
+  const [a, x, y] = b.dataset.do.split(":");
+  switch (a){
+    case "hintok": S.hints.shift(); { const u = UNLOCKS.find(u => u.tab !== tab && !S.seenTab[u.tab] && S.tabs.includes(u.tab)); if (u) tab = u.tab; } save(); render(); break;
+    case "cook": cookSelf(x); break;
+    case "attend": attend(+x); break;
+    case "train": train(x); break;
+    case "hire": hire(); break;
+    case "job": sendJob(x, y); break;
+    case "coach": coach(x); break;
+    case "up": buyUp(x); break;
+    case "compete": compete(); break;
+    case "reroll": if (S.pesos >= 5){ S.pesos -= 5; newRival(); save(); render(); } break;
+    case "reset": confirmReset = true; render(); break;
+    case "resetNo": confirmReset = false; render(); break;
+    case "resetYes": S = null; confirmReset = false; lastContest = null; try { localStorage.removeItem(KEY); } catch(e) {} render(); break;
+  }
+});
+
+render();
+setInterval(tick, 1000);
+})();
+</script>

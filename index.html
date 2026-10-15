@@ -1,0 +1,622 @@
+<title>Placa o Plata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: ficha a la izquierda (fija), a la derecha la tarjeta de Marga con el objetivo actual, pestañas que aparecen de a una y el panel. Crónica abajo.
+   Un solo mundo nocturno a propósito: asfalto, luz de sodio de las calles y, al final, el rojo y azul de la sirena. */
+:root{
+  color-scheme: dark;
+  --bg:#15171a;       /* asfalto */
+  --panel:#1e2125;    /* hormigón */
+  --line:#353a40;
+  --fg:#e8e6e1;
+  --muted:#9ea3a8;
+  --sodium:#f2a33a;   /* farola de sodio */
+  --onSodium:#1b1206;
+  --red:#e0524f;      /* sirena roja: la plata */
+  --blue:#5b9be6;     /* sirena azul: la placa */
+  --good:#8cc48a;
+  --display:"Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+  --body:"Barlow", "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:20px 40px;
+  background-image:radial-gradient(ellipse at 15% -20%, #3b2d18 0, transparent 50%);}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--display);font-weight:900;text-wrap:balance;margin:0;text-transform:uppercase;letter-spacing:.01em;line-height:1.05}
+h1{font-size:clamp(2.6rem,8vw,4.2rem)}
+h1 .o{color:var(--sodium)}
+h2{font-size:1.8rem}
+h3{font-size:1.3rem;font-weight:700}
+p{margin:0}
+.tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#2a2e33;color:var(--fg);padding:8px 14px;border-radius:3px;transition:background .15s,border-color .15s}
+button:hover:not(:disabled){border-color:var(--sodium);background:#33383e}
+button:focus-visible,input:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--sodium);border-color:var(--sodium);color:var(--onSodium)}
+button.primary:hover:not(:disabled){background:#f7b45a;border-color:#f7b45a}
+button.link{border:none;background:none;color:var(--muted);text-decoration:underline;padding:4px;font-weight:400}
+input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:10px 12px;border-radius:3px;width:100%}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+#create{max-width:620px;margin:6vh auto 0;display:grid;gap:18px}
+#create p{color:var(--muted)}
+
+.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.game{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.game{grid-template-columns:1fr}}
+.sheet{background:var(--panel);border:1px solid var(--line);padding:18px;display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:820px){.sheet{position:static}}
+.who{display:grid;gap:2px}
+.badge{justify-self:start;font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--muted);color:var(--muted)}
+.badge.placa{border-color:var(--blue);color:var(--blue)}
+.badge.plata{border-color:var(--red);color:var(--red)}
+.bar{display:grid;gap:4px}
+.bar .row{display:flex;justify-content:space-between;font-size:.85rem}
+.track{height:8px;background:#0d0e10;border:1px solid var(--line);overflow:hidden}
+.fill{height:100%;transition:width .4s}
+.hp .fill{background:var(--red)}
+.en .fill{background:var(--sodium)}
+.xp .fill{background:var(--good)}
+.stats{display:grid;gap:6px}
+.stat{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:.95rem;border-bottom:1px dotted var(--line);padding-bottom:4px}
+.money{display:flex;justify-content:space-between;align-items:center;font-size:1.05rem}
+.money .num{color:var(--sodium);font-size:1.25rem}
+.gear{font-size:.88rem;color:var(--muted);display:grid;gap:2px}
+
+.board{display:grid;gap:16px;min-width:0}
+.boss{display:grid;gap:10px;border:1px solid var(--sodium);background:#241d13;padding:14px 16px}
+.boss .head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.boss .say{font-style:italic}
+.boss .goal{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px dashed #5a4526;padding-top:10px}
+.goal .done{color:var(--good);font-weight:600}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{position:relative}
+.tabs button[aria-selected="true"]{border-color:var(--sodium);color:var(--sodium);background:var(--panel)}
+.dot{position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--sodium)}
+.pane{background:var(--panel);border:1px solid var(--line);padding:18px;display:grid;gap:14px}
+.pane > p{color:var(--muted);max-width:65ch}
+.list{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);background:#191b1e}
+.item .meta{font-size:.88rem;color:var(--muted)}
+.item .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:end}
+@media (max-width:480px){.item{grid-template-columns:1fr}.item .act{justify-content:start}}
+.risk{font-family:var(--mono);font-size:.7rem;padding:2px 6px;border:1px solid currentColor;margin-left:6px;vertical-align:middle;font-weight:400}
+.r1{color:var(--good)}.r2{color:var(--sodium)}.r3{color:var(--red)}
+
+.mission{display:grid;gap:12px}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;color:var(--muted)}
+.steps li .n{font-family:var(--mono);border:1px solid var(--line);height:28px;display:grid;place-items:center;font-size:.8rem}
+.steps li.now{color:var(--fg)}
+.steps li.now .n{border-color:var(--sodium);color:var(--sodium)}
+.steps li.ok .n{border-color:var(--good);color:var(--good)}
+.result{font-style:italic}
+.result.bad{color:#eba09e}.result.good{color:var(--good)}
+
+.fight{border:1px solid var(--line);background:#101113;padding:14px;display:grid;gap:10px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+.vs .mid{font-family:var(--display);font-size:1.8rem;color:var(--sodium)}
+.vs .side{display:grid;gap:4px;min-width:0}
+.vs .side:last-child{text-align:right}
+.rounds{font-family:var(--mono);font-size:.8rem;max-height:220px;overflow:auto;display:grid;gap:2px;color:var(--muted)}
+.rounds .p{color:var(--fg)}
+.rounds .e{color:#e6a6a4}
+.verdict{font-family:var(--display);font-size:1.6rem;text-transform:uppercase}
+.win{color:var(--good)}.lose{color:var(--red)}
+
+/* la elección */
+.choice{display:grid;gap:18px;background:var(--panel);border:1px solid var(--line);padding:22px}
+.siren{height:6px;background:linear-gradient(90deg,var(--blue) 0 50%,var(--red) 50% 100%)}
+@keyframes siren{0%,49%{opacity:1}50%,100%{opacity:.35}}
+.siren{animation:siren 1.2s steps(1) infinite}
+.sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.side-card{text-align:left;display:grid;gap:8px;padding:18px;background:#191b1e;border-width:2px}
+.side-card.placa{border-color:var(--blue)}
+.side-card.plata{border-color:var(--red)}
+.side-card.placa h3{color:var(--blue)}
+.side-card.plata h3{color:var(--red)}
+.side-card[aria-pressed="true"]{background:#24282d}
+.side-card ul{margin:0;padding-left:18px;color:var(--muted);font-size:.92rem}
+.side-card .say{font-style:italic}
+
+.log{background:var(--panel);border:1px solid var(--line);padding:14px 18px;display:grid;gap:8px}
+.log ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto;font-size:.92rem}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.log time{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:3px}
+.log .good{color:var(--good)}.log .bad{color:#eba09e}.log .gold{color:var(--sodium)}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.shake{animation:shake .25s 2}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(() => {
+const SAVE_KEY = "placa-o-plata-v1";
+const ENERGY_MAX = 20, ENERGY_EVERY = 20000;
+const HEAL_EVERY = 10000;
+
+const STAT_NAMES = { fue:"Fuerza", dur:"Dureza", ref:"Reflejos", agu:"Aguante", lab:"Labia" };
+const STAT_HELP  = { fue:"Pegás más fuerte", dur:"Te duelen menos los golpes", ref:"Acertás más y esquivás", agu:"Más vida", lab:"Mejor paga y convencés a la gente" };
+
+/* Laburos: la "caza" de BiteFight, en versión neutral */
+const JOBS = [
+  { id:"bici",    name:"Repartir pedidos en bici",       cost:1, risk:1, gold:[4,10],   xp:[2,4],   lvl:1, fail:"Un auto te encerró en la avenida y terminaste en el piso." },
+  { id:"lavado",  name:"Lavar autos en la estación",     cost:2, risk:1, gold:[10,22],  xp:[5,8],   lvl:2, fail:"Te resbalaste con la espuma y te diste contra el surtidor." },
+  { id:"puerta",  name:"Cuidar la puerta de un boliche", cost:3, risk:2, gold:[22,45],  xp:[10,15], lvl:4, fail:"Uno no quería hacer la fila y te tiró una piña." },
+  { id:"chofer",  name:"Chofer de noche",                cost:4, risk:2, gold:[45,90],  xp:[18,26], lvl:6, fail:"El pasajero se bajó sin pagar y encima te empujó." },
+  { id:"deposito",name:"Seguridad en un depósito del puerto", cost:5, risk:3, gold:[90,170], xp:[30,45], lvl:9, fail:"Entraron a robar y vos estabas en el medio." }
+];
+/* Ring: la "gruta" de BiteFight. Rivales del gimnasio de boxeo. */
+const RING = [
+  { name:"Sparring del gimnasio", lvl:1,  mult:.6,  lore:"Lleva casco y guantes de 16 onzas. Ideal para empezar." },
+  { name:"El Toro Medina",        lvl:3,  mult:.85, lore:"Pega como un camión, pero se cansa en el tercer round." },
+  { name:"La Zurda Paz",          lvl:5,  mult:1.0, lore:"Nunca sabés de qué lado viene." },
+  { name:"Kid Cemento",           lvl:8,  mult:1.2, lore:"Dicen que nunca lo tiraron." },
+  { name:"El campeón del barrio", lvl:12, mult:1.5, lore:"Tiene el cinturón colgado en la panadería de la esquina." }
+];
+const SHOP = [
+  { id:"llave",    slot:"arma",      name:"Llave inglesa",        val:3,  price:30,   lvl:1 },
+  { id:"bate",     slot:"arma",      name:"Bate de aluminio",     val:7,  price:180,  lvl:3 },
+  { id:"baston",   slot:"arma",      name:"Bastón extensible",    val:13, price:650,  lvl:6 },
+  { id:"campera",  slot:"armadura",  name:"Campera de cuero",     val:2,  price:25,   lvl:1 },
+  { id:"casco",    slot:"armadura",  name:"Casco de moto",        val:6,  price:200,  lvl:3 },
+  { id:"chaleco",  slot:"armadura",  name:"Chaleco acolchado",    val:11, price:700,  lvl:6 },
+  { id:"botiquin", slot:"consumible",name:"Botiquín (+50% vida)", val:.5, price:20,   lvl:1 }
+];
+
+/* La primera misión de verdad, al estilo GTA: varias etapas, cada una prueba un atributo */
+const VALIJA = {
+  title:"La valija",
+  intro:"Marga te da una dirección del puerto y un papel firmado. «Retirá una valija y traémela. No la abras. No hables con nadie.»",
+  steps:[
+    { text:"Retirar la valija en el depósito del puerto. El encargado no se la da a cualquiera.", stat:"lab", diff:5, energy:2, dmg:0,
+      ok:"Le mostraste el papel, le hablaste del tiempo y de fútbol. Te dio la valija sin preguntar más.", ko:"No te creyó y te pidió que vuelvas con otra cara." },
+    { text:"Cruzar la ciudad en hora pico. Hay un control en la avenida y la valija pesa como un muerto.", stat:"ref", diff:6, energy:2, dmg:.1,
+      ok:"Doblaste justo antes del control, por una calle que nadie usa.", ko:"Te metiste en un embotellamiento, bajaste corriendo y te llevaste por delante un poste." },
+    { text:"Dos tipos te vienen siguiendo desde el puerto. En un pasaje sin salida te cierran el paso.", fight:{ name:"Los dos del puerto", mult:.9 }, energy:3 },
+    { text:"Entregar la valija en el bar de Marga.", energy:1, auto:true,
+      ok:"Llegaste. Marga deja la valija sobre la barra y la abre delante tuyo." }
+  ],
+  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Hay dos personas afuera que quieren hablar con vos.»"
+};
+
+/* Tutorial: cada encargo de Marga destraba una pestaña nueva */
+const TUT = [
+  { id:"t1", tab:"laburos",  title:"Recién llegado",
+    say:"Si te vas a quedar en Bahía Gris, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
+    goal:s=>s.c.jobs>=2, prog:s=>`Laburos hechos: ${Math.min(s.c.jobs,2)} de 2`, reward:{gold:15,xp:6} },
+  { id:"t2", tab:"gimnasio", title:"Ponerse en forma",
+    say:"Así como estás no durás una semana. En el gimnasio de Don Tito pagás y entrenás. Subí cualquier atributo.",
+    goal:s=>s.c.train>=1, prog:s=>`Atributos entrenados: ${Math.min(s.c.train,1)} de 1`, reward:{gold:20,xp:6} },
+  { id:"t3", tab:"feria",    title:"Algo para defenderte",
+    say:"La calle no perdona. En la feria de usados conseguís algo para pegar o algo para que no te peguen. Comprá una cosa.",
+    goal:s=>s.c.buy>=1, prog:s=>`Compras: ${Math.min(s.c.buy,1)} de 1`, reward:{gold:20,xp:8} },
+  { id:"t4", tab:"ring",     title:"Primer round",
+    say:"Abajo del gimnasio hay un ring. Ahí aprendés a pelear sin que nadie termine preso. Ganale al sparring.",
+    goal:s=>s.c.spar>=1, prog:s=>`Peleas ganadas: ${Math.min(s.c.spar,1)} de 1`, reward:{gold:25,xp:10} },
+  { id:"t5", tab:"guardia",  title:"Puntos y gasas",
+    say:"Te dejaron la cara como un mapa. En la guardia del hospital te curan por unos pesos. Si estás entero, pasá igual a conocerla.",
+    goal:s=>s.c.heal>=1 || s.seenTab.guardia, prog:s=>`Visitar la guardia`, reward:{gold:10,xp:6} },
+  { id:"t6", tab:"misiones", title:"Un encargo de confianza",
+    say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
+    goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.mis ? `etapa ${s.mis.step+1} de ${VALIJA.steps.length}` : "sin empezar"}`, reward:{gold:40,xp:15} }
+];
+const TAB_NAMES = { laburos:"Laburos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Guardia", misiones:"Misiones" };
+
+let S = load();
+let tab = "laburos";
+let lastFight = null, misMsg = null;
+let confirmReset = false, pickSide = null;
+
+const $ = s => document.querySelector(s);
+const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const now = () => Date.now();
+
+function load(){ try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch(e){} return null; }
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){} }
+
+function newChar(name){
+  const s = { name, lvl:1, xp:0, gold:10, energy:ENERGY_MAX,
+    stats:{ fue:5, dur:5, ref:5, agu:5, lab:5 },
+    gear:{ arma:null, armadura:null }, potions:0, wins:0, losses:0,
+    tut:0, tutDone:false, tabs:["laburos"], seenTab:{}, c:{ jobs:0, train:0, buy:0, spar:0, heal:0, valija:0 },
+    mis:null, side:null, tEnergy:now(), tHeal:now(), log:[] };
+  s.hp = maxHp(s);
+  return s;
+}
+function maxHp(s){ return 40 + s.stats.agu*12 + s.lvl*6; }
+const xpNeed  = s => Math.round(40*Math.pow(s.lvl,1.55));
+const trainCost = v => Math.round(2*Math.pow(v,1.7));
+const gearVal = (s,slot) => { const g = SHOP.find(i=>i.id===s.gear[slot]); return g?g.val:0; };
+const money = n => `$${n}`;
+
+function log(msg, cls=""){
+  const d = new Date();
+  S.log.unshift({ t:`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`, msg, cls });
+  S.log = S.log.slice(0,40);
+}
+function gainXp(n){
+  S.xp += n;
+  while (S.xp >= xpNeed(S)){ S.xp -= xpNeed(S); S.lvl++; S.hp = maxHp(S); log(`Subiste al nivel ${S.lvl}. Vida al máximo.`, "gold"); }
+}
+function claimTut(){
+  const t = TUT[S.tut]; if (!t || !t.goal(S)) return;
+  S.gold += t.reward.gold; gainXp(t.reward.xp);
+  log(`Marga te pagó ${money(t.reward.gold)} por «${t.title}».`, "gold");
+  S.tut++;
+  const nx = TUT[S.tut];
+  if (nx){ if (!S.tabs.includes(nx.tab)) S.tabs.push(nx.tab); tab = nx.tab; }
+  else { S.tutDone = true; }
+  save(); render();
+}
+
+function tick(){
+  if (!S) return;
+  const t = now(), before = S.energy;
+  if (S.energy < ENERGY_MAX){
+    const g = Math.floor((t - S.tEnergy)/ENERGY_EVERY);
+    if (g>0){ S.energy = Math.min(ENERGY_MAX, S.energy+g); S.tEnergy += g*ENERGY_EVERY; }
+  } else S.tEnergy = t;
+  const mh = maxHp(S);
+  if (S.hp < mh){
+    const h = Math.floor((t - S.tHeal)/HEAL_EVERY);
+    if (h>0){ S.hp = Math.min(mh, S.hp + h*Math.ceil(mh*0.02)); S.tHeal += h*HEAL_EVERY; }
+  } else S.tHeal = t;
+  save();
+  if (before !== S.energy) render(); else renderSheet();
+}
+
+/* ---------- combate ---------- */
+function makeFighter(src){ return { name:src.name, hp:src.hp, max:src.max, fue:src.fue, dur:src.dur, ref:src.ref, arma:src.arma||0, armadura:src.armadura||0 }; }
+function playerFighter(){
+  return makeFighter({ name:S.name, hp:S.hp, max:maxHp(S), fue:S.stats.fue, dur:S.stats.dur, ref:S.stats.ref, arma:gearVal(S,"arma"), armadura:gearVal(S,"armadura") });
+}
+function strike(a, d){
+  const chance = clamp(70 + (a.ref - d.ref)*3, 20, 95);
+  if (Math.random()*100 >= chance) return 0;
+  const crit = Math.random() < 0.08;
+  let dmg = a.fue*1.6 + a.arma + rnd(0,4) - d.dur*0.7 - d.armadura;
+  dmg = Math.max(1, Math.round(dmg * (crit?1.8:1)));
+  return crit ? -dmg : dmg;
+}
+const fLine = (r, who, d) => d===0 ? `R${r} · ${who} tira y no conecta.` : `R${r} · ${who} ${d<0?"mete una mano tremenda de":"pega por"} ${Math.abs(d)}.`;
+function battle(p, e){
+  const rounds = [];
+  for (let r=1; r<=12 && p.hp>0 && e.hp>0; r++){
+    let d = strike(p,e); e.hp = Math.max(0, e.hp - Math.abs(d)); rounds.push({ who:"p", txt:fLine(r,p.name,d) });
+    if (e.hp<=0) break;
+    d = strike(e,p); p.hp = Math.max(0, p.hp - Math.abs(d)); rounds.push({ who:"e", txt:fLine(r,e.name,d) });
+  }
+  const won = e.hp<=0 || (p.hp>0 && p.hp/p.max > e.hp/e.max);
+  return { won, rounds, p, e };
+}
+function scaledEnemy(name, lvl, mult){
+  const base = 5 + lvl*1.6;
+  const v = () => Math.max(3, Math.round(base*mult + rnd(-2,2)));
+  const agu = v();
+  const max = Math.round((40 + agu*12 + lvl*6) * (0.85+mult*0.15));
+  return makeFighter({ name, hp:max, max, fue:v(), dur:v(), ref:v(), arma:Math.round(lvl*1.2*mult), armadura:Math.round(lvl*0.9*mult) });
+}
+
+/* ---------- acciones ---------- */
+function doJob(id){
+  const j = JOBS.find(x=>x.id===id);
+  if (S.energy < j.cost || S.lvl < j.lvl) return;
+  S.energy -= j.cost;
+  if (Math.random() < [0,0.06,0.18,0.3][j.risk]){
+    const dmg = Math.round(maxHp(S)*0.14*j.risk);
+    S.hp = Math.max(1, S.hp - dmg);
+    log(`${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
+  } else {
+    const gold = Math.round(rnd(...j.gold) * (1 + S.stats.lab*0.03));
+    const xp = rnd(...j.xp);
+    S.gold += gold; gainXp(xp); S.c.jobs++;
+    log(`${j.name}: +${money(gold)}, +${xp} XP.`, "good");
+  }
+  save(); render();
+}
+function spar(i){
+  const m = RING[i];
+  if (S.energy < 3 || S.hp < 2 || S.lvl < m.lvl) return;
+  S.energy -= 3;
+  const e = scaledEnemy(m.name, Math.max(m.lvl, S.lvl), m.mult);
+  const res = battle(playerFighter(), e);
+  S.hp = Math.max(1, res.p.hp);
+  const reward = { gold:Math.round(e.max*0.4*m.mult), xp:Math.round(8 + m.lvl*4*m.mult) };
+  if (res.won){ S.gold += reward.gold; gainXp(reward.xp); S.wins++; S.c.spar++; log(`Le ganaste a ${m.name}: +${money(reward.gold)} de la bolsa, +${reward.xp} XP.`, "good"); }
+  else { S.losses++; gainXp(Math.round(reward.xp/3)); log(`${m.name} te ganó por puntos. Algo aprendiste.`, "bad"); }
+  lastFight = { ...res, reward };
+  save(); render();
+  const f = $(".fight"); if (f && !res.won) f.classList.add("shake");
+}
+function train(k){
+  const c = trainCost(S.stats[k]); if (S.gold < c) return;
+  S.gold -= c; S.stats[k]++; S.c.train++;
+  if (k==="agu") S.hp += 12;
+  log(`Entrenaste ${STAT_NAMES[k].toLowerCase()} hasta ${S.stats[k]} (−${money(c)}).`);
+  save(); render();
+}
+function buy(id){
+  const it = SHOP.find(i=>i.id===id);
+  if (S.gold < it.price || S.lvl < it.lvl) return;
+  S.gold -= it.price; S.c.buy++;
+  if (it.slot==="consumible"){ S.potions++; log(`Compraste un botiquín.`); }
+  else { S.gear[it.slot] = it.id; log(`Te llevaste ${it.name.toLowerCase()} (−${money(it.price)}).`, "gold"); }
+  save(); render();
+}
+function useKit(){
+  if (!S.potions) return;
+  S.potions--; S.c.heal++;
+  const h = Math.round(maxHp(S)*0.5); S.hp = Math.min(maxHp(S), S.hp+h);
+  log(`Usaste un botiquín: +${h} de vida.`, "good"); save(); render();
+}
+const healCost = () => Math.max(0, Math.round((maxHp(S)-S.hp) * 0.6));
+function heal(){
+  const c = healCost(); if (!c || S.gold < c) return;
+  S.gold -= c; S.hp = maxHp(S); S.c.heal++;
+  log(`En la guardia te pusieron puntos y gasas (−${money(c)}).`); save(); render();
+}
+
+/* misión por etapas */
+function startMission(){ if (S.mis || S.c.valija) return; S.mis = { step:0 }; misMsg = null; lastFight = null; log("Empezaste la misión «La valija».", "gold"); save(); render(); }
+function missionStep(){
+  const st = VALIJA.steps[S.mis.step];
+  if (S.energy < st.energy || S.hp < 2) return;
+  S.energy -= st.energy;
+  let ok;
+  if (st.fight){
+    const e = scaledEnemy(st.fight.name, S.lvl, st.fight.mult);
+    const res = battle(playerFighter(), e);
+    S.hp = Math.max(1, res.p.hp); lastFight = { ...res, reward:{ gold:0, xp:6 } };
+    ok = res.won;
+    misMsg = { ok, text: ok ? "Los dos salieron corriendo. La valija sigue con vos." : "Te tiraron al piso, pero no soltaste la valija. Vas a tener que volver a pasar por ese pasaje." };
+  } else if (st.auto){
+    ok = true; misMsg = { ok, text: st.ok };
+  } else {
+    const chance = clamp(50 + (S.stats[st.stat] - st.diff)*7, 15, 95);
+    ok = Math.random()*100 < chance;
+    if (!ok && st.dmg){ const d = Math.round(maxHp(S)*st.dmg); S.hp = Math.max(1, S.hp-d); }
+    misMsg = { ok, text: ok ? st.ok : st.ko };
+  }
+  if (ok){
+    gainXp(4); S.mis.step++;
+    if (S.mis.step >= VALIJA.steps.length){
+      S.mis = null; S.c.valija = 1;
+      misMsg = { ok:true, text:VALIJA.outro };
+      log("Terminaste la misión «La valija».", "gold");
+    }
+  }
+  save(); render();
+}
+
+function chooseSide(side){
+  S.side = side;
+  log(side==="placa" ? "Aceptaste la placa. Mañana te presentás en la comisaría." : "Aceptaste la plata. Ahora trabajás para La Señora.", "gold");
+  save(); render();
+}
+
+/* ---------- vistas ---------- */
+const bar = (cls,label,v,max,note="") => `
+  <div class="bar ${cls}"><div class="row"><span>${label}${note?` <span class="tag">${note}</span>`:""}</span><span class="num">${v} / ${max}</span></div>
+  <div class="track"><div class="fill" style="width:${clamp(v/max*100,0,100)}%"></div></div></div>`;
+
+function renderSheet(){
+  const el = $("#sheet"); if (!el || !S) return;
+  const mh = maxHp(S);
+  const nextE = S.energy<ENERGY_MAX ? Math.ceil((ENERGY_EVERY-(now()-S.tEnergy))/1000) : 0;
+  const w = SHOP.find(i=>i.id===S.gear.arma), a = SHOP.find(i=>i.id===S.gear.armadura);
+  const badge = S.side==="placa" ? `<span class="badge placa">Policía</span>` : S.side==="plata" ? `<span class="badge plata">Delincuente</span>` : `<span class="badge">Recién llegado</span>`;
+  el.innerHTML = `
+    <div class="who"><h2>${esc(S.name)}</h2>${badge}<span class="tag">Nivel ${S.lvl}</span></div>
+    ${bar("hp","Vida",Math.round(S.hp),mh)}
+    ${bar("en","Energía",S.energy,ENERGY_MAX, nextE?`+1 en ${nextE}s`:"")}
+    ${bar("xp","Experiencia",S.xp,xpNeed(S))}
+    <div class="money"><span>Plata</span><span class="num">${money(S.gold)}</span></div>
+    ${S.tabs.includes("gimnasio") ? `<div class="stats">${Object.keys(STAT_NAMES).map(k=>`<div class="stat"><span>${STAT_NAMES[k]}</span><span class="num">${S.stats[k]}</span></div>`).join("")}</div>` : ""}
+    ${S.tabs.includes("feria") ? `<div class="gear"><span>Mano: ${w?`${w.name} (+${w.val})`:"nada"}</span><span>Encima: ${a?`${a.name} (+${a.val})`:"ropa de calle"}</span>${S.potions?`<span>Botiquines: ${S.potions}</span>`:""}</div>` : ""}`;
+}
+
+function bossView(){
+  const t = TUT[S.tut]; if (!t) return "";
+  const done = t.goal(S);
+  return `<section class="boss" aria-live="polite">
+    <div class="head"><span class="tag">Marga, dueña del bar La Esquina · encargo ${S.tut+1} de ${TUT.length}</span><h3>${t.title}</h3></div>
+    <p class="say">«${esc(t.say)}»</p>
+    <div class="goal">${done ? `<span class="done">Listo. Andá a cobrar.</span><button class="primary" data-do="claim">Cobrar ${money(t.reward.gold)}</button>`
+                              : `<span class="num">${esc(t.prog(S))}</span>`}</div>
+  </section>`;
+}
+
+function paneView(){
+  const riskTxt = ["","bajo","medio","alto"];
+  if (tab==="laburos") return `
+    <h2>Laburos</h2>
+    <p>Trabajos de todo tipo. Más riesgo, más plata. La labia te ayuda a cobrar mejor.</p>
+    <div class="list">${JOBS.filter(j => j.lvl <= S.lvl + 2).map(j=>`
+      <div class="item"><div><h3>${j.name}<span class="risk r${j.risk}">riesgo ${riskTxt[j.risk]}</span></h3>
+        <div class="meta num">${money(j.gold[0])}–${money(j.gold[1])} · ${j.xp[0]}–${j.xp[1]} XP · ${j.cost} energía${S.lvl<j.lvl?` · desde nivel ${j.lvl}`:""}</div></div>
+        <div class="act"><button data-do="job:${j.id}" ${S.energy<j.cost||S.lvl<j.lvl?"disabled":""}>Trabajar</button></div></div>`).join("")}
+    </div>`;
+  if (tab==="gimnasio") return `
+    <h2>Gimnasio de Don Tito</h2>
+    <p>Cada punto cuesta más que el anterior.</p>
+    <div class="list">${Object.keys(STAT_NAMES).map(k=>{ const c=trainCost(S.stats[k]); return `
+      <div class="item"><div><h3>${STAT_NAMES[k]} <span class="num">${S.stats[k]}</span></h3><div class="meta">${STAT_HELP[k]}</div></div>
+        <div class="act"><button data-do="train:${k}" ${S.gold<c?"disabled":""}>Entrenar · <span class="num">${money(c)}</span></button></div></div>`;}).join("")}
+    </div>`;
+  if (tab==="feria") return `
+    <h2>Feria de usados</h2>
+    <p>Una cosa en la mano y una encima. Lo nuevo reemplaza a lo viejo.</p>
+    <div class="list">${SHOP.filter(it => it.lvl <= S.lvl + 3).map(it=>{ const own = S.gear[it.slot]===it.id; return `
+      <div class="item"><div><h3>${it.name}</h3>
+        <div class="meta num">${it.slot==="consumible"?"Se usa desde la guardia":`${it.slot==="arma"?"golpe":"protección"} +${it.val}`} · ${money(it.price)}${S.lvl<it.lvl?` · desde nivel ${it.lvl}`:""}</div></div>
+        <div class="act"><button data-do="buy:${it.id}" ${own||S.gold<it.price||S.lvl<it.lvl?"disabled":""}>${own?"Lo tenés":"Comprar"}</button></div></div>`;}).join("")}
+    </div>`;
+  if (tab==="ring") return `
+    <h2>El ring</h2>
+    <p>Peleas de gimnasio. Cada una gasta 3 de energía. Si perdés, no perdés plata: solo orgullo.</p>
+    <div class="list">${RING.map((m,i)=>`
+      <div class="item"><div><h3>${m.name}<span class="risk r${m.mult<0.9?1:m.mult<1.3?2:3}">×${m.mult.toFixed(1)}</span></h3>
+        <div class="meta">${S.lvl<m.lvl?`Pelea con gente de nivel ${m.lvl} para arriba`:m.lore}</div></div>
+        <div class="act"><button data-do="spar:${i}" ${S.energy<3||S.hp<2||S.lvl<m.lvl?"disabled":""}>Pelear</button></div></div>`).join("")}
+    </div>`;
+  if (tab==="guardia"){ const c = healCost(); return `
+    <h2>Guardia del hospital</h2>
+    <p>La vida se recupera sola de a poco. Si no querés esperar, acá te curan.</p>
+    <div class="list">
+      <div class="item"><div><h3>Que me curen</h3><div class="meta num">${c?money(c):"Estás entero"}</div></div>
+        <div class="act"><button data-do="heal" ${!c||S.gold<c?"disabled":""}>Curarme</button></div></div>
+      <div class="item"><div><h3>Usar un botiquín</h3><div class="meta num">Tenés ${S.potions} · +50% de vida</div></div>
+        <div class="act"><button data-do="kit" ${!S.potions?"disabled":""}>Usar</button></div></div>
+    </div>`; }
+  if (tab==="misiones"){
+    if (!S.mis && !S.c.valija) return `
+      <h2>Misiones</h2>
+      <p>Las misiones tienen varias etapas. Cada etapa gasta energía y pone a prueba un atributo distinto. Si una etapa sale mal, la podés volver a intentar.</p>
+      <div class="item"><div><h3>${VALIJA.title}</h3><div class="meta">${esc(VALIJA.intro)}</div></div>
+        <div class="act"><button class="primary" data-do="mstart">Empezar</button></div></div>`;
+    const step = S.mis ? S.mis.step : VALIJA.steps.length;
+    const cur = VALIJA.steps[step];
+    return `<div class="mission">
+      <h2>${VALIJA.title}</h2>
+      <ol class="steps">${VALIJA.steps.map((s,i)=>`<li class="${i<step?"ok":i===step?"now":""}"><span class="n">${i<step?"✓":i+1}</span><span>${esc(s.text)}${i===step ? `<br><span class="tag">${s.fight?"pelea":s.auto?"entrega":`prueba de ${STAT_NAMES[s.stat].toLowerCase()}`} · ${s.energy} energía</span>` : ""}</span></li>`).join("")}</ol>
+      ${misMsg ? `<p class="result ${misMsg.ok?"good":"bad"}">${esc(misMsg.text)}</p>` : ""}
+      ${cur ? `<div><button class="primary" data-do="mstep" ${S.energy<cur.energy||S.hp<2?"disabled":""}>${cur.fight?"Pelear":cur.auto?"Entregar":"Intentarlo"}</button></div>` : ""}
+    </div>`;
+  }
+  return "";
+}
+
+function fightView(f){
+  return `<section class="fight" aria-live="polite">
+    <div class="vs">
+      <div class="side"><h3>${esc(f.p.name)}</h3>${bar("hp","Vida",f.p.hp,f.p.max)}</div>
+      <div class="mid">VS</div>
+      <div class="side"><h3>${esc(f.e.name)}</h3>${bar("hp","Vida",f.e.hp,f.e.max)}</div>
+    </div>
+    <div class="rounds">${f.rounds.map(r=>`<div class="${r.who}">${esc(r.txt)}</div>`).join("")}</div>
+    <div class="verdict ${f.won?"win":"lose"}">${f.won?"Ganaste":"Perdiste"}</div>
+  </section>`;
+}
+
+function choiceView(){
+  return `<section class="choice">
+    <div class="siren" aria-hidden="true"></div>
+    <div class="tag">En la vereda del bar, dos personas te esperan</div>
+    <h2>¿Placa o plata?</h2>
+    <p>Ya sabés laburar, entrenar, pelear y curarte. Ya hiciste tu primera misión. Ahora te toca elegir de qué lado de la ley vas a jugar. No hay vuelta atrás.</p>
+    <div class="sides">
+      <button class="side-card placa" data-side="placa" aria-pressed="${pickSide==="placa"}">
+        <span class="tag">Comisaria Inés Ríos</span><h3>La placa</h3>
+        <span class="say">«Necesito gente que conozca la calle. Vos la conocés.»</span>
+        <ul><li>Patrullajes en vez de laburos</li><li>Operativos y allanamientos como misiones</li><li>Duelos contra delincuentes de otros jugadores</li></ul>
+      </button>
+      <button class="side-card plata" data-side="plata" aria-pressed="${pickSide==="plata"}">
+        <span class="tag">La Señora</span><h3>La plata</h3>
+        <span class="say">«Pagan poco por ser honesto. Yo pago bien.»</span>
+        <ul><li>Golpes y robos en vez de laburos</li><li>Atracos por etapas como misiones</li><li>Duelos contra policías de otros jugadores</li></ul>
+      </button>
+    </div>
+    ${pickSide ? `<div class="confirm">¿Seguro que elegís ${pickSide==="placa"?"la placa":"la plata"}? <button class="primary" data-do="side">Sí, elijo ${pickSide==="placa"?"la placa":"la plata"}</button><button data-do="unpick">Pensarlo</button></div>` : ""}
+  </section>`;
+}
+function afterView(){
+  const p = S.side==="placa";
+  return `<section class="choice">
+    <div class="siren" aria-hidden="true"></div>
+    <div class="tag">${p ? "Comisaría 4ª de Bahía Gris" : "El depósito de La Señora"}</div>
+    <h2>${p ? "Bienvenido a la fuerza" : "Bienvenido a la familia"}</h2>
+    <p>${p ? "La comisaria Ríos te da una placa con tu nombre mal escrito y un escritorio que cojea." : "La Señora te da un celular viejo, una dirección y una sola regla: nunca preguntes de dónde sale la plata."}</p>
+    <p class="tag">La parte 2 está en construcción: misiones y laburos propios de cada bando.</p>
+  </section>`;
+}
+
+function render(){
+  const app = $("#app");
+  if (!S){ app.innerHTML = createView(); bindCreate(); return; }
+  if (!S.tabs.includes(tab)) tab = S.tabs[S.tabs.length-1];
+  const showFight = lastFight && (tab==="ring" || tab==="misiones");
+  app.innerHTML = `
+    <header class="top">
+      <div><div class="tag">Bahía Gris · de noche</div><h1>Placa <span class="o">o</span> Plata</h1></div>
+      ${S.tabs.includes("ring") ? `<div class="tag num">Peleas ganadas ${S.wins} · perdidas ${S.losses}</div>` : ""}
+    </header>
+    <div class="game">
+      <aside class="sheet" id="sheet"></aside>
+      <main class="board">
+        ${S.tutDone && !S.side ? choiceView() : S.side ? afterView() : bossView()}
+        <nav class="tabs" role="tablist">${S.tabs.map(k=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${TAB_NAMES[k]}${!S.seenTab[k] && tab!==k ? `<span class="dot" aria-label="nuevo"></span>` : ""}</button>`).join("")}</nav>
+        <section class="pane">${paneView()}</section>
+        ${showFight ? fightView(lastFight) : ""}
+      </main>
+    </div>
+    <section class="log">
+      <div class="foot"><h3>Crónica</h3>
+        <div class="confirm">${confirmReset
+          ? `¿Borrar tu personaje? <button data-do="resetYes" class="primary">Sí, borrar</button><button data-do="resetNo">Cancelar</button>`
+          : `<button class="link" data-do="reset">Nuevo personaje</button>`}</div>
+      </div>
+      <ol>${S.log.map(l=>`<li><time>${l.t}</time><span class="${l.cls}">${esc(l.msg)}</span></li>`).join("")}</ol>
+    </section>`;
+  if (!S.seenTab[tab]){ S.seenTab[tab] = true; save(); if (TUT[S.tut] && TUT[S.tut].goal(S)) { render(); return; } }
+  renderSheet();
+}
+
+function createView(){
+  return `<section id="create">
+    <div><div class="tag">Bahía Gris · de noche</div><h1>Placa <span class="o">o</span> Plata</h1></div>
+    <p>Llegás a Bahía Gris con un bolso y diez pesos. Marga, la dueña del bar La Esquina, te da un lugar donde dormir a cambio de que le hagas unos encargos.</p>
+    <label class="tag" for="cname">¿Cómo te llamás?</label>
+    <input id="cname" maxlength="24" placeholder="Tu nombre">
+    <div><button class="primary" id="start">Bajar del micro</button></div>
+  </section>`;
+}
+function bindCreate(){
+  const go = () => {
+    const n = $("#cname").value.trim() || "Sin Nombre";
+    S = newChar(n); tab = "laburos";
+    log(`${n} se baja del micro en Bahía Gris con ${money(10)} en el bolsillo.`, "gold");
+    save(); render();
+  };
+  $("#start").onclick = go;
+  $("#cname").onkeydown = e => { if (e.key==="Enter") go(); };
+}
+
+document.getElementById("app").addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]");
+  if (t && S){ tab = t.dataset.tab; render(); return; }
+  const sd = e.target.closest("[data-side]");
+  if (sd && S){ pickSide = sd.dataset.side; render(); return; }
+  const b = e.target.closest("[data-do]"); if (!b || b.disabled || !S) return;
+  const [a, x] = b.dataset.do.split(":");
+  switch (a){
+    case "claim": claimTut(); break;
+    case "job": doJob(x); break;
+    case "spar": spar(+x); break;
+    case "train": train(x); break;
+    case "buy": buy(x); break;
+    case "kit": useKit(); break;
+    case "heal": heal(); break;
+    case "mstart": startMission(); break;
+    case "mstep": missionStep(); break;
+    case "side": if (pickSide) chooseSide(pickSide); break;
+    case "unpick": pickSide = null; render(); break;
+    case "reset": confirmReset = true; render(); break;
+    case "resetNo": confirmReset = false; render(); break;
+    case "resetYes": S = null; confirmReset = false; lastFight = null; misMsg = null; pickSide = null; try { localStorage.removeItem(SAVE_KEY); } catch(e){} render(); break;
+  }
+});
+
+render();
+setInterval(tick, 1000);
+})();
+</script>
