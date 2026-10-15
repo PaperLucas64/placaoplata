@@ -37,6 +37,7 @@ const notify = (playerId: number, msg: unknown) => {
 };
 /* en línea: con la pantalla abierta, o un vecino que juega solo y está despierto */
 let botAwake = (_id: number) => false;
+let botsAwake = () => 0;
 const game = makeGame(db, notify, playerId => (sockets.get(playerId)?.size ?? 0) > 0 || botAwake(playerId));
 
 /* errores del juego (reglas): se muestran al jugador tal cual */
@@ -132,6 +133,7 @@ if (process.env.BOTS !== "0") {
   await ensureBots(db);
   const bots = makeBots(db, game, ring);
   botAwake = bots.isAwake;
+  botsAwake = bots.awakeCount;
   botTimer = setInterval(() => bots.tick().catch(e => app.log.error(e)), 60_000);
   setTimeout(() => bots.tick().catch(e => app.log.error(e)), 5_000);
 }
@@ -171,7 +173,10 @@ app.post("/api/coop/cancel", async (req, reply) => {
 /* quién está en una misión ahora, para el mapa */
 app.get("/api/travelers", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;
-  return game.travelers(uid);
+  /* cuántos hay en línea: con la pantalla abierta, más los vecinos despiertos */
+  let online = 0;
+  for (const set of sockets.values()) if (set.size) online++;
+  return { ...(await game.travelers(uid)), online: online + botsAwake() };
 });
 
 app.get("/api/ranking", async (req, reply) => {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  canAmbush, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
+  canAmbush, onStreet, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -182,13 +182,18 @@ describe("tiempo humano", () => {
     expect(s.stats.ref).toBe(5);
     expect(s.gold).toBe(500 - trainCost(5));
   });
-  it("la guardia es gratis, cura todo al alta y te protege de emboscadas", () => {
+  it("la guardia es gratis: vas caminando, te curan y volvés a casa; mientras tanto nadie te toca", () => {
     const s = veteran("Ana"); s.hp = 10;
-    const gold = s.gold, t = guardiaTime(s);
+    const gold = s.gold;
     applyAction(s, { type: "guardia" }, ctx());
     expect(s.gold).toBe(gold);
-    regen(s, T0 + t);
+    const b = s.busy!;
+    expect(b.kind === "guardia" && b.trip?.mode).toBe("pie");                   // de San Telmón a la guardia más cercana
+    expect(onStreet(s, T0 + 1000)).toBe(false);                                // curándote no te emboscan
+    missionCatchUp(s, ctx(b.until + 1));
     expect(s.hp).toBe(maxHp(s));
+    expect(s.busy?.kind).toBe("vuelta");                                       // y volvés caminando
+    expect(onStreet(s, b.until + 2000)).toBe(true);
   });
   it("irse antes de la guardia cura en proporción", () => {
     const s = veteran("Ana"); s.hp = 10;
@@ -198,11 +203,28 @@ describe("tiempo humano", () => {
     expect(s.hp).toBeGreaterThan(10);
     expect(s.hp).toBeLessThan(maxHp(s));
   });
-  it("la clínica cura al instante pagando", () => {
+  it("la clínica sale plata, te busca una ambulancia y te deja en casa, intocable", () => {
     const s = veteran("Ana"); s.hp = 20; const gold = s.gold;
     applyAction(s, { type: "heal" }, ctx());
-    expect(s.hp).toBe(maxHp(s));
     expect(s.gold).toBeLessThan(gold);
+    const b = s.busy!;
+    expect(b.kind === "guardia" && b.clinic).toBe(true);
+    missionCatchUp(s, ctx(b.until + 1));
+    expect(s.hp).toBe(maxHp(s));
+    expect(s.busy?.kind === "vuelta" && s.busy.safe).toBe(true);              // la ambulancia te lleva: nadie te toca
+    expect(onStreet(s, b.until + 2000)).toBe(false);
+  });
+  it("al terminar una misión volvés a casa, y en el camino podés arrancar otra desde donde estás", () => {
+    const s = strong(veteran("Ana"));
+    applyAction(s, { type: "mstart", id: MISSIONS.familia[0].id, mode: "colectivo" }, ctx());
+    const end = s.busy!.until;
+    missionCatchUp(s, ctx(end + 1000));
+    expect(s.busy?.kind).toBe("vuelta");
+    expect(applyAction(s, { type: "train", stat: "fue" }, ctx(end + 2000)).error).toMatch(/volviendo/);
+    /* el servidor calcula el camino desde donde estás; acá lo simulamos */
+    const r = applyAction(s, { type: "mstart", id: MISSIONS.sindicato[0].id, mode: "taxi" }, { ...ctx(end + 2000), from: { km: 3, path: [[-34.61, -58.36], [-34.64, -58.38]] } });
+    expect(r.error).toBeUndefined();
+    expect(s.busy?.kind === "mision" && s.busy.trip?.path?.length).toBe(2);
   });
 });
 
@@ -426,7 +448,7 @@ describe("historias de la ciudad", () => {
 describe("asaltos en el mapa y trabajos largos", () => {
   it("se puede salir a buscar a alguien en misión, pero no a uno de tu pandilla ni a uno mucho más chico", () => {
     const att = veteran("Ana", "barra"), def = veteran("Beto", "familia");
-    expect(canAmbush(att, def, T0)).toMatch(/volvió/);                // no está en ninguna misión
+    expect(canAmbush(att, def, T0)).toMatch(/su casa/);               // no está en la calle
     applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "pie" }, ctx());
     expect(canAmbush(att, def, T0 + 1000)).toBeNull();
     const friend = veteran("Caro", "familia");
@@ -446,7 +468,7 @@ describe("asaltos en el mapa y trabajos largos", () => {
     expect(att.energy).toBe(ENERGY_MAX - 3);
     finishBusy(att, att.busy!.until + 1);
     expect(att.busy).toBeNull();
-    expect(att.log[0].msg).toMatch(/pensión/);
+    expect(att.log[0].msg).toMatch(/casa/);
     expect(planChase(att, RUTAS_TEST, trip, b.until + 1000, "pie")).toBeNull();            // ya llegó a su casa
   });
   it("dos que salen al mismo lugar por el mismo camino se cruzan", () => {

@@ -68,7 +68,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       const g1 = s.gold, l1 = s.lvl, r1 = rankOf(s), v1 = s.c.valija;
       missionCatchUp(s, { now, rng });
       s.influence = [];
-      if (!s.busy) {
+      if (s.busy?.kind !== "mision") {
         const ok = s.c.valija > v1 || s.log.slice(0, 3).some(l => l.msg.includes("salió bien"));
         fight(tag, ok); if (ok) mark(tag);
         if (s.gold > g1) run.goldIn.misiones = (run.goldIn.misiones ?? 0) + s.gold - g1;
@@ -78,7 +78,8 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       }
       now = nextMissionEvent(s) ?? s.busy.until; continue;
     }
-    if (s.busy) { now = s.busy.until; continue; } // entrenando o internado: esperar
+    if (s.busy?.kind === "guardia") missionCatchUp(s, { now, rng }); // curarse con viaje lo termina missionCatchUp
+    if (s.busy) { now = Math.max(now + 1, nextMissionEvent(s) ?? s.busy.until); continue; } // entrenando, curándose o volviendo: esperar
     boardCatchUp(s, { now, rng });
     const g0 = s.gold; ambushCatchUp(s, { now, rng });
     if (s.gold < g0) run.goldOut.emboscadas = (run.goldOut.emboscadas ?? 0) + g0 - s.gold;

@@ -6,11 +6,13 @@ import {
   ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSIONS, POLICE_NAMES
 } from "./gangs.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
-import { abandonMission, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionPlace, needsTrip, newBoard, POLICE_LVL, startTimedMission } from "./missions.js";
+import { abandonMission, BOARD_REROLL_COST, CARE_MINS, findMission, meetsReq, missionEnergy, missionPlace, needsTrip, newBoard, POLICE_LVL, startTimedMission } from "./missions.js";
 import { arcChapterKey } from "./arcs.js";
-import { hasMod, hasVehicle, MODS, travelModes, tripCost, VEHICLES, type ModKey, type TravelMode } from "./geo.js";
+import { hasMod, hasVehicle, MODS, nearestCare, travelModes, tripCost, tripMins, VEHICLES, type FromPoint, type ModKey, type TravelMode } from "./geo.js";
 import { PROPS, propIncome, propOf } from "./negocios.js";
 import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
+import { HOUSES, homePlace, houseOf } from "./casas.js";
+import { routeTo } from "./geo.js";
 import {
   addAff, addHeat, addRespect, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
@@ -18,7 +20,8 @@ import {
 } from "./rules.js";
 import type { Action, ActionResult, Gang, Mission, PlayerState, Rng, Target } from "./types.js";
 
-export interface Ctx { now: number; rng: Rng }
+/* from: si venías volviendo de algo, desde dónde salís (el servidor lo calcula por las cuadras) */
+export interface Ctx { now: number; rng: Rng; from?: FromPoint }
 const fail = (error: string): ActionResult => ({ error });
 
 
@@ -43,9 +46,22 @@ export function arcOpen(s: PlayerState, m: Mission) {
 }
 
 /* medio de transporte por defecto: el más barato que te alcance */
-export function defaultMode(s: PlayerState, place: string): TravelMode | undefined {
-  const modes = travelModes(s, place);
-  return (["colectivo", "riel", "micro", "pie", "taxi"] as TravelMode[]).find(k => modes.includes(k) && s.gold >= tripCost(s, k, place)) ?? modes[0];
+export function defaultMode(s: PlayerState, place: string, from?: FromPoint): TravelMode | undefined {
+  const modes = travelModes(s, place, from);
+  return (["colectivo", "riel", "micro", "pie", "taxi"] as TravelMode[]).find(k => modes.includes(k) && s.gold >= tripCost(s, k, place, from)) ?? modes[0];
+}
+
+/* adónde vas a curarte, cuánto tardás y cuánto sale */
+export const AMBULANCE_FEE = 15;
+export function carePlan(s: PlayerState, kind: "guardia" | "clinica", from?: FromPoint) {
+  const care = nearestCare(s, kind);
+  const home = homePlace(s);
+  const here = !from && care.place === home;
+  const mode: TravelMode = kind === "clinica" ? "ambulancia" : (from ? from.km : routeTo(home, care.place)?.pie) ? "pie" : "colectivo";
+  const go = here ? 0 : tripMins(s, mode, care.place, from) * 60_000;
+  const stay = kind === "clinica" ? CARE_MINS.clinica * 60_000 : guardiaTime(s);
+  const cost = kind === "clinica" ? (healCost(s) ? healCost(s) + AMBULANCE_FEE : 0) : 0;
+  return { ...care, mode, go, stay, cost };
 }
 
 /* rival de la calle: alguien de otra pandilla (o de cualquiera, si andás suelto) */
@@ -60,17 +76,23 @@ export const npcTarget = (rng: Rng, mine: Gang | null, lvl: number): Target => {
 const checkChance = (stat: number, diff: number) => clamp(50 + (stat - diff) * 7, 15, 95);
 
 /* Mientras entrenás o estás internado no podés hacer estas cosas */
-const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "reroll", "duel", "scout", "guardia", "heal"]);
+const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "reroll", "duel", "scout", "guardia", "heal", "move"]);
 const busyText = (s: PlayerState) =>
   s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión."
-  : s.busy?.kind === "caza" ? `Saliste a buscar a ${s.busy.targetName}.` : "Estás internado en la guardia.";
+  : s.busy?.kind === "caza" ? `Saliste a buscar a ${s.busy.targetName}.` : s.busy?.kind === "vuelta" ? "Estás volviendo a casa."
+  : s.busy?.clinic ? "Te están curando en la clínica." : "Estás en la guardia.";
+/* volviendo a casa podés arrancar otra cosa que te lleve a otro lado (salís desde donde estés) */
+export const onTheWayHome = (s: PlayerState) => s.busy?.kind === "vuelta";
+const FROM_STREET = new Set<Action["type"]>(["mstart", "guardia", "heal", "job", "encargo", "kit", "spar", "duel", "scout", "reroll"]);
 
 /* Con una misión de a dos aceptada que todavía no arrancó, no se puede empezar otra cosa larga */
 const BLOCKED_WHEN_COOP_WAITING = new Set<Action["type"]>(["train", "guardia", "mstart", "reroll"]);
 
-export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): ActionResult {
+export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
+  const { now, rng } = ctx;
   finishBusy(s, now);
-  if (s.busy && BLOCKED_WHEN_BUSY.has(a.type)) return fail(`${busyText(s)} Esperá a que termine o cancelalo.`);
+  if (s.busy && BLOCKED_WHEN_BUSY.has(a.type) && !(onTheWayHome(s) && FROM_STREET.has(a.type)))
+    return fail(onTheWayHome(s) ? "Estás volviendo a casa: eso lo hacés cuando llegues." : `${busyText(s)} Esperá a que termine o cancelalo.`);
   if (s.coop?.status === "waiting" && BLOCKED_WHEN_COOP_WAITING.has(a.type))
     return fail(`Tenés una misión de a dos con ${s.coop.partner}: arranca cuando los dos estén libres.`);
   switch (a.type) {
@@ -203,20 +225,26 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       return {};
     }
 
+    /* clínica privada: pagás, te busca una ambulancia, te atienden rápido y te lleva a casa. Intocable. */
     case "heal": {
-      const c = healCost(s);
-      if (!c) return fail("Estás entero.");
-      if (s.gold < c) return fail("No te alcanza la plata.");
-      s.gold -= c; s.hp = maxHp(s); s.c.heal++;
-      log(s, now, `En la clínica te atendieron al toque (−${money(c)}).`);
+      const plan = carePlan(s, "clinica", ctx.from);
+      if (!plan.cost) return fail("Estás entero.");
+      if (s.gold < plan.cost) return fail(`La clínica y la ambulancia salen ${money(plan.cost)}: no te alcanza.`);
+      s.gold -= plan.cost;
+      s.busy = { kind: "guardia", clinic: true, since: now, until: now + plan.go + plan.stay, hpFrom: s.hp,
+        trip: plan.go ? { mode: "ambulancia", place: plan.place, go: plan.go, back: 0, ev: 0, from: homePlace(s), ...(ctx.from?.path ? { path: ctx.from.path } : {}) } : null };
+      log(s, now, `Llamaste a la ${plan.name} (−${money(plan.cost)}): la ambulancia te lleva a los pedos. Mientras te curan, nadie te puede tocar.`);
       return {};
     }
 
+    /* guardia del hospital: gratis, pero vas caminando y esperás. Intocable mientras tanto. */
     case "guardia": {
       if (s.hp >= maxHp(s)) return fail("Estás entero.");
-      const t = guardiaTime(s);
-      s.busy = { kind: "guardia", since: now, until: now + t, hpFrom: s.hp };
-      log(s, now, `Entraste a la guardia del hospital. Es gratis, pero te dan el alta en ${Math.max(1, Math.round(t / 60_000))} min.`);
+      const plan = carePlan(s, "guardia", ctx.from);
+      s.busy = { kind: "guardia", since: now, until: now + plan.go + plan.stay, hpFrom: s.hp,
+        trip: plan.go ? { mode: plan.mode, place: plan.place, go: plan.go, back: 0, ev: 0, from: homePlace(s), ...(ctx.from?.path ? { path: ctx.from.path } : {}) } : null };
+      log(s, now, plan.go ? `Saliste ${plan.mode === "pie" ? "caminando" : "en colectivo"} para la guardia del ${plan.name}, en ${plan.place}. Te dan el alta en unos ${Math.round((plan.go + plan.stay) / 60_000)} min.`
+                          : `Entraste a la guardia del ${plan.name}. Te dan el alta en ${Math.max(1, Math.round(plan.stay / 60_000))} min.`);
       return {};
     }
 
@@ -225,6 +253,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (!b) return fail("No estás haciendo nada.");
       if (b.kind === "mision" && b.id.startsWith("coop-")) return fail("La misión de a dos se cancela desde Amigos.");
       if (b.kind === "mision") { abandonMission(s, now); return {}; }
+      if (b.kind === "vuelta") return fail("Ya estás volviendo a casa.");
       s.busy = null;
       if (b.kind === "caza") log(s, now, `Dejaste de buscar a ${b.targetName} y volviste a la pensión.`);
       else if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
@@ -258,14 +287,16 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (s.energy < missionEnergy(m)) return fail(`Te hacen falta ${missionEnergy(m)} de energía.`);
       if (s.hp < maxHp(s) * 0.5) return fail("Así de golpeado no te conviene salir. Curate primero.");
       const place = missionPlace(m);
+      const from = onTheWayHome(s) ? ctx.from : undefined;
+      if (onTheWayHome(s) && !from) return fail("Estás volviendo a casa: no se pudo calcular el camino desde donde estás. Probá de nuevo.");
       let mode: TravelMode | undefined;
-      if (place && needsTrip(m)) {
-        mode = a.mode ?? defaultMode(s, place);
-        if (!mode || !travelModes(s, place).includes(mode)) return fail("No podés ir así hasta ahí.");
-        const cost = tripCost(s, mode, place);
+      if (place && needsTrip(s, m, from)) {
+        mode = a.mode ?? defaultMode(s, place, from);
+        if (!mode || !travelModes(s, place, from).includes(mode)) return fail("No podés ir así hasta ahí.");
+        const cost = tripCost(s, mode, place, from);
         if (s.gold < cost) return fail(`El viaje sale ${money(cost)} y no te alcanza.`);
       }
-      startTimedMission(s, m, now, mode, rng);
+      startTimedMission(s, m, now, mode, rng, from);
       return {};
     }
 
@@ -294,10 +325,24 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (s.home.obra) return fail("Ya hay una obra en tu casa. Esperá a que termine.");
       const lv = nextLevel(s, a.part);
       if (!lv) return fail("Ya está al máximo.");
+      const house = houseOf(s);
+      if (s.home[a.part] + 1 > house.cap) return fail(`En tu ${house.name.toLowerCase()} no entra algo mejor. Mudate a una casa más grande.`);
       if (s.gold < lv.cost) return fail("No te alcanza la plata.");
       s.gold -= lv.cost;
       s.home.obra = { part: a.part, since: now, until: now + lv.mins * 60_000 };
       log(s, now, `Arrancó la obra: ${lv.name.toLowerCase()} (−${money(lv.cost)}). Termina en ${lv.mins} min.`);
+      return {};
+    }
+
+    case "move": {
+      const h = HOUSES.find(x => x.id === a.id);
+      if (!h || !s.tutDone) return fail("Esa casa no existe.");
+      if (houseOf(s).id === h.id) return fail("Ya vivís ahí.");
+      if (s.home.obra) return fail("Esperá a que termine la obra antes de mudarte.");
+      if (s.lvl < h.lvl) return fail(`Pide nivel ${h.lvl}.`);
+      if (s.gold < h.price) return fail("No te alcanza la plata.");
+      s.gold -= h.price; s.home.house = h.id;
+      log(s, now, `Te mudaste: ${h.name.toLowerCase()} en ${h.place}${h.price ? ` (−${money(h.price)})` : ""}. Desde ahora tus viajes salen de ahí.`, "gold");
       return {};
     }
 
@@ -422,7 +467,9 @@ export function canAmbush(att: PlayerState, def: PlayerState, now: number): stri
   if (att.energy < DUEL_COST) return "No te alcanza la energía.";
   if (att.hp < maxHp(att) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
   const b = def.busy;
-  if (b?.kind !== "mision" || !b.trip || now >= b.until) return `${def.name} ya volvió a su casa.`;
+  if (b?.kind === "guardia") return `${def.name} se está curando: ahí no se toca.`;
+  if (b?.kind === "vuelta" && b.safe) return `${def.name} va en ambulancia.`;
+  if (!((b?.kind === "mision" && b.trip) || b?.kind === "vuelta") || now >= b.until) return `${def.name} está en su casa: ahí no se puede.`;
   const g = gangOf(def);
   if (g && g === gangOf(att)) return `${def.name} es de tu pandilla.`;
   if (def.lvl < att.lvl - AMBUSH_LVL_GAP) return `${def.name} es muy chico para vos: nadie te respetaría por eso.`;
@@ -430,12 +477,12 @@ export function canAmbush(att: PlayerState, def: PlayerState, now: number): stri
   return null;
 }
 /* sale a buscarlo: queda ocupado hasta volver; la pelea la resuelve el servidor a la hora del cruce */
-export function startChase(att: PlayerState, def: PlayerState, defId: number, plan: ChasePlan, now: number) {
+export function startChase(att: PlayerState, def: PlayerState, defId: number, plan: ChasePlan, now: number, path?: [number, number][]) {
   const place = nearestPlace(plan.at);
   const until = plan.meet + (plan.meet - now);
   att.energy -= DUEL_COST; att.gold -= plan.cost;
   att.busy = { kind: "caza", since: now, until, meet: plan.meet, target: defId, targetName: def.name, place,
-    from: homePt(), at: plan.at, mode: plan.mode };
+    from: homePt(att), at: plan.at, mode: plan.mode, ...(path ? { path } : {}) };
   log(att, now, `Saliste a buscar a ${def.name} ${CHASE_NAMES[plan.mode].toLowerCase()}: lo cruzás cerca de ${place} en ${Math.max(1, Math.round((plan.meet - now) / 60_000))} min.`, "gold");
 }
 /* el asalto: una pelea entre jugadores, y quien lo sufre se entera de dónde fue */
@@ -492,7 +539,16 @@ export function pvp(att: PlayerState, def: PlayerState, { now, rng }: Ctx): Acti
   return { fight };
 }
 
-/* Emboscadas mientras jugás (o mientras no estabas): de otra pandilla, o de la policía si tenés mucho calor */
+/* ¿andás por la calle? (viajando a una misión, volviendo a casa o buscando a alguien; curándote no cuenta) */
+export function onStreet(s: PlayerState, now: number) {
+  const b = s.busy;
+  if (!b) return false;
+  if (b.kind === "vuelta") return !b.safe;
+  if (b.kind === "caza") return true;
+  if (b.kind === "mision" && b.trip) return now < b.since + b.trip.go || (!!b.trip.back && now >= b.until - b.trip.back);
+  return false;
+}
+/* Emboscadas mientras andás por la calle: de otra pandilla, o de la policía si tenés mucho calor */
 export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
   if (!s.tutDone) { s.tAttack = now; return 0; }
   const windows = Math.floor((now - s.tAttack) / ATTACK_EVERY);
@@ -500,7 +556,7 @@ export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
   s.tAttack += windows * ATTACK_EVERY;
   let hits = 0;
   for (let i = 0; i < Math.min(windows, AMBUSH_MAX_CATCHUP); i++) {
-    if (rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT || s.busy?.kind === "guardia") continue;
+    if (!onStreet(s, now) || rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT) continue; // en tu casa (o curándote) nadie te toca
     hits++;
     const police = s.heat >= 40 && rng() < s.heat / 100;
     const gang = pick(rng, otherGangs(gangOf(s)));
@@ -510,7 +566,7 @@ export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
     if (fight.won) {
       const lost = Math.round(s.gold * 0.08); s.gold -= lost;
       log(s, now, police ? `${name} te paró, te revisó y te "decomisó" ${money(lost)}.`
-                         : `${name}, de ${GANGS[gang].name}, te emboscó y se llevó ${money(lost)}.`, "bad");
+                         : `${name}, de ${GANGS[gang].name}, te emboscó en la calle y se llevó ${money(lost)}.`, "bad");
     } else {
       addRespect(s, now, 2);
       log(s, now, police ? `${name} te quiso detener y te le escapaste. +2 de respeto.`

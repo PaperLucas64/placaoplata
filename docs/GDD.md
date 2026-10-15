@@ -212,6 +212,23 @@ Pruebas: dificultad 6 / 10 / 15 (clásico) y 8 / 13 / 19 (Río Bravo); piden esa
 Premios: clásico $200 / $600 / $1.500; Río Bravo $400 / $1.100 / $2.600 (con XP, respeto y calor en proporción).
 
 ### 5.7d Viajes y GPS
+
+**Tu casa es tu guarida:** todos los viajes salen de tu casa. Al terminar algo (misión, curarte, salir a buscar a alguien)
+**volvés a casa**, y la vuelta se ve en el mapa. **Mientras volvés podés arrancar otra misión o ir a curarte desde donde
+estás:** el camino se calcula en el momento por las cuadras (OpenStreetMap), así que distancias y tiempos son dinámicos.
+Desde la calle no hay subte ni tren. Volviendo no se puede entrenar, construir ni mudarse (eso, en casa).
+
+**Solo te pueden tocar en la calle:** las emboscadas de los pandilleros del juego, los cruces y salir a buscar a alguien
+pasan solo mientras viajás o volvés. En tu casa, adentro de un lugar o curándote, nadie te toca.
+
+**Curarte (pestaña Clínica):**
+- **Guardia** de un hospital público (Argerico, Ramos Mejido, Fernandito, Penita, Santojanito, Rivadavio, de Barrancas,
+  Central de San Isidrón, Fiorito Chico, Posadito): gratis, vas **caminando** (o en colectivo si es lejos) a la más cercana
+  y esperás (hasta 15 min según lo que te falte). Volvés caminando.
+- **Clínica privada** (Sanatorio Recoleta Bien, Clínica Palermo Soja, Clínica del Puerto, Sanatorio de la Costa): pagás
+  `$0,25 × vida que falta + $15`, te busca una **ambulancia** (45 km/h), 2 min de atención, y la ambulancia te deja en casa.
+- Desde que salís hasta que te dan el alta **nadie te puede tocar**; en ambulancia, tampoco a la vuelta.
+- El **botiquín** sigue siendo al instante.
 - Cada misión pasa en un lugar. Tu personaje **sale de la pensión** (San Telmón), **viaja**, hace el trabajo y **vuelve**.
   La misión dura `ida + trabajo + vuelta`. Las etapas se resuelven mientras estás en el lugar.
 - **GPS:** mapa real (OpenStreetMap, estilo oscuro de CARTO) con el recorrido y tu personaje moviéndose. Dice cuántos km
@@ -255,11 +272,15 @@ el resto, personajes. A los de tu pandilla no los podés atacar. 3 de energía p
 nadie con menos de 25% de vida ni internado en la guardia. Ganar: 35% de lo que lleva encima (jugadores: hasta 25% de su
 plata encima), XP, respeto, +4 calor. **Lo guardado en la caja fuerte no se puede robar.**
 
-**Peleas en el mapa (pestaña Ciudad), como las del mapamundi del Monkey Island:**
+**El mapa (siempre arriba):** personajes estilo RPG Maker que caminan mirando para donde van (el tuyo, más grande, con
+«Vos»), botones de zoom, Ctrl + rueda (o dos dedos) para moverlo sin que se coma la página, «Seguirme» para que la cámara te
+siga, y cuántos hay en línea y en la calle.
+
+**Peleas en el mapa, como las del mapamundi del Monkey Island:**
 - El mapa muestra en vivo a todos los que andan en la calle: en una misión (a dónde van y en qué, no qué misión es) o
   buscando a alguien.
 - **Salir a buscar a alguien:** al tocar a un rival que está en una misión, el juego calcula si lo alcanzás saliendo
-  ahora desde la pensión: corriendo (9 km/h), en taxi (25 km/h, $2,5/km ida y vuelta, gratis para Los Amarillos) o en tu
+  ahora desde tu casa, **por las cuadras** (el camino real de OpenStreetMap; se dibuja en el mapa): corriendo (9 km/h), en taxi (25 km/h, $2,5/km ida y vuelta, gratis para Los Amarillos) o en tu
   moto o tu auto. Si lo cruzás en menos de 30 minutos, salís (3 de energía) y quedás ocupado hasta volver; la pelea pasa
   sola a la hora del cruce. Si no llegás, no salís y no pasa nada. Si mientras tanto abandona la misión, «ya no estaba».
   Mismos límites: no a tu pandilla, no a alguien con más de 3 niveles menos, a la misma persona una vez por hora.
@@ -321,6 +342,18 @@ Negocios: dejan plata por hora aunque no estés; hay que pasar a **cobrar** (jun
 Garaje: **moto** desde nivel 15 ($6.000) y **auto** desde nivel 25 ($25.000), con los arreglos de §5.7d.
 
 ### 5.9 La casa
+**Mudarte:** arrancás en una pieza de pensión (San Telmón). Cada casa queda en un barrio (de ahí salen tus viajes) y deja
+mejorar la cama, la caja fuerte y el armario hasta cierto nivel:
+
+| Casa | Barrio | Nivel | Precio | Mejoras hasta |
+|---|---|---|---|---|
+| Pieza de pensión | San Telmón | 1 | gratis | nivel 1 |
+| Departamento de un ambiente | Once y Medio | 6 | $4.000 | 2 |
+| PH con terraza | Villa Crespa | 10 | $10.000 | 3 |
+| Casa con patio | Barrancas | 15 | $25.000 | 4 |
+| Chalet con pileta | San Isidrón (Zona Norte) | 22 | $60.000 | 5 |
+| Mansión | Recoleta Bien | 28 | $120.000 | 5 |
+
 Se mejora con plata y **tiempo de obra** (una obra a la vez, no te bloquea).
 
 | Parte | Niveles | Efecto | Costos |

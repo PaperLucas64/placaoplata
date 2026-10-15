@@ -50,6 +50,8 @@ PLACES = {
     "Mar del Plato":  (-38.0020, -57.5560, "Mar del Plata"),
     "Cordobita":      (-31.4170, -64.1830, "Córdoba"),
 }
+# casas que se pueden comprar: desde cada una salen los viajes (subte y tren, solo desde la pensión)
+ORIGINS = ["San Telmón", "Once y Medio", "Villa Crespa", "Barrancas", "San Isidrón", "Recoleta Bien"]
 INTERIOR = {"La Plata Dulce", "Rosarito", "Mar del Plato", "Cordobita"}
 ZONE = {"Tigre Mojado": "norte", "San Isidrón": "norte", "Pilar de Oro": "norte",
         "Avellanada": "sur", "Lomas de Zafarrancho": "sur", "Quilmates": "sur",
@@ -224,12 +226,12 @@ def rail_path(kind, a, b):
 def rnd(pts): return [[round(p[0], 5), round(p[1], 5)] for p in pts]
 
 # ---------- armado ----------
-def main():
-    home = PLACES[HOME][:2]
+def routes_from(origin):
+    home = PLACES[origin][:2]
     shared, web = {}, {}
     for name, (lat, lng, real) in PLACES.items():
-        if name == HOME: continue
-        print("·", name, flush=True)
+        if name == origin: continue
+        print("·", origin, "→", name, flush=True)
         far = name in INTERIOR
         tol = 0.25 if far else 0.012
         car = osrm("car", home, (lat, lng))
@@ -238,7 +240,7 @@ def main():
         if not far and hav(home, (lat, lng)) < 20:
             foot = osrm("foot", home, (lat, lng))
             entry["pie"] = round(length(foot), 2); geo["pie"] = rnd(simplify(foot, tol))
-        if name in RAIL:
+        if origin == HOME and name in RAIL:
             legs, glegs, here = [], [], home
             for kind, line, fr, to in RAIL[name]:
                 a, b = ST[fr], ST[to]
@@ -255,6 +257,12 @@ def main():
             legs.append({"kind": "pie", "km": round(length(w), 2)}); glegs.append({"kind": "pie", "pts": rnd(simplify(w, 0.012))})
             entry["riel"] = legs; geo["riel"] = glegs
         shared[name] = entry; web[name] = geo
+    return shared, web
+
+def main():
+    shared, web = {}, {}
+    for o in ORIGINS:
+        shared[o], web[o] = routes_from(o)
 
     places = {k: {"lat": v[0], "lng": v[1], "real": v[2], **({"interior": True} if k in INTERIOR else {}), **({"zone": ZONE[k]} if k in ZONE else {})}
               for k, v in PLACES.items()}
@@ -262,7 +270,7 @@ def main():
           "import type { GeoPlace, GeoRoute } from \"./geo.js\";\n\n"
           f"export const GEO_HOME = {json.dumps(HOME, ensure_ascii=False)};\n"
           f"export const GEO_PLACES: Record<string, GeoPlace> = {json.dumps(places, ensure_ascii=False)};\n"
-          f"export const GEO_ROUTES: Record<string, GeoRoute> = {json.dumps(shared, ensure_ascii=False)};\n")
+          f"export const GEO_ROUTES: Record<string, Record<string, GeoRoute>> = {json.dumps(shared, ensure_ascii=False)};\n")
     with open(os.path.join(ROOT, "packages", "shared", "src", "geo-data.ts"), "w", encoding="utf-8") as f: f.write(ts)
     out = os.path.join(ROOT, "packages", "shared", "data"); os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "rutas.json"), "w", encoding="utf-8") as f: json.dump(web, f, ensure_ascii=False, separators=(",", ":"))

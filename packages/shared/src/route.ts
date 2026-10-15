@@ -1,13 +1,15 @@
 /* Dónde está cada uno sobre su recorrido, salir a cruzar a alguien (como las peleas en el mapamundi del Monkey Island)
    y cruces casuales entre jugadores de pandillas rivales. Lo usan el servidor (que decide) y la pantalla (que muestra).
    Los recorridos (data/rutas.json) los arma tools/geo/build.py; acá se reciben como parámetro. */
+import { homePlace } from "./casas.js";
 import { GEO_HOME, GEO_PLACES, hasMod, tripPhase, TRAVEL_SCALE, type TravelMode } from "./geo.js";
 import { gangOf } from "./rules.js";
 import type { Gang, PlayerState } from "./types.js";
 
 export type Pt = [number, number]; // [lat, lng]
 export type Leg = { kind: "pie" | "subte" | "tren"; line?: string; pts: Pt[] };
-export type Rutas = Record<string, { calle: Pt[]; pie?: Pt[]; riel?: Leg[] }>;
+export type Ruta = { calle: Pt[]; pie?: Pt[]; riel?: Leg[] };
+export type Rutas = Record<string, Record<string, Ruta>>; // desde cada casa, a cada lugar
 
 /* km entre dos puntos */
 export function kmBetween(a: Pt, b: Pt) {
@@ -31,7 +33,7 @@ export function along(pts: Pt[], f: number): Pt {
   return pts[pts.length - 1];
 }
 /* los tramos del viaje según el medio, con su peso en tiempo (para mover al personaje a la velocidad de cada tramo) */
-export function legsFor(r: Rutas[string], mode: TravelMode): { kind: string; pts: Pt[]; w: number }[] {
+export function legsFor(r: Ruta, mode: TravelMode): { kind: string; pts: Pt[]; w: number }[] {
   if (mode === "riel" && r.riel) return r.riel.map(l => {
     const km = kmOf(l.pts);
     return { kind: l.kind, pts: l.pts, w: l.kind === "pie" ? km / 5 : km / (l.kind === "subte" ? 30 : km > 50 ? 60 : 40) + 0.07 };
@@ -47,23 +49,27 @@ export function positionAt(legs: { pts: Pt[]; w: number }[], f: number): Pt {
   const last = legs[legs.length - 1].pts;
   return last[last.length - 1];
 }
-export const homePt = (): Pt => [GEO_PLACES[GEO_HOME].lat, GEO_PLACES[GEO_HOME].lng];
+/* tu casa en el mapa */
+export const homePt = (s?: Pick<PlayerState, "home">): Pt => { const p = GEO_PLACES[s ? homePlace(s) : GEO_HOME]; return [p.lat, p.lng]; };
 export const placePt = (p: string): Pt | null => (GEO_PLACES[p] ? [GEO_PLACES[p].lat, GEO_PLACES[p].lng] : null);
 
 /* ---------- dónde está alguien que está en la calle ---------- */
-export interface OnTrip { since: number; until: number; trip: { mode: TravelMode; place: string; go: number; back: number } }
-export interface OnChase { since: number; until: number; meet: number; from: Pt; at: Pt }
-export function tripPos(rutas: Rutas, o: OnTrip, now: number): Pt | null {
+export interface OnTrip { since: number; until: number; trip: { mode: TravelMode; place: string; go: number; back: number; from?: string; path?: Pt[] } }
+export interface OnChase { since: number; until: number; meet: number; from: Pt; at: Pt; path?: Pt[] } // path: por dónde va (las cuadras)
+export function tripPos(rutas: Rutas, o: OnTrip, now: number, streetOnly = false): Pt | null {
   const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, now);
-  const r = rutas[o.trip.place], dest = placePt(o.trip.place);
+  const r = rutas[o.trip.from ?? GEO_HOME]?.[o.trip.place], dest = placePt(o.trip.place);
   if (!ph || !dest || now < o.since || now > o.until) return null;
-  if (ph.phase === "alla" || !r) return dest;
+  if (ph.phase === "alla") return streetOnly ? null : dest;  // adentro de un lugar: ahí no se lo puede asaltar
+  if (ph.phase === "ida" && o.trip.path && o.trip.path.length > 1) return along(o.trip.path, ph.frac); // salió desde la calle
+  if (!r) return streetOnly ? null : dest;
   return positionAt(legsFor(r, o.trip.mode), ph.phase === "vuelta" ? 1 - ph.frac : ph.frac);
 }
 export function chasePos(c: OnChase, now: number): Pt | null {
   if (now < c.since || now > c.until) return null;
-  return now <= c.meet ? lerp(c.from, c.at, (now - c.since) / Math.max(1, c.meet - c.since))
-                       : lerp(c.at, c.from, (now - c.meet) / Math.max(1, c.until - c.meet));
+  const go = (now - c.since) / Math.max(1, c.meet - c.since), back = (now - c.meet) / Math.max(1, c.until - c.meet);
+  if (c.path && c.path.length > 1) return now <= c.meet ? along(c.path, go) : along(c.path, 1 - back);
+  return now <= c.meet ? lerp(c.from, c.at, go) : lerp(c.at, c.from, back);
 }
 /* el barrio (o lugar) más cerca de un punto, para la crónica */
 export function nearestPlace(p: Pt) {
@@ -86,15 +92,15 @@ export function chaseCost(s: PlayerState, mode: ChaseMode, km: number) {
   return Math.round(km * per * 2);
 }
 /* El primer momento en que lo podés alcanzar saliendo ahora desde la pensión, o null si no llegás */
-export function planChase(s: PlayerState, rutas: Rutas, target: OnTrip, now: number, mode: ChaseMode): ChasePlan | null {
-  const from = homePt();
+export function planChase(s: PlayerState, rutas: Rutas, target: OnTrip, now: number, mode: ChaseMode, factor = STREET_FACTOR): ChasePlan | null {
+  const from = homePt(s);
   const v = CHASE_SPEED[mode] * ((mode === "moto" || mode === "auto") && hasMod(s, mode, "motor") ? 1.25 : 1);
   const kmPerMs = v * TRAVEL_SCALE / 3_600_000;
   const end = Math.min(target.until, now + CHASE_MAX_MIN * 60_000);
   for (let t = now + 20_000; t <= end; t += 10_000) {
-    const p = tripPos(rutas, target, t);
+    const p = tripPos(rutas, target, t, true);
     if (!p) continue;
-    const km = kmBetween(from, p) * STREET_FACTOR;
+    const km = kmBetween(from, p) * factor;
     if (km / kmPerMs <= t - now) return { mode, meet: t, at: p, km, cost: chaseCost(s, mode, km) };
   }
   return null;
@@ -108,7 +114,7 @@ export const rivals = (a: PlayerState, b: PlayerState) => { const ga = gangOf(a)
 export function firstCrossing(rutas: Rutas, a: OnTrip, b: OnTrip, from: number): number | null {
   const start = Math.max(from, a.since, b.since), end = Math.min(a.until, b.until, start + 3 * 3_600_000);
   for (let t = start; t <= end; t += 20_000) {
-    const pa = tripPos(rutas, a, t), pb = tripPos(rutas, b, t);
+    const pa = tripPos(rutas, a, t, true), pb = tripPos(rutas, b, t, true);  // solo en la calle
     if (pa && pb && kmBetween(pa, pb) < CROSS_KM) return t;
   }
   return null;
@@ -118,11 +124,23 @@ export function firstCrossing(rutas: Rutas, a: OnTrip, b: OnTrip, from: number):
 export interface TravelerView {
   id: number; name: string; lvl: number; gang: Gang | null; avatar: number; bot?: boolean; since: number; until: number;
   trip?: OnTrip["trip"];                                                  // en una misión
-  chase?: { meet: number; from: Pt; at: Pt; targetName: string };         // salió a buscar a alguien
+  chase?: { meet: number; from: Pt; at: Pt; targetName: string; path?: Pt[] }; // salió a buscar a alguien
 }
 /* dónde está ahora */
 export function travelerPos(rutas: Rutas, t: TravelerView, now: number): Pt | null {
   if (t.trip) return tripPos(rutas, { since: t.since, until: t.until, trip: t.trip }, now);
-  if (t.chase) return chasePos({ since: t.since, until: t.until, meet: t.chase.meet, from: t.chase.from, at: t.chase.at }, now);
+  if (t.chase) return chasePos({ since: t.since, until: t.until, meet: t.chase.meet, from: t.chase.from, at: t.chase.at, path: t.chase.path }, now);
   return null;
+}
+
+/* volver a casa, visto como un viaje que ya está en la vuelta (sirve para el mapa y para los cruces) */
+export function returnTrip(b: { since: number; until: number; mode: TravelMode; place: string; home: string }): OnTrip {
+  return { since: b.since, until: b.until, trip: { mode: b.mode, place: b.place, go: 0, back: Math.max(1, b.until - b.since), from: b.home } };
+}
+/* dónde está ahora un jugador que viene volviendo a casa */
+export function wherePlayer(rutas: Rutas, s: PlayerState, now: number): Pt {
+  const b = s.busy;
+  if (b?.kind === "vuelta") return tripPos(rutas, returnTrip(b), now) ?? homePt(s);
+  if (b?.kind === "caza") return chasePos({ since: b.since, until: b.until, meet: b.meet, from: b.from, at: b.at, path: b.path }, now) ?? homePt(s);
+  return homePt(s);
 }

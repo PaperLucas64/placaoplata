@@ -48,6 +48,7 @@ export interface Home {
   safe: number;        // plata en la caja fuerte (a salvo de robos y fianzas)
   closet: string[];    // equipo guardado en el armario
   obra: { part: "cama" | "caja" | "armario"; since: number; until: number } | null; // mejora en construcción
+  house?: string;      // qué casa tenés (si no está, la pieza de pensión)
 }
 
 export interface PlayerState {
@@ -78,12 +79,14 @@ export interface PlayerState {
 
 export type Busy =
   | { kind: "gym"; since: number; until: number; stat: StatKey }
-  | { kind: "guardia"; since: number; until: number; hpFrom: number }
+  | { kind: "guardia"; since: number; until: number; hpFrom: number; trip?: TripState | null; clinic?: boolean } // curándote (intocable)
+  /* volviendo a casa después de algo: estás en la calle y podés arrancar otra cosa desde donde estés */
+  | { kind: "vuelta"; since: number; until: number; mode: TravelMode; place: string; home: string; path?: [number, number][]; safe?: boolean }
   | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[]; // etapas resueltas, cuántas salieron bien y cuáles
       trip?: TripState | null }                                                                           // el viaje: medio, destino, ida y vuelta
   /* saliste a cruzar a alguien: vas hasta donde lo alcanzás (meet), pelean y volvés */
   | { kind: "caza"; since: number; until: number; meet: number; target: number; targetName: string; place: string;
-      from: [number, number]; at: [number, number]; mode: "pie" | "taxi" | "moto" | "auto" };
+      from: [number, number]; at: [number, number]; mode: "pie" | "taxi" | "moto" | "auto"; path?: [number, number][] };
 
 export interface Fighter { name: string; hp: number; max: number; fue: number; dur: number; ref: number; arma: number; armadura: number }
 export interface FightView { p: Fighter; e: Fighter; rounds: { who: "p" | "e"; txt: string }[]; won: boolean }
@@ -112,6 +115,7 @@ export type Action =
   | { type: "reroll" }                  // renovar el tablón de misiones de calle
   | { type: "lawyer" }
   | { type: "build"; part: "cama" | "caja" | "armario" }
+  | { type: "move"; id: string }        // mudarte a otra casa
   | { type: "deposit"; amount: number }
   | { type: "withdraw"; amount: number }
   | { type: "scout" }

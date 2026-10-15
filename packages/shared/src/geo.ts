@@ -2,6 +2,7 @@
    Los recorridos son reales (OpenStreetMap, ver tools/geo/build.py) y el tiempo de viaje sale de la distancia y del medio:
    a pie es gratis pero lento; con auto o moto vas rápido pero te pueden parar. El viaje pasa más rápido que en la vida real. */
 import { GEO_HOME, GEO_PLACES, GEO_ROUTES } from "./geo-data.js";
+import { homePlace } from "./casas.js";
 import { addHeat, gangOf, log, money, pick } from "./rules.js";
 import type { PlayerState, Rng } from "./types.js";
 
@@ -12,9 +13,9 @@ export interface GeoLeg { kind: "pie" | "subte" | "tren"; line?: string; from?: 
 export interface GeoRoute { calle: number; pie?: number; riel?: GeoLeg[] }
 export { GEO_HOME, GEO_PLACES, GEO_ROUTES };
 
-export type TravelMode = "pie" | "colectivo" | "riel" | "taxi" | "micro" | "moto" | "auto";
+export type TravelMode = "pie" | "colectivo" | "riel" | "taxi" | "micro" | "moto" | "auto" | "ambulancia";
 export type Vehicle = "moto" | "auto";
-export const TRAVEL_MODES: TravelMode[] = ["pie", "colectivo", "riel", "taxi", "micro", "moto", "auto"];
+export const TRAVEL_MODES: TravelMode[] = ["pie", "colectivo", "riel", "taxi", "micro", "moto", "auto"]; // la ambulancia es solo para curarte
 
 /* el viaje se comprime: en la ciudad 1 minuto de verdad son 4 de viaje; en la ruta, 8 */
 const MIN = 60_000;
@@ -40,17 +41,24 @@ export const TRAVEL: Record<TravelMode, { name: string; verb: string }> = {
   taxi:      { name: "Taxi",                verb: "en taxi" },
   micro:     { name: "Micro de larga distancia", verb: "en micro" },
   moto:      { name: "Tu moto",             verb: "en tu moto" },
-  auto:      { name: "Tu auto",             verb: "en tu auto" }
+  auto:      { name: "Tu auto",             verb: "en tu auto" },
+  ambulancia:{ name: "Ambulancia",          verb: "en ambulancia" }
 };
 /* líneas de colectivo de verdad, para la crónica */
 const BUS_LINES = ["29", "152", "60", "39", "10", "64", "86", "24", "33", "130", "168", "17"];
 
-export const routeTo = (place?: string) => (place && place !== GEO_HOME ? GEO_ROUTES[place] : undefined);
+/* el recorrido de un lugar a otro (desde tu casa); si es el mismo barrio, no hay viaje */
+export const routeTo = (from: string, place?: string) => (place && place !== from ? GEO_ROUTES[from]?.[place] : undefined);
 export const isFar = (place: string) => !!GEO_PLACES[place]?.interior;
 
-/* medios que se pueden usar para ir a un lugar */
-export function travelModes(s: PlayerState, place: string): TravelMode[] {
-  const r = routeTo(place);
+/* desde un punto cualquiera de la calle (volviendo de algo) no hay subte ni tren: el recorrido es por las calles */
+export interface FromPoint { km: number; path?: [number, number][] }
+const routeFrom = (s: PlayerState, place: string, fp?: FromPoint): GeoRoute | undefined =>
+  fp ? { calle: fp.km, ...(fp.km < 20 ? { pie: fp.km } : {}) } : routeTo(homePlace(s), place);
+
+/* medios que se pueden usar para ir a un lugar (desde tu casa, o desde donde estés) */
+export function travelModes(s: PlayerState, place: string, fp?: FromPoint): TravelMode[] {
+  const r = routeFrom(s, place, fp);
   if (!r) return [];
   const far = isFar(place);
   return TRAVEL_MODES.filter(m =>
@@ -71,6 +79,7 @@ function tripHours(s: PlayerState, mode: TravelMode, r: GeoRoute): number {
     case "riel": return (r.riel ?? []).reduce((a, l) => a + (l.kind === "pie" ? l.km / 5 : l.km / (l.kind === "subte" ? 30 : l.km > FAR_KM ? 60 : 40) + 0.07), 0);
     case "taxi": return km / roadSpeed(km, 25, 85);
     case "micro": return km / 70 + 0.33;
+    case "ambulancia": return km / roadSpeed(km, 45, 110);
     case "moto": case "auto": {
       const v = VEHICLES[mode];
       return km / (roadSpeed(km, v.city, v.road) * (hasMod(s, mode, "motor") ? 1.25 : 1));
@@ -78,14 +87,14 @@ function tripHours(s: PlayerState, mode: TravelMode, r: GeoRoute): number {
   }
 }
 /* minutos de verdad que tarda la ida (la vuelta es igual) */
-export function tripMins(s: PlayerState, mode: TravelMode, place: string): number {
-  const r = routeTo(place);
+export function tripMins(s: PlayerState, mode: TravelMode, place: string, fp?: FromPoint): number {
+  const r = routeFrom(s, place, fp);
   if (!r) return 0;
   return Math.max(1, Math.round(tripHours(s, mode, r) * 60 / (r.calle > FAR_KM ? TRAVEL_SCALE_FAR : TRAVEL_SCALE)));
 }
 /* lo que sale el viaje (ida y vuelta) */
-export function tripCost(s: PlayerState, mode: TravelMode, place: string): number {
-  const r = routeTo(place);
+export function tripCost(s: PlayerState, mode: TravelMode, place: string, fp?: FromPoint): number {
+  const r = routeFrom(s, place, fp);
   if (!r) return 0;
   const km = r.calle;
   const one =
@@ -101,12 +110,32 @@ export function tripCost(s: PlayerState, mode: TravelMode, place: string): numbe
 export const TRAVEL_RISK: Record<TravelMode, string> = {
   pie: "lento, casi sin riesgo", colectivo: "barato; algún punga", riel: "rápido y barato; algún punga",
   taxi: "rápido; el taxista puede ser buchón", micro: "controles en la ruta",
-  moto: "rápido; te paran y te ven llegar", auto: "rápido; te paran y te ven llegar"
+  moto: "rápido; te paran y te ven llegar", auto: "rápido; te paran y te ven llegar", ambulancia: "a los pedos"
 };
+
+/* ---------- dónde te curan ---------- */
+/* guardias de hospitales públicos (gratis, vas caminando) y clínicas privadas (pagás y te busca una ambulancia) */
+export const HOSPITALS: { place: string; name: string }[] = [
+  { place: "La Bocota", name: "Hospital Argerico" }, { place: "Once y Medio", name: "Hospital Ramos Mejido" },
+  { place: "Palermo Soja", name: "Hospital Fernandito" }, { place: "Pompeya Chica", name: "Hospital Penita" },
+  { place: "Liniers Sur", name: "Hospital Santojanito" }, { place: "Recoleta Bien", name: "Hospital Rivadavio" },
+  { place: "Barrancas", name: "Hospital de Barrancas" }, { place: "San Isidrón", name: "Hospital Central de San Isidrón" },
+  { place: "Avellanada", name: "Hospital Fiorito Chico" }, { place: "Moronga", name: "Hospital Posadito" }
+];
+export const CLINICS: { place: string; name: string }[] = [
+  { place: "Recoleta Bien", name: "Sanatorio Recoleta Bien" }, { place: "Palermo Soja", name: "Clínica Palermo Soja" },
+  { place: "Puerto Mareo", name: "Clínica del Puerto" }, { place: "San Isidrón", name: "Sanatorio de la Costa" }
+];
+/* el más cerca de tu casa (o de un punto, si ya andás por la calle) */
+export function nearestCare(s: PlayerState, kind: "guardia" | "clinica", kmFrom?: (place: string) => number) {
+  const list = kind === "guardia" ? HOSPITALS : CLINICS, home = homePlace(s);
+  const km = kmFrom ?? ((p: string) => (p === home ? 0 : GEO_ROUTES[home]?.[p]?.calle ?? 999));
+  return [...list].sort((a, b) => km(a.place) - km(b.place))[0];
+}
 
 /* Lo que puede pasar en un tramo del viaje. Devuelve true si pasó algo. */
 export function tripEvent(s: PlayerState, mode: TravelMode, place: string, back: boolean, at: number, rng: Rng): boolean {
-  const where = back ? "la pensión" : place;
+  const where = back ? "tu casa" : place;
   const punga = (chance: number, share: number, how: string) => {
     if (rng() >= chance || s.gold <= 0) return false;
     const lost = Math.max(1, Math.round(s.gold * share)); s.gold -= lost;
@@ -114,6 +143,7 @@ export function tripEvent(s: PlayerState, mode: TravelMode, place: string, back:
     return true;
   };
   switch (mode) {
+    case "ambulancia": return false;
     case "pie": return punga(0.03, 0.03, "caminando");
     case "colectivo": return punga(0.06, 0.05, `en el ${pick(rng, BUS_LINES)}`);
     case "riel": return punga(0.04, 0.04, "en el subte");
@@ -147,8 +177,8 @@ export function tripEvent(s: PlayerState, mode: TravelMode, place: string, back:
 }
 
 /* texto para la crónica al salir */
-export function tripText(s: PlayerState, mode: TravelMode, place: string, rng: Rng) {
-  const r = routeTo(place)!;
+export function tripText(s: PlayerState, mode: TravelMode, place: string, rng: Rng, fp?: FromPoint) {
+  const r = routeFrom(s, place, fp)!;
   const how = mode === "colectivo" ? `en el ${pick(rng, BUS_LINES)}`
     : mode === "riel" ? (r.riel ?? []).filter(l => l.kind !== "pie").map(l => l.kind === "subte" ? `la línea ${l.line} del subte` : `el tren ${l.line}`).join(" y ")
     : TRAVEL[mode].verb;
@@ -156,7 +186,8 @@ export function tripText(s: PlayerState, mode: TravelMode, place: string, rng: R
 }
 
 /* ---------- dónde está tu personaje (para el GPS) ---------- */
-export interface TripState { mode: TravelMode; place: string; go: number; back: number; ev: number }
+export interface TripState { mode: TravelMode; place: string; go: number; back: number; ev: number; from?: string; // from: de qué casa salió (antes: la pensión)
+  path?: [number, number][] } // si salió desde un punto de la calle: el camino por las cuadras
 export type TripPhase = { phase: "ida" | "alla" | "vuelta"; frac: number; left: number }; // left: ms que faltan para llegar
 export function tripPhase(b: { since: number; until: number; trip?: TripState | null }, now: number): TripPhase | null {
   const t = b.trip;
@@ -167,8 +198,8 @@ export function tripPhase(b: { since: number; until: number; trip?: TripState | 
   return { phase: "vuelta", frac: Math.min(1, (now - leave) / Math.max(1, t.back)), left: Math.max(0, b.until - now) };
 }
 export const tripMs = (mins: number) => mins * MIN;
-export const tripKm = (place: string, mode: TravelMode) => {
-  const r = routeTo(place);
+export const tripKm = (from: string, place: string, mode: TravelMode) => {
+  const r = routeTo(from, place);
   if (!r) return 0;
   return mode === "pie" ? r.pie ?? r.calle : mode === "riel" ? (r.riel ?? []).reduce((a, l) => a + l.km, 0) : r.calle;
 };

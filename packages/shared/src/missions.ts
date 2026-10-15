@@ -4,8 +4,9 @@
 import { ARC_INFLUENCE, ARC_MISSIONS, arcChapterKey, COMISARIO } from "./arcs.js";
 import { VALIJA } from "./data.js";
 import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } from "./gangs.js";
-import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type TravelMode } from "./geo.js";
+import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type FromPoint, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
+import { homePlace } from "./casas.js";
 import { addAff, addHeat, addRespect, battle, clamp, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
 import type { Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
@@ -25,7 +26,7 @@ export const findMission = (s: Pick<PlayerState, "board" | "coop">, id: string) 
 /* dónde pasa: las de la historia de cada pandilla, en su barrio. La valija y las de a dos no tienen viaje. */
 export const missionPlace = (m: Mission): string | undefined =>
   m.id === VALIJA.id || m.id.startsWith("coop-") ? undefined : m.place ?? (m.gang ? HOME_BARRIO[m.gang] : undefined);
-export const needsTrip = (m: Mission) => !!routeTo(missionPlace(m));
+export const needsTrip = (s: PlayerState, m: Mission, fp?: FromPoint) => (fp ? !!missionPlace(m) : !!routeTo(homePlace(s), missionPlace(m)));
 /* minutos de trabajo en el lugar (sin contar el viaje) */
 export const missionMins = (m: Mission) => m.mins ?? (m.id === VALIJA.id ? VALIJA_MINS : STORY_MINS[m.tier ?? 0]);
 export const missionEnergy = (m: Mission) => Math.round(m.steps.reduce((a, st) => a + st.energy, 0));
@@ -45,18 +46,33 @@ export const meetsReq = (s: PlayerState, m: Mission) =>
   (Object.entries(missionReq(m)) as [StatKey, number][]).every(([k, v]) => s.stats[k] >= v);
 
 /* ---------- empezar, avanzar, terminar ---------- */
-export function startTimedMission(s: PlayerState, m: Mission, now: number, mode?: TravelMode, rng: Rng = Math.random) {
+/* Salís a hacer la misión: desde tu casa, o desde donde estés si venías volviendo de otra cosa (fp).
+   Cuando termina, volvés a casa (y en el camino podés arrancar otra cosa). */
+export function startTimedMission(s: PlayerState, m: Mission, now: number, mode?: TravelMode, rng: Rng = Math.random, fp?: FromPoint) {
   const place = missionPlace(m);
-  const go = mode && place && routeTo(place) ? tripMins(s, mode, place) * MIN : 0;
+  const from = homePlace(s);
+  const trip = !!(mode && place && (fp ? place : routeTo(from, place)));
+  const go = trip ? tripMins(s, mode!, place!, fp) * MIN : 0;
   const work = missionMins(m) * MIN;
   s.energy -= missionEnergy(m);
-  if (go && mode && place) s.gold -= tripCost(s, mode, place);
-  s.busy = { kind: "mision", id: m.id, since: now, until: now + go * 2 + work, done: 0, ok: 0, res: [],
-    trip: go && mode && place ? { mode, place, go, back: go, ev: 0 } : null };
-  const total = Math.round((go * 2 + work) / MIN);
-  log(s, now, go && mode && place
-    ? `Saliste a hacer «${m.title}». ${tripText(s, mode, place, rng)} Volvés en ${total} min.`
-    : `Saliste a hacer «${m.title}». Volvés en ${total} min.`, "gold");
+  if (trip) s.gold -= tripCost(s, mode!, place!, fp);
+  s.busy = { kind: "mision", id: m.id, since: now, until: now + go + work, done: 0, ok: 0, res: [],
+    trip: trip ? { mode: mode!, place: place!, go, back: 0, ev: 0, from, ...(fp?.path ? { path: fp.path } : {}) } : null };
+  const total = Math.round((go + work) / MIN);
+  log(s, now, trip
+    ? `Saliste a hacer «${m.title}»${fp ? " desde donde estabas" : ""}. ${tripText(s, mode!, place!, rng, fp)} Terminás en ${total} min y después volvés a casa.`
+    : `Saliste a hacer «${m.title}». Terminás en ${total} min.`, "gold");
+}
+
+/* volver a casa: estás en la calle (salvo en ambulancia) hasta llegar */
+export function startReturn(s: PlayerState, mode: TravelMode, place: string, at: number, rng: Rng, safe = false) {
+  const home = homePlace(s);
+  const r = routeTo(home, place);
+  if (!r) { s.busy = null; return; }
+  const m: TravelMode = mode === "riel" && !r.riel ? "colectivo" : mode === "pie" && !r.pie ? "colectivo" : mode;
+  const mins = tripMins(s, m, place);
+  s.busy = { kind: "vuelta", since: at, until: at + mins * MIN, mode: m, place, home, ...(safe ? { safe } : {}) };
+  if (!safe) tripEvent(s, m, place, true, at, rng);
 }
 
 /* las etapas se reparten entre que llegás y que te volvés */
@@ -79,6 +95,7 @@ export function nextMissionEvent(s: PlayerState): number | null {
 /* Resuelve lo que ya pasó: la llegada, las etapas y la vuelta. Devuelve true si cambió algo. */
 export function missionCatchUp(s: PlayerState, { now, rng }: { now: number; rng: Rng }): boolean {
   const b = s.busy;
+  if (b?.kind === "guardia" && b.trip) return careCatchUp(s, b, now, rng);
   if (b?.kind !== "mision" || b.id.startsWith("coop-")) return false; // las de a dos las resuelve el servidor para los dos
   const m = findMission(s, b.id);
   if (!m) { s.busy = null; return true; }
@@ -101,8 +118,32 @@ export function missionCatchUp(s: PlayerState, { now, rng }: { now: number; rng:
     log(s, at, `«${m.title}» · ${text ?? (ok ? "Salió bien." : "Salió mal.")}`, ok ? undefined : "bad");
   }
   if (b.done >= m.steps.length && now >= b.until) {
-    if (t && !(t.ev & 2)) { t.ev |= 2; tripEvent(s, t.mode, t.place, true, b.until, rng); }
+    if (t && t.back && !(t.ev & 2)) { t.ev |= 2; tripEvent(s, t.mode, t.place, true, b.until, rng); } // misiones de antes: la vuelta ya estaba incluida
     s.busy = null; finishMission(s, m, b.ok, b.until); changed = true;
+    if (t && !t.back) { startReturn(s, t.mode, t.place, b.until, rng); finishBusyLater(s, now); }
+  }
+  return changed;
+}
+/* si ya pasó también la vuelta, se termina en el momento */
+function finishBusyLater(s: PlayerState, now: number) {
+  const v = s.busy;
+  if (v?.kind === "vuelta" && now >= v.until) { s.busy = null; log(s, v.until, "Llegaste a casa."); }
+}
+
+/* curarte: ida (caminando o en ambulancia), atención y alta; después volvés a casa */
+export const CARE_MINS = { clinica: 2 };
+function careCatchUp(s: PlayerState, b: Extract<PlayerState["busy"], { kind: "guardia" }>, now: number, rng: Rng): boolean {
+  const t = b.trip!;
+  let changed = false;
+  if (!(t.ev & 1) && now >= b.since + t.go) {
+    t.ev |= 1; changed = true;
+    log(s, b.since + t.go, b.clinic ? `La ambulancia llegó a ${t.place}. Te atienden enseguida.` : `Llegaste a la guardia en ${t.place}. A esperar.`);
+  }
+  if (now >= b.until) {
+    s.hp = maxHp(s); s.c.heal++; s.tHeal = b.until; s.busy = null; changed = true;
+    log(s, b.until, b.clinic ? "Te dieron el alta en la clínica. Vida al máximo. La ambulancia te lleva a casa." : "Te dieron el alta en la guardia. Vida al máximo. Volvés caminando.", "good");
+    startReturn(s, b.clinic ? "ambulancia" : "pie", t.place, b.until, rng, b.clinic);
+    finishBusyLater(s, now);
   }
   return changed;
 }

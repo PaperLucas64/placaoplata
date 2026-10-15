@@ -3,7 +3,7 @@
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
   ambushCatchUp, ambushPlayer, applyAction, canAmbush, chaseModes, CROSS_LVL_GAP, crossFight, firstCrossing, nearestPlace, planChase, rivals,
-  startChase, tripPos, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  startChase, tripPos, returnTrip, wherePlayer, placePt, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -16,7 +16,20 @@ const rng: Rng = Math.random;
 /* los recorridos del GPS (los mismos que dibuja la pantalla), para saber dónde está cada uno */
 export const RUTAS: Rutas = JSON.parse(readFileSync(new URL("../../../packages/shared/data/rutas.json", import.meta.url), "utf8"));
 const onTrip = (b: PlayerState["busy"]): OnTrip | null =>
-  b?.kind === "mision" && b.trip ? { since: Number(b.since), until: Number(b.until), trip: b.trip } : null;
+  b?.kind === "mision" && b.trip ? { since: Number(b.since), until: Number(b.until), trip: b.trip }
+  : b?.kind === "vuelta" && !b.safe ? returnTrip(b) : null;
+/* El camino por las cuadras entre dos puntos (OSRM de OpenStreetMap). Si no contesta, se sigue con la estimación. */
+async function streetPath(a: Pt, b: Pt, profile: "foot" | "car"): Promise<Pt[] | undefined> {
+  try {
+    const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000), headers: { "User-Agent": "Maires (juego de navegador)" } });
+    if (!r.ok) return undefined;
+    const j = await r.json() as { routes?: { geometry: { coordinates: [number, number][] } }[] };
+    const pts = j.routes?.[0]?.geometry.coordinates.map(([lng, lat]) => [Math.round(lat * 1e5) / 1e5, Math.round(lng * 1e5) / 1e5] as Pt);
+    return pts && pts.length > 1 ? pts : undefined;
+  } catch { return undefined; }
+}
+
 /* la misma pelea vista desde el otro lado */
 const flip = (f: FightView): FightView => ({ p: f.e, e: f.p, won: !f.won, rounds: f.rounds.map(r => ({ ...r, who: r.who === "p" ? "e" : "p" })) });
 export class GameError extends Error {}
@@ -129,7 +142,20 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
         result = otherId ? await chase(q, id, s, rows.get(otherId), a.mode, now) : { error: "Ese jugador ya no está." };
       } else {
         const wasChase = s.busy?.kind === "caza";
-        result = applyAction(s, a, { now, rng });
+        /* si venías volviendo a casa y arrancás otra cosa, salís desde donde estás: el camino se calcula por las cuadras */
+        let from: FromPoint | undefined;
+        if (s.busy?.kind === "vuelta" && (a.type === "mstart" || a.type === "guardia" || a.type === "heal")) {
+          const here = wherePlayer(RUTAS, s, now);
+          const m = a.type === "mstart" ? findMission(s, a.id) : undefined;
+          const dest = m ? missionPlace(m) : nearestCare(s, a.type === "heal" ? "clinica" : "guardia").place;
+          const pt = dest ? placePt(dest) : null;
+          if (pt) {
+            const foot = a.type === "guardia" || (a.type === "mstart" && a.mode === "pie");
+            const path = await streetPath(here, pt, foot ? "foot" : "car");
+            from = { km: Math.max(0.2, path ? kmOf(path) : kmBetween(here, pt) * 1.3), path: path ?? [here, pt] };
+          }
+        }
+        result = applyAction(s, a, { now, rng, from });
         if (!result.error && a.type === "mstart") await findCrossing(q, id, s, now);
         if (!result.error && a.type === "cancel" && wasChase) await q.query(`UPDATE chases SET resolved = true WHERE attacker_id = $1 AND kind = 'caza' AND NOT resolved`, [id]);
         if (!result.error && (a.type === "scout" || a.type === "claimTut" || (a.type === "duel" && !s.targets.length))) await fillTargets(q, id, s);
@@ -170,10 +196,20 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
       [id, other.id, PVP_SAME_TARGET_EVERY]);
     if (recent.rows.length) return { error: `Ya te cruzaste con ${def.name} hace poco. Dejalo tranquilo una hora.` };
     const trip = onTrip(def.busy)!;
-    const plan = planChase(s, RUTAS, trip, now, mode as never);
-    if (!plan) return { error: `No llegás a cruzar a ${def.name}: va a estar lejos o de vuelta antes.` };
+    /* primero un cálculo rápido; después el camino de verdad por las cuadras, y se corrige */
+    let plan = planChase(s, RUTAS, trip, now, mode as never);
+    let path: Pt[] | undefined;
+    for (let i = 0; plan && i < 3; i++) {
+      const street = await streetPath(homePt(s), plan.at, mode === "pie" ? "foot" : "car");
+      if (!street) break;
+      const ratio = kmOf(street) / Math.max(0.01, kmBetween(homePt(s), plan.at));
+      const kmPerMs = CHASE_SPEED[mode as ChaseMode] * TRAVEL_SCALE / 3_600_000;
+      if (kmOf(street) / kmPerMs <= plan.meet - now) { path = street; break; }
+      plan = planChase(s, RUTAS, trip, now, mode as never, ratio * 1.02);
+    }
+    if (!plan) return { error: `No llegás a cruzar a ${def.name} en la calle: va a estar lejos, adentro de algún lado o de vuelta en su casa antes.` };
     if (s.gold < plan.cost) return { error: `Ir así sale ${plan.cost} y no te alcanza.` };
-    startChase(s, def, other.id, plan, now);
+    startChase(s, def, other.id, plan, now, path);
     await q.query(`INSERT INTO chases (kind, attacker_id, target_id, meet_at, place, target_since, target_until) VALUES ('caza', $1, $2, $3, $4, $5, $6)`,
       [id, other.id, plan.meet, s.busy?.kind === "caza" ? s.busy.place : "", trip.since, trip.until]);
     chaseAdded(plan.meet);
@@ -250,16 +286,18 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const r = await db.query<{ id: number; name: string; lvl: number; side: Gang | null; avatar: number | null; bot: boolean; busy: NonNullable<PlayerState["busy"]> }>(
       `SELECT id, name, lvl, side, bot, (state->>'avatar')::int AS avatar, state->'busy' AS busy FROM players
         WHERE id <> $1 AND (state->'busy'->>'until')::bigint > $2
-          AND ((state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object') OR state->'busy'->>'kind' = 'caza')
+          AND ((state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object') OR state->'busy'->>'kind' = 'caza'
+               OR (state->'busy'->>'kind' = 'vuelta' AND state->'busy'->'safe' IS NULL))
         ORDER BY (state->'busy'->>'since')::bigint DESC LIMIT 40`, [id, now]);
     return {
       now,
       people: r.rows.flatMap((p): TravelerView[] => {
         const base = { id: p.id, name: p.name, lvl: p.lvl, gang: p.side, avatar: p.avatar ?? 1, bot: p.bot, since: Number(p.busy.since), until: Number(p.busy.until) };
         if (p.busy.kind === "mision" && p.busy.trip)
-          return [{ ...base, trip: { mode: p.busy.trip.mode, place: p.busy.trip.place, go: p.busy.trip.go, back: p.busy.trip.back } }];
+          return [{ ...base, trip: { mode: p.busy.trip.mode, place: p.busy.trip.place, go: p.busy.trip.go, back: p.busy.trip.back, from: p.busy.trip.from, path: p.busy.trip.path } }];
+        if (p.busy.kind === "vuelta") { const r = returnTrip(p.busy); return [{ ...base, trip: r.trip }]; }
         if (p.busy.kind === "caza")
-          return [{ ...base, chase: { meet: Number(p.busy.meet), from: p.busy.from, at: p.busy.at, targetName: p.busy.targetName } }];
+          return [{ ...base, chase: { meet: Number(p.busy.meet), from: p.busy.from, at: p.busy.at, targetName: p.busy.targetName, path: p.busy.path } }];
         return [];
       })
     };

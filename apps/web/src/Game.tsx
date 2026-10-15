@@ -13,6 +13,10 @@ export interface Ui {
   refresh: () => Promise<void>; toast: (text: string, good?: boolean) => void;
 }
 
+/* todos los fondos, para cambiar de uno a otro con un fundido */
+const BACKDROPS = [...new Set((["laburos", "gimnasio", "feria", "ring", "guardia", "misiones", "calle", "casa", "negocios", "amigos", "ranking"] as TabKey[])
+  .flatMap(k => [sceneFor(k, null), ...(["familia", "sindicato", "barra", "amarillos"] as const).map(g => sceneFor(k, g))]))].filter(Boolean);
+
 const tabName = (s: PlayerState, k: TabKey) =>
   TAB_NAMES[k];
 
@@ -95,6 +99,10 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
   return (
     <>
+      {/* el fondo de la página es el lugar donde estás (cambia con la pestaña) */}
+      <div className="backdrop" aria-hidden="true">
+        {BACKDROPS.map(src => <div key={src} className={src === sceneFor(tab, gangOf(s)) ? "on" : ""} style={{ backgroundImage: `url(${src})` }} />)}
+      </div>
       <header className="top">
         <div><div className="tag">Maires · de noche</div><h1>Mai<span className="o">res</span></h1></div>
         <div className="tag num">
@@ -117,7 +125,6 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
           </nav>
           {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <section className="pane">
-            <div className="scene" style={{ backgroundImage: `url(${sceneFor(tab, gangOf(s))})` }} aria-hidden="true" />
             <Pane tab={tab} {...ui} />
           </section>
           {showFight && <Fight f={fight} s={s} />}

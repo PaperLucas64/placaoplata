@@ -24,3 +24,8 @@ Si se agrega arte nuevo: anotar acá el pack, el autor y la licencia, y sumarlo 
 - **Teselas:** [OpenFreeMap](https://openfreemap.org) (gratis, sin clave) con datos de [OpenMapTiles](https://openmaptiles.org).
   El estilo oscuro sale de «positron», recoloreado y sin los nombres reales.
 - **Motor del mapa:** [MapLibre GL JS](https://maplibre.org) (licencia BSD-3).
+
+## Personajes del mapa
+
+- **Personajes caminando (estilo RPG Maker MV):** «ゆうひな素材» (Yuhina) de 明石アカ. Se usan dentro del juego; según sus
+  condiciones no se pueden redistribuir sueltos (ni modificados), por eso el repositorio tiene que ser privado.

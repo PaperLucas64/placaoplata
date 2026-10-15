@@ -24,7 +24,7 @@ export const bossImg = (g: Gang) => portraitOf(GANGS[g].boss);
 export function sceneFor(tab: TabKey, gang: Gang | null) {
   const map: Partial<Record<TabKey, string>> = {
     laburos: gang ?? "laburos", gimnasio: "gimnasio", ring: "gimnasio", feria: "feria", guardia: "guardia",
-    misiones: "misiones", calle: "calle", casa: "casa", ranking: "ranking"
+    misiones: "misiones", calle: "calle", casa: "casa", ranking: "ranking", negocios: "bar", amigos: "bar"
   };
   return img(`fondos/${map[tab] ?? "calle"}`);
 }
@@ -55,3 +55,14 @@ export function GangBadge({ gang }: { gang?: Gang | null }) {
   if (!gang || !GANGS[gang]) return <span className="badge">Suelto</span>;
   return <span className="badge" style={{ borderColor: GANGS[gang].color, color: GANGS[gang].color }}>{GANGS[gang].name}</span>;
 }
+
+/* personajes del mapa (estilo RPG Maker, de «ゆうひな»): uno por retrato y uno propio por cada vecino que juega solo */
+const SPRITE_OF_AVATAR: Record<number, number> = { 1: 23, 2: 144, 3: 50, 4: 47 };
+const BOT_SPRITES: Record<string, number> = {
+  "Tincho Ferreyra": 38, "La Colorada Paz": 170, "Pocho Benítez": 7, "Yésica Ramos": 58,
+  "Nacho del Once": 13, "Juanca Godoy": 33, "Lali Torres": 32, "El Chino Acuña": 45
+};
+const spriteImg = (n: number) => img(`sprites/pj_${n}`);
+export const playerSprite = (avatar?: number) => spriteImg(SPRITE_OF_AVATAR[avatar ?? 1] ?? 23);
+export const travelerSprite = (t: { name: string; avatar: number; bot?: boolean }) =>
+  t.bot && BOT_SPRITES[t.name] ? spriteImg(BOT_SPRITES[t.name]) : playerSprite(t.avatar);

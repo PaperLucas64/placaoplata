@@ -5,11 +5,11 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
+  tripPhase, VEHICLES, GEO_HOME, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, HOUSES, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES
 } from "@pop/shared";
 import { api, type BarrioView, type FriendsView, type RankRow, type RingView, type Traveler } from "./api";
 import type { Ui } from "./Game";
-import { avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
+import { playerSprite, travelerSprite, avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
 
 const GpsMap = lazy(() => import("./gps/GpsMap"));
@@ -17,20 +17,20 @@ const mapFallback = <div className="gps" style={{ height: 260 }} />;
 
 /* los otros jugadores que están en una misión (se actualiza cada medio minuto) */
 function useTravelers() {
-  const [people, setPeople] = useState<Traveler[]>([]);
+  const [view, setView] = useState<{ people: Traveler[]; online: number }>({ people: [], online: 0 });
   useEffect(() => {
     let on = true;
-    const load = () => api.travelers().then(r => on && setPeople(r.people)).catch(() => {});
+    const load = () => api.travelers().then(r => on && setView({ people: r.people, online: r.online ?? 0 })).catch(() => {});
     load();
     const t = setInterval(load, 30_000);
     return () => { on = false; clearInterval(t); };
   }, []);
-  return people;
+  return view;
 }
 /* El mapa de Maires, arriba de todo: los barrios con el color de su dueño, tu personaje (si está en la calle),
    los demás que andan por ahí y, al tocarlos, salir a buscarlos. */
 export function CityMap({ s, now, act }: Ui) {
-  const people = useTravelers();
+  const { people, online } = useTravelers();
   const [owned, setOwned] = useState<BarrioView[] | null>(null);
   useEffect(() => {
     const load = () => api.territory().then(r => setOwned(r.map)).catch(() => {});
@@ -41,26 +41,34 @@ export function CityMap({ s, now, act }: Ui) {
   const key = owned?.map(b => `${b.barrio}:${b.owner}`).join("|") ?? "";
   const owners = useMemo(() => owned ? Object.fromEntries(owned.map(b => [b.barrio, b.owner ? GANGS[b.owner].color : null])) : undefined, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const b = s.busy;
-  const trip = b?.kind === "mision" ? b.trip ?? null : null;
-  const ph = b?.kind === "mision" && trip ? tripPhase(b, now) : null;
+  /* tu viaje de ahora: a una misión, a curarte o volviendo a casa */
+  const ret = b?.kind === "vuelta" ? returnTrip(b) : null;
+  const trip = b?.kind === "mision" || b?.kind === "guardia" ? b.trip ?? null : ret ? ret.trip : null;
+  const ph = trip && b && b.kind !== "gym" && b.kind !== "caza" ? tripPhase({ since: b.since, until: b.until, trip: { ...trip, ev: 0 } }, now) : null;
   const others: Traveler[] = b?.kind === "caza"
     ? [...people, { id: -1, name: "Vos", lvl: s.lvl, gang: gangOf(s), avatar: s.avatar ?? 1, since: b.since, until: b.until,
-        chase: { meet: b.meet, from: b.from, at: b.at, targetName: b.targetName } }]
+        chase: { meet: b.meet, from: b.from, at: b.at, targetName: b.targetName, path: b.path } }]
     : people;
-  const status = trip && ph ? tripLine(trip, ph, tripKm(trip.place, trip.mode))
+  const km = trip ? (trip.path ? kmOf(trip.path) : tripKm(trip.from ?? GEO_HOME, trip.place, trip.mode)) : 0;
+  const status = b?.kind === "guardia" && ph ? (ph.phase === "ida"
+      ? <>{b.clinic ? "La ambulancia te lleva" : "Caminando"} a {b.clinic ? "la clínica" : "la guardia"} en <b>{trip!.place}</b> · llegás en {minTxt(ph.left)} · nadie te puede tocar</>
+      : <>{b.clinic ? "Te están curando en la clínica" : "En la guardia, esperando que te atiendan"} · alta en {minTxt(b.until - now)} · nadie te puede tocar</>)
+    : b?.kind === "vuelta" && ph ? <>{b.safe ? "La ambulancia te lleva a casa" : `Volviendo a casa ${TRAVEL[b.mode].verb}`} · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(b.until - now)}{!b.safe && " · si querés, arrancá otra cosa desde acá"}</>
+    : trip && ph ? tripLine(trip, ph, km)
     : b?.kind === "caza" ? (now < b.meet
       ? <>Vas {CHASE_NAMES[b.mode].toLowerCase()} a cruzar a <b>{b.targetName}</b> cerca de {b.place} · faltan {minTxt(b.meet - now)}</>
-      : <>Volviendo a la pensión · {minTxt(b.until - now)}</>)
+      : <>Volviendo a casa · {minTxt(b.until - now)}</>)
     : people.length ? <>{people.length} {people.length === 1 ? "persona anda" : "personas andan"} por la calle. Tocalos para ver a dónde van{s.tutDone ? " y salir a buscarlos" : ""}.</>
-    : <>La ciudad está tranquila. Vos estás en la pensión de San Telmón.</>;
+    : <>La ciudad está tranquila. Vos estás en tu {houseOf(s).name.toLowerCase()} de {homePlace(s)}.</>;
+  const crowd = <span className="crowd"><span className="live on" /> {online} en línea · {people.length} en la calle</span>;
   return <section className="city" aria-label="Mapa de Maires">
     <Suspense fallback={<div className="gps city-map" />}>
-      <GpsMap className="city-map" owners={owners} place={trip?.place} mode={trip?.mode}
-        at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} avatar={b?.kind === "caza" ? undefined : avatarImg(s.avatar)}
-        others={others} now={now} avatarOf={avatarImg}
+      <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
+        at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} sprite={b?.kind === "caza" ? undefined : playerSprite(s.avatar)}
+        others={others} now={now} spriteOf={travelerSprite}
         attack={s.tutDone ? { s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) } : undefined} />
     </Suspense>
-    <p className="gps-status num">{status}</p>
+    <p className="gps-status num">{status}{crowd}</p>
   </section>;
 }
 
@@ -78,7 +86,7 @@ const riskTxt = ["", "bajo", "medio", "alto"];
 
 export function Pane({ tab, ...rest }: Ui & { tab: TabKey }) {
   /* mientras entrenás o estás internado, todo lo que lleva energía o pelea queda bloqueado */
-  const ui = { ...rest, busy: rest.busy || !!rest.s.busy };
+  const ui = { ...rest, busy: rest.busy || (!!rest.s.busy && rest.s.busy.kind !== "vuelta") };
   switch (tab) {
     case "laburos": return <Jobs {...ui} />;
     case "gimnasio": return <Gym {...ui} />;
@@ -203,17 +211,24 @@ function Tournament({ now, ping, refresh, toast }: Ui) {
   </div>;
 }
 
-function Hospital({ s, act, busy }: Ui) {
-  const c = healCost(s), full = s.hp >= maxHp(s), occupied = !!s.busy;
+function Hospital({ s, act, busy, now }: Ui) {
+  const full = s.hp >= maxHp(s), occupied = !!s.busy && !onTheWayHome(s);
+  const from = streetFrom(s, now);
+  const g = carePlan(s, "guardia", from), c = carePlan(s, "clinica", from);
+  const mins = (ms: number) => Math.max(1, Math.round(ms / 60000));
   return <>
     <h2>Clínica y guardia</h2>
-    <p>La vida se recupera sola de a poco (de cero a lleno en media hora). Si no querés esperar, tenés dos opciones.</p>
+    <p>La vida se recupera sola de a poco (de cero a lleno en media hora). Si no querés esperar, tenés que ir a que te curen. Mientras te curan, nadie te puede tocar; después volvés a casa.</p>
     <div className="list">
-      <div className="item"><div><h3>Clínica privada</h3><div className="meta num">{full ? "Estás entero" : `${money(c)} · al instante`}</div></div>
-        <div className="act"><button disabled={busy || occupied || full || s.gold < c} onClick={() => act({ type: "heal" })}>Pagar y curarme</button></div></div>
-      <div className="item"><div><h3>Guardia del hospital</h3><div className="meta num">{full ? "Estás entero" : `Gratis · te dan el alta en ${Math.max(1, Math.round(guardiaTime(s) / 60000))} min`} · mientras estás internado nadie te puede atacar</div></div>
-        <div className="act"><button disabled={busy || occupied || full} onClick={() => act({ type: "guardia" })}>Internarme</button></div></div>
-      <div className="item"><div><h3>Usar un botiquín</h3><div className="meta num">Tenés {s.potions} · +50% de vida</div></div>
+      <div className="item"><div><h3>Clínica privada · {c.name}</h3>
+        <div className="meta">{c.place} · te busca una ambulancia que va a los pedos</div>
+        <div className="meta num">{full ? "Estás entero" : `${money(c.cost)} · ${c.go ? `${mins(c.go)} min de ambulancia + ` : ""}${mins(c.stay)} min de atención`}</div></div>
+        <div className="act"><button disabled={busy || occupied || full || s.gold < c.cost} onClick={() => act({ type: "heal" })}>Llamar la ambulancia</button></div></div>
+      <div className="item"><div><h3>Guardia · {g.name}</h3>
+        <div className="meta">{g.place} · gratis, pero vas {g.mode === "pie" ? "caminando" : "en colectivo"} y esperás</div>
+        <div className="meta num">{full ? "Estás entero" : `${g.go ? `${mins(g.go)} min de viaje + ` : ""}${mins(g.stay)} min de espera`}</div></div>
+        <div className="act"><button disabled={busy || occupied || full} onClick={() => act({ type: "guardia" })}>Ir a la guardia</button></div></div>
+      <div className="item"><div><h3>Usar un botiquín</h3><div className="meta num">Tenés {s.potions} · +50% de vida, en el momento</div></div>
         <div className="act"><button disabled={busy || !s.potions} onClick={() => act({ type: "kit" })}>Usar</button></div></div>
     </div>
   </>;
@@ -223,11 +238,22 @@ const STAT_SHORT: Record<StatKey, string> = { fue: "Fuerza", dur: "Dureza", ref:
 const DIFF_CLASS = ["r1", "r1", "r2", "r3"];
 
 /* La misión en curso: etapas resueltas (✓ / ✗), la que viene y cuánto falta */
+/* si venís volviendo a casa: más o menos dónde estás (para mostrar tiempos; el servidor los calcula por las cuadras) */
+function streetFrom(s: Ui["s"], now: number, dest?: string): FromPoint | undefined {
+  const b = s.busy;
+  if (b?.kind !== "vuelta") return undefined;
+  const a = placePt(b.place), h = homePt(s);
+  if (!a) return undefined;
+  const f = Math.min(1, Math.max(0, (now - b.since) / Math.max(1, b.until - b.since)));
+  const here: [number, number] = [a[0] + (h[0] - a[0]) * f, a[1] + (h[1] - a[1]) * f];
+  const to = dest ? placePt(dest) : null;
+  return { km: to ? Math.max(0.2, kmBetween(here, to) * 1.3) : 1 };
+}
 /* una línea con dónde va tu personaje */
 function tripLine(t: { mode: TravelMode; place: string; back: number }, ph: NonNullable<ReturnType<typeof tripPhase>>, km: number) {
   return ph.phase === "ida" ? <>{TRAVEL[t.mode].name} a <b>{t.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</>
     : ph.phase === "alla" ? <>En <b>{t.place}</b>, trabajando · después, {minTxt(t.back)} de vuelta</>
-    : <>Volviendo a la pensión · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(ph.left)}</>;
+    : <>Volviendo a casa · faltan {kmTxt(km * (1 - ph.frac))} · {minTxt(ph.left)}</>;
 }
 const kmTxt = (km: number) => (km >= 10 ? `${Math.round(km)} km` : `${km.toFixed(1).replace(".", ",")} km`);
 const minTxt = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))} min`;
@@ -241,7 +267,7 @@ function MissionProgress({ s, now }: Ui) {
   const n = m.steps.length, res = b.res ?? [];
   const t = b.trip, ph = tripPhase(b, now);
   const arrived = !t || (t.ev & 1) === 1;
-  const km = t ? tripKm(t.place, t.mode) : 0;
+  const km = t ? tripKm(t.from ?? GEO_HOME, t.place, t.mode) : 0;
   return <div className="mission thread" style={{ borderColor: clientOf(m).color }}>
     <h3>En curso: {m.title}</h3>
     {t && ph && <p className="gps-status num">{tripLine(t, ph, km)} · lo ves en el mapa de arriba</p>}
@@ -260,13 +286,15 @@ function MissionProgress({ s, now }: Ui) {
 }
 
 /* Tarjeta de una misión: dónde es, duración, energía, requisitos y premio. Al salir, elegís cómo ir. */
-function MissionCard({ m, s, act, busy, note, chip }: Ui & { m: Mission; note?: string; chip?: { name: string; color: string } }) {
+function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; note?: string; chip?: { name: string; color: string } }) {
   const [choosing, setChoosing] = useState(false);
   const req = Object.entries(missionReq(m)) as [StatKey, number][];
   const ok = canStart(s, m), meets = meetsReq(s, m), energy = missionEnergy(m);
   const done = !!s.done[m.id];
-  const can = ok && meets && !s.busy && s.energy >= energy && s.hp >= maxHp(s) * 0.5;
-  const place = missionPlace(m), trip = needsTrip(m) && place;
+  const can = ok && meets && (!s.busy || onTheWayHome(s)) && s.energy >= energy && s.hp >= maxHp(s) * 0.5;
+  const place = missionPlace(m);
+  const from = place ? streetFrom(s, now, place) : undefined;
+  const trip = needsTrip(s, m, from) && place;
   const c = chip ?? (m.street ? clientOf(m) : undefined);
   const start = (mode?: TravelMode) => { setChoosing(false); act({ type: "mstart", id: m.id, mode }); };
   return <div className="item mission-card">
@@ -284,11 +312,11 @@ function MissionCard({ m, s, act, busy, note, chip }: Ui & { m: Mission; note?: 
       </div>}
       {!done && note && <div className="lock">{note}</div>}
       {choosing && trip && <div className="travel">
-        <div className="tag">¿Cómo vas hasta {place}? ({kmTxt(tripKm(place, "colectivo"))} desde la pensión)</div>
-        {travelModes(s, place).map(k => {
-          const cost = tripCost(s, k, place), mins = tripMins(s, k, place) * 2 + missionMins(m);
+        <div className="tag">¿Cómo vas hasta {place}? {from ? `(~${kmTxt(from.km)} desde donde estás)` : `(${kmTxt(tripKm(homePlace(s), place, "colectivo"))} desde tu casa en ${homePlace(s)})`}</div>
+        {travelModes(s, place, from).map(k => {
+          const cost = tripCost(s, k, place, from), mins = tripMins(s, k, place, from) + missionMins(m);
           return <button key={k} className="mode" disabled={busy || s.gold < cost} onClick={() => start(k)}>
-            <b>{TRAVEL[k].name}</b><span className="num">{mins} min en total · {cost ? `${money(cost)} ida y vuelta` : "gratis"}</span><span className="tag">{TRAVEL_RISK[k]}</span>
+            <b>{TRAVEL[k].name}</b><span className="num">{from ? "~" : ""}{mins} min hasta terminar (después volvés a casa) · {cost ? `${money(cost)} ida y vuelta` : "gratis"}</span><span className="tag">{TRAVEL_RISK[k]}</span>
           </button>;
         })}
         <button className="mode ghost" onClick={() => setChoosing(false)}>Mejor no</button>
@@ -429,20 +457,33 @@ function House({ s, act, busy, now }: Ui) {
   const o = s.home.obra;
   const n = Math.max(0, Math.floor(Number(amount) || 0));
   return <>
-    <h2>Tu casa</h2>
-    <p>Arrancaste en una pieza de pensión. Cada mejora cuesta plata y lleva un tiempo de obra; mientras tanto podés seguir haciendo tu vida. Una obra por vez.</p>
+    <h2>Tu casa: {houseOf(s).name} en {homePlace(s)}</h2>
+    <p>Tu guarida: de acá salen y acá vuelven todos tus viajes. Cada mejora cuesta plata y lleva un tiempo de obra; mientras tanto podés seguir haciendo tu vida. Una obra por vez. En una casa chica no entra todo: para mejorar más, mudate.</p>
     {o && <p className="result good">Obra en curso: {HOME[o.part].levels[s.home[o.part] + 1].name} · faltan {Math.max(1, Math.ceil((o.until - now) / 60000))} min.</p>}
     <div className="list">{(Object.keys(HOME) as (keyof typeof HOME)[]).map(part => {
-      const h = HOME[part], lv = s.home[part], next = nextLevel(s, part);
+      const h = HOME[part], lv = s.home[part], next = nextLevel(s, part), roof = lv + 1 > houseOf(s).cap;
       return <div className="item" key={part}>
         <div><h3>{h.title}: {h.levels[lv].name}</h3><div className="meta">{h.help}
           {part === "cama" && ` Ahora: +${BED_ENERGY[lv]} de energía máxima.`}
           {part === "caja" && ` Capacidad: ${money(safeCap(s))}.`}
           {part === "armario" && ` Lugar: ${closetSlots(s)} cosas.`}
           {next && <><br /><span className="num">Siguiente: {next.name} · {money(next.cost)} · {next.mins} min de obra</span></>}</div></div>
-        <div className="act">{next
-          ? <button disabled={busy || !!o || s.gold < next.cost} onClick={() => act({ type: "build", part })}>Mejorar</button>
-          : <span className="tag">al máximo</span>}</div>
+        <div className="act">{!next ? <span className="tag">al máximo</span>
+          : roof ? <span className="tag">no entra en tu casa</span>
+          : <button disabled={busy || !!o || s.gold < next.cost} onClick={() => act({ type: "build", part })}>Mejorar</button>}</div>
+      </div>;
+    })}</div>
+
+    <h3>Mudarte</h3>
+    <p>Más cerca de donde trabajás, viajes más cortos. Las casas más grandes dejan mejorar más.</p>
+    <div className="list">{HOUSES.map(h => {
+      const mine = houseOf(s).id === h.id, locked = s.lvl < h.lvl;
+      return <div className="item" key={h.id}>
+        <div><h3>{h.name}{mine && <span className="kind">vivís acá</span>}</h3>
+          <div className="meta">{h.place} · {h.help}</div>
+          <div className="meta num">mejoras hasta el nivel {h.cap}{h.price ? ` · ${money(h.price)}` : " · gratis"}</div>
+          {!mine && locked && <div className="lock">Pide nivel {h.lvl}</div>}</div>
+        <div className="act">{!mine && <button disabled={busy || locked || !!s.busy || !!o || s.gold < h.price} onClick={() => act({ type: "move", id: h.id })}>Mudarme</button>}</div>
       </div>;
     })}</div>
 

@@ -36,7 +36,7 @@ function darken(st: StyleSpecification): StyleSpecification {
   return { ...st, layers };
 }
 
-const COLORS: Record<string, string> = { pie: "#e8e1d2", colectivo: "#f2c94c", taxi: "#f2c94c", micro: "#e6a14f", moto: "#e0524f", auto: "#e0524f", subte: "#5bc0de", tren: "#8bd17c" };
+const COLORS: Record<string, string> = { ambulancia: "#ff6b6b", pie: "#e8e1d2", colectivo: "#f2c94c", taxi: "#f2c94c", micro: "#e6a14f", moto: "#e0524f", auto: "#e0524f", subte: "#5bc0de", tren: "#8bd17c" };
 
 const ll = (p: Pt): [number, number] => [p[1], p[0]];
 
@@ -48,29 +48,66 @@ function labelEl(text: string, cls = "") {
   return el;
 }
 
+/* ---------- personajes estilo RPG Maker: 3 cuadros por 4 direcciones (abajo, izquierda, derecha, arriba) ---------- */
+function spriteEl(src: string, opts: { me?: boolean; color?: string; label?: string }) {
+  const el = document.createElement("div");
+  el.className = `spr${opts.me ? " me" : ""}`;
+  el.innerHTML = `<div class="spr-ring"></div><div class="spr-body"></div>${opts.label ? `<div class="spr-name"></div>` : ""}`;
+  (el.children[1] as HTMLElement).style.backgroundImage = `url(${src})`;
+  if (opts.color) el.style.setProperty("--ring", opts.color);
+  if (opts.label) (el.children[2] as HTMLElement).textContent = opts.label;
+  return el;
+}
+/* mira para donde camina; quieto, de frente */
+function face(el: HTMLElement, from: Pt | undefined, to: Pt) {
+  const dx = from ? (to[1] - from[1]) * Math.cos(to[0] * Math.PI / 180) : 0, dy = from ? to[0] - from[0] : 0;
+  const moving = Math.hypot(dx, dy) > 1e-6;
+  if (moving) el.style.setProperty("--row", String(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : (dy > 0 ? 3 : 0)));
+  else el.style.setProperty("--row", "0");
+  el.classList.toggle("walk", moving);
+}
+
+/* textos de los controles del mapa, en castellano */
+const LOCALE = {
+  "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
+  "CooperativeGesturesHandler.WindowsHelpText": "Ctrl + rueda para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MacHelpText": "⌘ + rueda para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa"
+};
+
 interface Props {
   place?: string;            // destino del viaje (si hay)
   mode?: TravelMode;
   at?: { back: boolean; f: number } | null; // dónde va el personaje: ida o vuelta y fracción del tramo
-  avatar?: string;           // retrato del personaje
+  sprite?: string;           // tu personaje (si no está, no se dibuja)
   owners?: Record<string, string | null>;   // color de la pandilla dueña de cada barrio (mapa de la ciudad)
-  others?: Traveler[];       // otros jugadores en una misión
+  others?: Traveler[];       // los demás en la calle (id -1: vos, cuando salís a buscar a alguien)
   now?: number;
-  avatarOf?: (n: number) => string;
+  spriteOf?: (t: Traveler) => string;
   /* salir a buscar a alguien: quién sos, por qué no podés (o null) y qué hacer al elegir cómo ir */
   attack?: { s: PlayerState; why: (t: Traveler) => string | null; go: (t: Traveler, mode: ChaseMode) => void };
   height?: number;
   className?: string;
+  home?: string;             // el barrio donde vive tu personaje (de ahí salen sus viajes)
+  path?: Pt[];               // si saliste desde la calle: el camino por las cuadras
 }
-export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now(), avatarOf, attack, height, className = "" }: Props) {
+export function GpsMap({ place, mode, at, sprite, owners, others, now = Date.now(), spriteOf, attack, height, className = "", home: homeName = GEO_HOME, path }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const me = useRef<maplibregl.Marker | null>(null);
+  const mePrev = useRef<Pt | undefined>(undefined);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef(new Map<number, maplibregl.Marker>());
+  const prev = useRef(new Map<number, Pt>());
   const latest = useRef({ others, now, attack });
   latest.current = { others, now, attack };
   const [data, setData] = useState<{ rutas: Rutas; style: StyleSpecification } | null>(null);
   const [failed, setFailed] = useState(false);
+  const self = others?.find(o => o.id < 0);
+  const traveling = !!place || !!self;
+  const [follow, setFollow] = useState(traveling);
+  useEffect(() => { if (traveling) setFollow(true); }, [traveling]);
+  const followRef = useRef(follow);
+  followRef.current = follow;
   useEffect(() => {
     Promise.all([loadRutas(), loadStyle()]).then(([rutas, style]) => setData({ rutas, style })).catch(() => setFailed(true));
   }, []);
@@ -78,12 +115,14 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
   /* armar el mapa y el recorrido */
   useEffect(() => {
     if (!box.current || !data) return;
-    const home = GEO_PLACES[GEO_HOME];
+    const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME];
     const map = new maplibregl.Map({
-      container: box.current, style: data.style, center: [home.lng, home.lat], zoom: 12,
-      attributionControl: { compact: true }, scrollZoom: false, dragRotate: false, pitchWithRotate: false
+      container: box.current, style: data.style, center: [home.lng, home.lat], zoom: 12, locale: LOCALE,
+      attributionControl: { compact: true }, cooperativeGestures: true, dragRotate: false, pitchWithRotate: false
     });
     map.touchZoomRotate.disableRotation();
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.on("dragstart", () => setFollow(false)); // si lo movés a mano, deja de seguirte
     mapRef.current = map;
     const bounds = new maplibregl.LngLatBounds([home.lng, home.lat], [home.lng, home.lat]);
     /* barrios de la ciudad (con el color de su dueño, si hay) y el conurbano; el interior solo si vas para allá */
@@ -94,12 +133,12 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
       dot.className = `gps-dot${owners ? " big" : ""}`;
       dot.style.background = color; dot.style.borderColor = color;
       new maplibregl.Marker({ element: dot }).setLngLat([p.lng, p.lat]).addTo(map);
-      new maplibregl.Marker({ element: labelEl(name, name === place ? "dest" : name === GEO_HOME ? "home" : ""), anchor: "bottom", offset: [0, -6] })
+      new maplibregl.Marker({ element: labelEl(name, name === place ? "dest" : name === homeName ? "home" : ""), anchor: "bottom", offset: [0, -6] })
         .setLngLat([p.lng, p.lat]).addTo(map);
       if (!place && !p.zone) bounds.extend([p.lng, p.lat]);
     }
-    const r = place ? data.rutas[place] : undefined;
-    const legs = r && mode ? legsFor(r, mode) : [];
+    const r = place ? data.rutas[homeName]?.[place] : undefined;
+    const legs = path && path.length > 1 && mode ? [{ kind: mode as string, pts: path, w: 1 }] : r && mode ? legsFor(r, mode) : [];
     for (const l of legs) for (const p of l.pts) bounds.extend(ll(p));
     if (place && !legs.length && GEO_PLACES[place]) bounds.extend([GEO_PLACES[place].lng, GEO_PLACES[place].lat]);
     map.on("load", () => {
@@ -109,19 +148,30 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
           paint: { "line-color": COLORS[l.kind] ?? "#f2c94c", "line-width": l.kind === "pie" ? 3 : 4, "line-opacity": 0.9,
             ...(l.kind === "pie" ? { "line-dasharray": [1, 2] } : {}) } });
       });
+      map.addSource("chase", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "chase", type: "line", source: "chase", layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#e0524f", "line-width": 3, "line-opacity": 0.85, "line-dasharray": [2, 1.5] } });
     });
     map.fitBounds(bounds, { padding: 30, maxZoom: 14.5, animate: false });
-    if (avatar) {
-      const el = document.createElement("div");
-      el.className = "gps-me";
-      el.innerHTML = `<img alt="" />`;
-      (el.firstElementChild as HTMLImageElement).src = avatar;
-      me.current = new maplibregl.Marker({ element: el }).setLngLat([home.lng, home.lat]).addTo(map);
+    if (sprite) {
+      mePrev.current = undefined;
+      me.current = new maplibregl.Marker({ element: spriteEl(sprite, { me: true, label: "Vos" }), anchor: "bottom" }).setLngLat([home.lng, home.lat]).addTo(map);
     }
-    return () => { map.remove(); me.current = null; mapRef.current = null; markers.current.clear(); };
-  }, [data, place, mode, avatar, owners]);
+    return () => { map.remove(); me.current = null; mapRef.current = null; markers.current.clear(); prev.current.clear(); };
+  }, [data, place, mode, sprite, owners, homeName, path ? path.length : 0]);
 
-  /* los otros jugadores en misión: dónde van ahora; al tocarlos, quién es y si lo podés asaltar */
+  /* el camino por las cuadras cuando salís a buscar a alguien */
+  const chasePath = self?.chase?.path ? JSON.stringify(self.chase.path) : "";
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const set = () => (map.getSource("chase") as maplibregl.GeoJSONSource | undefined)?.setData(chasePath
+      ? { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: (JSON.parse(chasePath) as Pt[]).map(ll) } }
+      : { type: "FeatureCollection", features: [] });
+    if (map.isStyleLoaded()) set(); else map.once("load", set);
+  }, [chasePath, data]);
+
+  /* los demás en la calle: dónde van ahora; al tocarlos, quién es y si lo podés asaltar */
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !data) return;
@@ -132,18 +182,18 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
       seen.add(o.id);
       let mk = markers.current.get(o.id);
       if (!mk) {
-        const el = document.createElement("div");
-        el.className = o.id < 0 ? "gps-other me" : o.chase ? "gps-other chasing" : "gps-other";
-        el.style.borderColor = o.gang ? GANGS[o.gang].color : "#8a8070";
-        el.innerHTML = `<img alt="" />`;
-        (el.firstElementChild as HTMLImageElement).src = avatarOf?.(o.avatar) ?? "";
+        const el = spriteEl(spriteOf?.(o) ?? "", { me: o.id < 0, color: o.gang ? GANGS[o.gang].color : "#8a8070", label: o.id < 0 ? "Vos" : undefined });
+        if (o.chase) el.classList.add("chasing");
         el.title = o.name;
         if (o.id >= 0) el.addEventListener("click", e => { e.stopPropagation(); openCard(map, o.id); });
-        mk = new maplibregl.Marker({ element: el }).setLngLat(ll(pos)).addTo(map);
+        mk = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(ll(pos)).addTo(map);
         markers.current.set(o.id, mk);
       } else mk.setLngLat(ll(pos));
+      face(mk.getElement(), prev.current.get(o.id), pos);
+      prev.current.set(o.id, pos);
+      if (o.id < 0 && followRef.current) map.easeTo({ center: ll(pos), duration: 900 });
     }
-    for (const [id, mk] of markers.current) if (!seen.has(id)) { mk.remove(); markers.current.delete(id); }
+    for (const [id, mk] of markers.current) if (!seen.has(id)) { mk.remove(); markers.current.delete(id); prev.current.delete(id); }
   }, [data, others, now]);
 
   function openCard(map: maplibregl.Map, id: number) {
@@ -151,6 +201,7 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
     const o = list?.find(x => x.id === id);
     const mk = markers.current.get(id);
     if (!o || !mk) return;
+    setFollow(false);
     const el = document.createElement("div");
     el.className = "gps-card";
     const line = (cls: string, text: string) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; el.appendChild(d); return d; };
@@ -159,19 +210,19 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
     if (o.chase) line("where", `Salió a buscar a ${o.chase.targetName}`);
     else if (o.trip) {
       const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, t);
-      line("where", ph?.phase === "ida" ? `Va a ${o.trip.place} ${TRAVEL[o.trip.mode].verb}` : ph?.phase === "alla" ? `Está en ${o.trip.place}` : `Vuelve de ${o.trip.place} ${TRAVEL[o.trip.mode].verb}`);
+      line("where", ph?.phase === "ida" ? `Va a ${o.trip.place} ${TRAVEL[o.trip.mode].verb}` : ph?.phase === "alla" ? `Está adentro, en ${o.trip.place}` : `Vuelve de ${o.trip.place} ${TRAVEL[o.trip.mode].verb}`);
     }
     if (atk && o.trip && data) {
       const why = atk.why(o);
       if (why) line("tag why", why);
       else {
-        line("tag", `Salir a buscarlo (${DUEL_COST} de energía). Si lo alcanzás, pelean donde se crucen:`);
+        line("tag", `Salir a buscarlo (${DUEL_COST} de energía). Solo en la calle: si lo alcanzás, pelean donde se crucen.`);
         for (const m of chaseModes(atk.s)) {
           const plan = planChase(atk.s, data.rutas, { since: o.since, until: o.until, trip: o.trip }, t, m);
           const btn = document.createElement("button");
           btn.className = plan ? "primary" : "";
           btn.disabled = !plan || atk.s.gold < plan.cost;
-          btn.textContent = plan ? `${CHASE_NAMES[m]} · lo cruzás en ${Math.max(1, Math.round((plan.meet - t) / 60000))} min${plan.cost ? ` · ${money(plan.cost)}` : ""}`
+          btn.textContent = plan ? `${CHASE_NAMES[m]} · lo cruzás en ~${Math.max(1, Math.round((plan.meet - t) / 60000))} min${plan.cost ? ` · ${money(plan.cost)}` : ""}`
                                  : `${CHASE_NAMES[m]} · no llegás`;
           btn.addEventListener("click", () => { popup.remove(); atk.go(o, m); });
           el.appendChild(btn);
@@ -180,22 +231,30 @@ export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now
     }
     /* el mapa se corre para que la tarjeta entre arriba de la persona */
     map.easeTo({ center: mk.getLngLat(), offset: [0, map.getContainer().clientHeight * 0.3], duration: 300 });
-    const popup = new maplibregl.Popup({ offset: 18, closeButton: true, className: "gps-popup", maxWidth: "240px", anchor: "bottom" })
+    const popup = new maplibregl.Popup({ offset: 40, closeButton: true, className: "gps-popup", maxWidth: "240px", anchor: "bottom" })
       .setLngLat(mk.getLngLat()).setDOMContent(el).addTo(map);
   }
 
-  /* mover al personaje */
+  /* mover a tu personaje (y a la cámara, si te sigue) */
   useEffect(() => {
     if (!data || !me.current) return;
-    const home = GEO_PLACES[GEO_HOME], dest = place ? GEO_PLACES[place] : undefined, r = place ? data.rutas[place] : undefined;
+    const home = GEO_PLACES[homeName] ?? GEO_PLACES[GEO_HOME], dest = place ? GEO_PLACES[place] : undefined, r = place ? data.rutas[homeName]?.[place] : undefined;
     let pos: Pt = [home.lat, home.lng];
-    if (at && r && mode) pos = positionAt(legsFor(r, mode), at.back ? 1 - at.f : at.f);
+    if (at && path && path.length > 1 && !at.back) pos = positionAt([{ pts: path, w: 1 }], at.f);
+    else if (at && r && mode) pos = positionAt(legsFor(r, mode), at.back ? 1 - at.f : at.f);
     else if (at && dest && !at.back && at.f >= 1) pos = [dest.lat, dest.lng];
     me.current.setLngLat(ll(pos));
-  }, [data, place, mode, at?.back, at?.f]);
+    face(me.current.getElement(), mePrev.current, pos);
+    mePrev.current = pos;
+    if (follow && mapRef.current) mapRef.current.easeTo({ center: ll(pos), duration: 900 });
+  }, [data, place, mode, at?.back, at?.f, homeName, follow]);
 
   const style = height ? { height } : undefined;
   if (failed) return <div className={`gps off ${className}`} style={style}><span className="tag">El mapa no cargó. El juego sigue igual.</span></div>;
-  return <div className={`gps ${className}`} ref={box} style={style} />;
+  return <div className={`gps ${className}`} style={style}>
+    <div className="gps-canvas" ref={box} />
+    {(sprite || self) && <button className={`gps-follow ${follow ? "on" : ""}`} onClick={() => setFollow(f => !f)} aria-pressed={follow}
+      title={follow ? "Dejar de seguir a tu personaje" : "Seguir a tu personaje"}>{follow ? "Siguiéndote" : "Seguirme"}</button>}
+  </div>;
 }
 export default GpsMap;

@@ -131,9 +131,10 @@ export function addAff(s: PlayerState, now: number, g: Gang, n: number) {
 /* Termina lo que estaba en curso si ya pasó el tiempo */
 export function finishBusy(s: PlayerState, now: number) {
   const b = s.busy;
-  if (b && b.kind !== "mision" && now >= b.until) {
+  if (b && b.kind !== "mision" && !(b.kind === "guardia" && b.trip) && now >= b.until) { // las curas con viaje las termina missionCatchUp
     s.busy = null;
-    if (b.kind === "caza") log(s, b.until, "Volviste a la pensión.");
+    if (b.kind === "caza") log(s, b.until, "Volviste a casa.");
+    else if (b.kind === "vuelta") log(s, b.until, "Llegaste a casa.");
     else if (b.kind === "gym") {
       s.stats[b.stat]++; s.c.train++;
       if (b.stat === "agu") s.hp += 12;

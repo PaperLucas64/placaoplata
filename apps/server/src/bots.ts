@@ -3,7 +3,7 @@
    cada uno tiene su horario (se despierta y se acuesta a una hora de Argentina) y su forma de jugar.
    De noche salen a un trabajo largo. Se apagan con BOTS=0. */
 import {
-  ARC_MISSIONS, canStart, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
+  ARC_MISSIONS, canStart, HOUSES, houseOf, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
   lawyerCost, maxHp, meetsReq, MISSIONS, missionEnergy, missionPlace, needsTrip, newPlayer, nextLevel, pick, planChase, PROPS,
   propIncome, SHOP, trainCost, travelModes, type Action, type Gang, type Mission, type PlayerState, type StatKey, type TravelMode
 } from "@pop/shared";
@@ -60,7 +60,7 @@ function pickMode(s: PlayerState, place: string): TravelMode | undefined {
 }
 const start = (s: PlayerState, m: Mission): Action => {
   const place = missionPlace(m);
-  return { type: "mstart", id: m.id, mode: place && needsTrip(m) ? pickMode(s, place) : undefined };
+  return { type: "mstart", id: m.id, mode: place && needsTrip(s, m) ? pickMode(s, place) : undefined };
 };
 
 /* Qué hace ahora un bot despierto y libre */
@@ -70,6 +70,9 @@ function decide(s: PlayerState, b: BotDef): Action | null {
   if (s.heat >= 60 && s.gold >= lawyerCost(s) * 2) return { type: "lawyer" };
   if (s.hp < mh * 0.5) return s.gold > (mh - s.hp) * 0.25 * 4 ? { type: "heal" } : { type: "guardia" };
   if (PROPS.some(p => s.props?.[p.id] !== undefined && propIncome(p, s.props[p.id], Date.now()) >= p.perHour * 4)) return { type: "collect" };
+  /* mudarse a algo mejor cuando le sobra la plata */
+  const house = HOUSES.find(h => h.lvl <= s.lvl && h.price > houseOf(s).price && h.price <= s.gold / 2);
+  if (house && rng() < 0.5) return { type: "move", id: house.id };
   const prop = PROPS.find(p => s.props?.[p.id] === undefined && p.lvl <= s.lvl && p.price <= s.gold / 2);
   if (prop && rng() < 0.5) return { type: "prop", id: prop.id };
   if (!s.home.obra) {
@@ -159,5 +162,5 @@ export function makeBots(db: Db, game: Game, ring: { join: (playerId: number) =>
     }
   }
 
-  return { tick, isAwake: (id: number) => awake.has(id) };
+  return { tick, isAwake: (id: number) => awake.has(id), awakeCount: () => awake.size };
 }
