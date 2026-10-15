@@ -41,6 +41,7 @@ packages/shared/   datos y reglas del juego: misiones, ítems, combate, energía
 apps/server/       Node + Fastify + Postgres: cuentas, partidas, peleas entre jugadores, avisos en vivo
 apps/web/          React + Vite: la pantalla
 tools/             bot de balance, simulador de peleas, jugadores de prueba y el modo desarrollo
+docs/GDD.md        documento de diseño: qué tiene el juego, límites y qué falta
 docs/BALANCE.md    cómo está calibrado el juego y por qué
 legacy/            la primera versión (un solo HTML) y los prototipos anteriores
 ```
