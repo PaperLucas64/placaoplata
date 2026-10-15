@@ -110,6 +110,23 @@ emboscadas rechazadas (+2/+3). Perder una pelea que iniciaste: −2.
 6 encargos que destraban Trabajos, Gimnasio, Feria, Ring, Clínica y Misiones, más la misión «La valija».
 Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los encargos de las pandillas. Dura ~32 de energía.
 
+### 5.2a El mapa es el juego (lugares, como en GTA)
+El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al tocar uno se abre lo que podés hacer ahí:
+- **Contactos** (los «Lester» de Maires): Bar La Esquina (Marga: tutorial y La valija) · la casona de La Señora (Puerto Mareo) ·
+  Galpón 3 (El Gordo Bermejo, Barrancas) · La Bombonerita (El Tano, La Bocota) · Remises Rita (Once y Medio) · Comisaría 4ª
+  (Funes, desde nivel 5). Cada uno tiene su encargo, su historia, las historias de la ciudad desde su lado y sus pedidos.
+  El número rojo es cuántas misiones te tiene.
+- **Servicios:** tu casa · Gimnasio de Don Tito · Estadio Luna Parquecito (torneo) · Feria de usados de Pompeya Chica ·
+  Concesionaria Autos del Bajo · Municipalidad (barrios y ranking) · hospitales y clínicas.
+- **Para robar** (los golpes pasan siempre ahí): Plaza Misere (celulares), estacionamiento de Palermo Soja (estéreos),
+  Desarmadero El Tuerca y Autopartes Lo de Cacho, YPFita de la Costanera y Shellita Avenida, Muelle 4, Financiera Las Cuevas.
+- **Trabajos honestos:** Bicis Rodado 26, lavadero de la estación, puerta del boliche Soja, Remisería Nocturna, Depósito 7.
+- **Negocios** (los tuyos y los que se pueden comprar) y las **misiones del tablón** como banderitas en su barrio.
+- **Eventos:** Noche de Brujas (24/10 al 2/11): el Cementerio de Recoleta Bien con 3 misiones encadenadas y una máscara de
+  calabaza de regalo (cabeza, reflejos +2, dureza +2; no se vende).
+- Los lugares aparecen a medida que avanzás (tutorial, nivel, rango) o con los eventos. De lejos se ven solo los importantes;
+  acercándote, todos. Íconos provisorios de game-icons.net (CC BY 3.0).
+
 ### 5.2b Pestañas
 Cinco pestañas con secciones: **Calle** (Trabajos, Misiones, Pelear, Negocios) · **Gimnasio** (Entrenar, Ring) ·
 **Mercado** · **Casa** (Tu casa, Equipo, Clínica) · **Ciudad** (Barrios y ranking, Amigos). Las secciones aparecen a

@@ -3,7 +3,7 @@ import { gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Sheet } from "./parts";
-import { CityMap, Pane } from "./panes";
+import { CityMap, Pane, PlacePanel } from "./panes";
 import { sceneFor } from "./art";
 
 export type Act = (a: Action) => Promise<void>;
@@ -11,6 +11,7 @@ export interface Ui {
   s: PlayerState; now: number; act: Act; busy: boolean; mission: { ok: boolean; text: string } | null;
   ping: number;                                  // sube cuando llega un aviso en vivo de amigos o misiones de a dos
   refresh: () => Promise<void>; toast: (text: string, good?: boolean) => void;
+  lugar: string | null; setLugar: (id: string | null) => void; // el lugar del mapa que tocaste
 }
 
 /* todos los fondos, para cambiar de uno a otro con un fundido */
@@ -93,7 +94,9 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const open = (k: TabKey) => { const g = GROUPS.find(x => x.tabs.includes(k)); if (g) lastIn.current[g.id] = k; setTab(k); setFight(null); setLiveFight(null); if (!s.seenTab[k]) act({ type: "seen", tab: k }); };
   useEffect(() => { if (!s.seenTab[tab]) act({ type: "seen", tab }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }) };
+  const [lugar, setLugar] = useState<string | null>(null);
+  const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }), lugar,
+    setLugar: id => { setLugar(id); setFight(null); setLiveFight(null); if (id) setTimeout(() => document.querySelector(".lugar")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
   const tabs: TabKey[] = withEquipo(s.tutDone ? withNewTabs(s.tabs) : s.tabs);
   /* cinco pestañas grandes; adentro, sus secciones (solo las que ya destrabaste) */
@@ -121,6 +124,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
           : act({ type: "cancel" })} />
         <CityMap {...ui} />
         <main className="board">
+          {lugar && <PlacePanel {...ui} />}
           <nav className="tabs" role="tablist">
             {groups.map(g => (
               <button key={g.id} role="tab" aria-selected={current?.id === g.id}

@@ -311,3 +311,25 @@ body{background:transparent}
 .gps-view{position:absolute;left:10px;bottom:10px;z-index:2;padding:6px 10px;font-size:.78rem;background:rgba(13,14,17,.85);border:1px solid var(--line)}
 .gps-view.on{border-color:var(--sodium);color:var(--sodium)}
 .bonus{color:#7fc8a9;font-weight:600}
+
+/* lugares del mapa (como los íconos de GTA) */
+.pin{--pin:#e8e1d2;position:relative;width:30px;height:30px;padding:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+  background:var(--pin);border:2px solid #0d0e11;box-shadow:0 2px 6px rgba(0,0,0,.6);cursor:pointer;display:grid;place-items:center}
+.pin img{width:17px;height:17px;transform:rotate(45deg);filter:drop-shadow(0 0 1px rgba(0,0,0,.6)) brightness(0) invert(0.1)}
+.pin:hover,.pin.on{outline:2px solid #fff;z-index:4}
+.pin-name{position:absolute;left:50%;top:50%;transform:rotate(45deg) translate(-2px,-30px);white-space:nowrap;pointer-events:none;
+  font:600 10.5px/1 var(--mono);color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;opacity:0;transition:opacity .15s}
+.pin:hover .pin-name,.pin.on .pin-name{opacity:1}
+.pin-badge{position:absolute;right:-6px;top:-6px;transform:rotate(45deg);min-width:16px;height:16px;border-radius:8px;background:#e0524f;color:#fff;
+  font:700 10px/16px var(--mono);text-align:center;border:1px solid #0d0e11}
+/* panel del lugar elegido */
+.lugar{border:1px solid var(--line);border-top:3px solid var(--lugar,#e8e1d2);background:var(--panel);padding:16px;display:grid;gap:12px}
+.lugar-head{display:flex;gap:12px;align-items:center}
+.lugar-head .pin{transform:rotate(-45deg) scale(1.2);flex:none;cursor:default}
+.lugar-head h2{margin:0}
+.lugar-close{margin-left:auto}
+.pin{width:26px;height:26px}
+.pin img{width:15px;height:15px}
+.gps.far .pin.near{display:none}
+.gps.far .pin{width:22px;height:22px}
+.gps.far .pin img{width:12px;height:12px}

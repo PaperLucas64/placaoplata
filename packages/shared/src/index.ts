@@ -13,3 +13,5 @@ export * from "./negocios.js";
 export * from "./arcs.js";
 export * from "./route.js";
 export * from "./casas.js";
+export * from "./lugares.js";
+export * from "./eventos.js";

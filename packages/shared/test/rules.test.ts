@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  canAmbush, onStreet, attackVal, defenseVal, eff, gearBonus, playerFighter, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
+  activeEvents, lugarOf, lugarOpen, canAmbush, onStreet, attackVal, defenseVal, eff, gearBonus, playerFighter, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -509,5 +509,25 @@ describe("asaltos en el mapa y trabajos largos", () => {
     expect(m12.reward!.gold).toBeGreaterThan(long[0].reward!.gold * 3);
     applyAction(s, { type: "mstart", id: m12.id, mode: "colectivo" }, ctx());
     expect(s.busy!.until - s.busy!.since).toBeGreaterThan(12 * 3_600_000); // las 12 horas más el viaje
+  });
+});
+
+describe("lugares del mapa y eventos", () => {
+  it("un golpe hecho desde un lugar del mapa pasa ahí (y solo el golpe que corresponde)", () => {
+    const s = veteran("Ana"); s.lvl = 6;
+    expect(applyAction(s, { type: "job", id: "celu", at: "desarmadero-tuerca" }, ctx()).error).toMatch(/ahí/);
+    expect(applyAction(s, { type: "job", id: "desarme", at: "desarmadero-tuerca" }, ctx()).error).toBeUndefined();
+    expect(s.busy?.kind === "salida" && s.busy.place).toBe("Barrancas");
+  });
+  it("Halloween dura del 24 de octubre al 2 de noviembre", () => {
+    expect(activeEvents(Date.UTC(2026, 9, 15, 15))).toEqual([]);
+    expect(activeEvents(Date.UTC(2026, 9, 31, 15))).toEqual(["halloween"]);
+    expect(activeEvents(Date.UTC(2026, 10, 3, 15))).toEqual([]);
+  });
+  it("los lugares se destraban con el progreso", () => {
+    const s = newPlayer("Ana", T0);
+    expect(lugarOpen(s, lugarOf("bar-esquina")!, T0)).toBe(true);
+    expect(lugarOpen(s, lugarOf("senora")!, T0)).toBe(false);     // después del tutorial
+    expect(lugarOpen(veteran("Beto"), lugarOf("senora")!, T0)).toBe(true);
   });
 });

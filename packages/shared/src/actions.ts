@@ -12,6 +12,8 @@ import { hasMod, hasVehicle, MODS, nearestCare, travelModes, tripCost, tripMins,
 import { PROPS, propIncome, propOf } from "./negocios.js";
 import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
 import { HOUSES, homePlace, houseOf } from "./casas.js";
+import { EVENT_MISSIONS } from "./eventos.js";
+import { activeEvents, lugarOf } from "./lugares.js";
 import { routeTo, TRAVEL, tripEvent } from "./geo.js";
 import {
   addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
@@ -32,6 +34,10 @@ export function canStart(s: PlayerState, m: Mission) {
   if (!s.tutDone) return false;
   if (m.street) return s.board.some(x => x.id === m.id);
   if (m.arc) return arcOpen(s, m) && rankOf(s) >= m.rank;
+  if (m.event) { /* misiones de evento: solo mientras dura, en orden */
+    const list = EVENT_MISSIONS.filter(x => x.event === m.event), i = list.indexOf(m);
+    return activeEvents(Date.now()).includes(m.event) && !s.done[m.id] && (i <= 0 || !!s.done[list[i - 1].id]);
+  }
   if (!m.gang) return false;
   const list = MISSIONS[m.gang], i = list.indexOf(m);
   return i >= 0 && !s.done[m.id] && rankOf(s) >= m.rank && list.slice(0, i).every(x => s.done[x.id]);
@@ -123,7 +129,9 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.energy < j.cost) return fail("No te alcanza la energía.");
       s.energy -= j.cost;
       if (!isGolpe(j.id)) { resolveJob(s, j, now, rng); return {}; }   // los laburos honestos, al instante
-      startSalida(s, "golpe", j.id, j.name, golpePlace(s, rng), ctx);  // los golpes: salís a un barrio cercano
+      const spot = a.at ? lugarOf(a.at) : undefined;
+      if (a.at && spot?.job !== j.id) return fail("Eso no se hace ahí.");
+      startSalida(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
       return {};
     }
 

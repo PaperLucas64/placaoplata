@@ -2,7 +2,8 @@
    cuenta lo que pasó. Las resuelve el servidor (y el bot de balance): la pantalla solo muestra el avance.
    Además, el tablón de misiones de calle generadas a tu nivel. */
 import { ARC_INFLUENCE, ARC_MISSIONS, arcChapterKey, COMISARIO } from "./arcs.js";
-import { STAT_NAMES, VALIJA } from "./data.js";
+import { SHOP, STAT_NAMES, VALIJA } from "./data.js";
+import { EVENT_MISSIONS } from "./eventos.js";
 import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } from "./gangs.js";
 import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type FromPoint, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
@@ -20,7 +21,7 @@ export const BOARD_EVERY = 6 * 60 * MIN;            // el tablón de la calle se
 export const BOARD_REROLL_COST = 2;                 // o pagando energía
 
 /* ---------- datos de cada misión ---------- */
-export const allStory = (): Mission[] => [VALIJA, ...GANG_KEYS.flatMap(g => MISSIONS[g]), ...ARC_MISSIONS];
+export const allStory = (): Mission[] => [VALIJA, ...GANG_KEYS.flatMap(g => MISSIONS[g]), ...ARC_MISSIONS, ...EVENT_MISSIONS];
 export const findMission = (s: Pick<PlayerState, "board" | "coop">, id: string) =>
   allStory().find(m => m.id === id) ?? s.board?.find(m => m.id === id) ?? (s.coop?.mission.id === id ? s.coop.mission : undefined);
 /* dónde pasa: las de la historia de cada pandilla, en su barrio. La valija y las de a dos no tienen viaje. */
@@ -168,6 +169,15 @@ export function mainStat(m: Mission): StatKey | undefined {
   for (const st of m.steps) if (st.stat) count[st.stat] = (count[st.stat] ?? 0) + 1;
   return (Object.keys(count) as StatKey[]).sort((a, b) => count[b]! - count[a]!)[0];
 }
+/* regalo de una misión: te lo ponés si el lugar está vacío; si no, al bolso (si entra) */
+function givePrize(s: PlayerState, id: string, at: number) {
+  const it = SHOP.find(x => x.id === id);
+  if (!it || it.slot === "consumible" || s.gear[it.slot] === id || s.inv.includes(id)) return;
+  if (!s.gear[it.slot]) s.gear[it.slot] = id;
+  else if (s.inv.length < 4 + [0, 2, 4, 8][s.home?.armario ?? 0]) s.inv.push(id);
+  else { log(s, at, `Te ganaste ${it.name.toLowerCase()}, pero no te entró en el bolso.`, "bad"); return; }
+  log(s, at, `Te llevaste ${it.name.toLowerCase()}: un recuerdo de la misión.`, "gold");
+}
 function statReward(s: PlayerState, m: Mission, at: number, rng: Rng) {
   const k = mainStat(m);
   if (!k) return;
@@ -204,6 +214,7 @@ function finishMission(s: PlayerState, m: Mission, ok: number, at: number, rng: 
   log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto${r.heat && r.heat < 0 ? `, ${r.heat} de búsqueda` : ""}.`, "gold");
   if (m.gang) addAff(s, at, m.gang, m.aff ?? MISSION_AFF[m.tier ?? 0]);
   statReward(s, m, at, rng);
+  if (m.prize) givePrize(s, m.prize, at);
   /* trabajo sucio: la pandilla perjudicada pierde terreno y te tiene menos simpatía */
   if (m.target) {
     const hurt = POLICE_HURT[m.difficulty ?? 0];

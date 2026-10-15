@@ -16,6 +16,7 @@ export type Slot = "blanca" | "fuego" | "cabeza" | "torso" | "ropa";
 export interface Item {
   id: string; slot: Slot | "consumible"; name: string; val: number; price: number; lvl: number;
   bonus?: Partial<Record<StatKey, number>>; // lo que te suma a cada atributo mientras lo tenés puesto
+  event?: string;           // ítem de un evento: no se vende
   rank?: number;
 }
 export interface MissionStep {
@@ -36,6 +37,8 @@ export interface Mission {
   target?: Gang;               // trabajo sucio para la policía: la pandilla a la que perjudica
   arc?: string; chapter?: number; pov?: Gang | "policia"; // historias de la ciudad: capítulo y bando
   hours?: number;              // trabajos largos en el conurbano: cuántas horas de trabajo
+  event?: string;              // solo durante ese evento del calendario
+  prize?: string;              // ítem de regalo al salir bien
   reward?: { gold: number; xp: number; resp: number; heat?: number };
 }
 
@@ -103,7 +106,7 @@ export interface ActionResult { error?: string; fight?: FightView; mission?: { o
 export type Action =
   | { type: "claimTut" }
   | { type: "seen"; tab: TabKey }
-  | { type: "job"; id: string }
+  | { type: "job"; id: string; at?: string } // at: el lugar del mapa donde lo hacés (los golpes)
   | { type: "encargo"; gang: Gang }
   | { type: "train"; stat: StatKey }
   | { type: "buy"; id: string }

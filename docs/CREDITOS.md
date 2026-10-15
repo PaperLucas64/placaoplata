@@ -31,3 +31,8 @@ Si se agrega arte nuevo: anotar acá el pack, el autor y la licencia, y sumarlo 
   condiciones no se pueden redistribuir sueltos (ni modificados), por eso el repositorio tiene que ser privado.
 - **Vista satélite:** Esri World Imagery (imágenes © Esri, Maxar, Earthstar Geographics). Para producción, Esri pide una
   cuenta gratis de ArcGIS Location Platform: su clave va en la variable `VITE_ESRI_KEY` del build (si no está, se usa sin clave).
+
+## Íconos de los lugares del mapa
+
+- **game-icons.net** (licencia CC BY 3.0): íconos de Delapouite, Lorc y Andy Meneely, en `apps/web/src/assets/lugares/`.
+  Son provisorios, hasta tener los propios.

@@ -64,6 +64,7 @@ SHOP.push(
   { id:"recortada", slot:"fuego",  name:"Escopeta recortada",          val:11, price:2200, lvl:1, rank:3, bonus:{ fue: 7 } },
   { id:"robado",    slot:"torso",  name:"Chaleco robado a la policía", val:8,  price:1800, lvl:1, rank:3, bonus:{ dur: 11 } },
   { id:"fusil",     slot:"fuego",  name:"Fusil del contrabando",       val:14, price:3600, lvl:1, rank:4, bonus:{ fue: 9 } },
+  { id:"calabaza",  slot:"cabeza", name:"Máscara de calabaza",         val:4,  price:1000, lvl:1, event:"halloween", bonus:{ ref: 2, dur: 2 } },
   { id:"negro",     slot:"torso",  name:"Chaleco del mercado negro",   val:11, price:2900, lvl:1, rank:4, bonus:{ dur: 15 } }
 );
 /* nombres de cada lugar del equipo */

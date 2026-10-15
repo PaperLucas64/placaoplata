@@ -21,7 +21,7 @@ export const supplementsTaken = (s: Pick<PlayerState, "hpBonus">) => Math.round(
 export const supplementCost = (s: Pick<PlayerState, "hpBonus">) => 300 * (supplementsTaken(s) + 1) ** 2;
 /* la feria: en el tutorial solo te vende una llave inglesa; después, todo lo de tu nivel */
 export const TUTORIAL_SHOP = ["llave"];
-export const forSale = (s: PlayerState, it: Item) => s.tutDone ? true : TUTORIAL_SHOP.includes(it.id);
+export const forSale = (s: PlayerState, it: Item) => !it.event && (s.tutDone ? true : TUTORIAL_SHOP.includes(it.id));
 export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
 export const trainCost = (v: number) => Math.round(3 * Math.pow(v, 2));
 export const itemOf = (id: string | null | undefined) => (id ? SHOP.find(i => i.id === id) : undefined);
