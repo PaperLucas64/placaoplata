@@ -6,7 +6,7 @@ import {
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
   tripPhase, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
-  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, type ShopKind, spotIn, missionPt
+  EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, durTxt, type ShopKind, spotIn, missionPt
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
 import SUBTE from "@pop/shared/subte.json";
@@ -350,7 +350,7 @@ function Gym({ s, act, busy }: Ui) {
       const c = trainCost(s.stats[k]);
       return <div className="item" key={k}>
         <div><h3>{STAT_NAMES[k]} <span className="num">{s.stats[k]}</span>{gearBonus(s, k) > 0 && <span className="num bonus"> (+{gearBonus(s, k)} del equipo)</span>}</h3><div className="meta">{STAT_HELP[k]}</div></div>
-        <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)} · {Math.round(trainTime(s.stats[k]) / 60000)} min</span></button></div>
+        <div className="act"><button disabled={busy || s.gold < c} onClick={() => act({ type: "train", stat: k })}>Entrenar · <span className="num">{money(c)} · {durTxt(trainTime(s.stats[k]) / 60000)}</span></button></div>
       </div>;
     })}</div>
   </>;
@@ -472,11 +472,11 @@ function Hospital({ s, act, busy, now }: Ui) {
     <div className="list">
       <div className="item"><div><h3>Clínica privada · {c.name}</h3>
         <div className="meta">{c.place} · te busca una ambulancia que va a los pedos</div>
-        <div className="meta num">{full ? "Estás entero" : `${money(c.cost)} · ${c.go ? `${mins(c.go)} min de ambulancia + ` : ""}${mins(c.stay)} min de atención`}</div></div>
+        <div className="meta num">{full ? "Estás entero" : `${money(c.cost)} · ${c.go ? `${durTxt(mins(c.go))} de ambulancia + ` : ""}${durTxt(mins(c.stay))} de atención`}</div></div>
         <div className="act"><button disabled={busy || occupied || full || s.gold < c.cost} onClick={() => act({ type: "heal" })}>Llamar la ambulancia</button></div></div>
       <div className="item"><div><h3>Guardia · {g.name}</h3>
         <div className="meta">{g.place} · gratis, pero vas {g.mode === "pie" ? "caminando" : "en colectivo"} y esperás</div>
-        <div className="meta num">{full ? "Estás entero" : `${g.go ? `${mins(g.go)} min de viaje + ` : ""}${mins(g.stay)} min de espera`}</div></div>
+        <div className="meta num">{full ? "Estás entero" : `${g.go ? `${durTxt(mins(g.go))} de viaje + ` : ""}${durTxt(mins(g.stay))} de espera`}</div></div>
         <div className="act"><button disabled={busy || occupied || full} onClick={() => act({ type: "guardia" })}>Ir a la guardia</button></div></div>
       <div className="item"><div><h3>Usar un botiquín</h3><div className="meta num">Tenés {s.potions} · +50% de vida, en el momento</div></div>
         <div className="act"><button disabled={busy || !s.potions} onClick={() => act({ type: "kit" })}>Usar</button></div></div>
@@ -557,7 +557,7 @@ function tripLine(t: { mode: TravelMode; place: string; back: number }, ph: NonN
 }
 const kmTxt = (km: number) => (km >= 10 ? `${Math.round(km)} km` : `${km.toFixed(1).replace(".", ",")} km`);
 /* «7 h 33 min» en vez de «453 min» */
-const minTxt = (ms: number) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`; };
+const minTxt = (ms: number) => durTxt(Math.ceil(ms / 60000));
 
 /* La misión en curso: el GPS con tu personaje y las etapas. Lo que todavía no pasó no se cuenta. */
 function MissionProgress({ s, now }: Ui) {
@@ -618,7 +618,7 @@ function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; no
         {travelModes(s, place, from).map(k => {
           const cost = tripCost(s, k, place, from), mins = tripMins(s, k, place, from) + missionMins(m);
           return <button key={k} className="mode" disabled={busy || s.gold < cost} onClick={() => start(k)}>
-            <b>{TRAVEL[k].name}</b><span className="num">{from ? "~" : ""}{mins} min hasta terminar (después volvés a casa) · {cost ? `${money(cost)} ida y vuelta` : "gratis"}</span><span className="tag">{TRAVEL_RISK[k]}</span>
+            <b>{TRAVEL[k].name}</b><span className="num">{from ? "~" : ""}{durTxt(mins)} hasta terminar (después volvés a casa) · {cost ? `${money(cost)} ida y vuelta` : "gratis"}</span><span className="tag">{TRAVEL_RISK[k]}</span>
           </button>;
         })}
         <button className="mode ghost" onClick={() => setChoosing(false)}>Mejor no</button>
@@ -755,7 +755,7 @@ function House({ s, act, busy, now }: Ui) {
   return <>
     <h2>Tu casa: {houseOf(s).name} en {homePlace(s)}</h2>
     <p>Tu guarida: de acá salen y acá vuelven todos tus viajes. Cada mejora cuesta plata y lleva un tiempo de obra; mientras tanto podés seguir haciendo tu vida. Una obra por vez. En una casa chica no entra todo: para mejorar más, mudate.</p>
-    {o && <p className="result good">Obra en curso: {HOME[o.part].levels[s.home[o.part] + 1].name} · faltan {Math.max(1, Math.ceil((o.until - now) / 60000))} min.</p>}
+    {o && <p className="result good">Obra en curso: {HOME[o.part].levels[s.home[o.part] + 1].name} · faltan {minTxt(o.until - now)}.</p>}
     <div className="list">{(Object.keys(HOME) as (keyof typeof HOME)[]).map(part => {
       const h = HOME[part], lv = s.home[part], next = nextLevel(s, part), roof = lv + 1 > houseOf(s).cap;
       return <div className="item" key={part}>
@@ -763,7 +763,7 @@ function House({ s, act, busy, now }: Ui) {
           {part === "cama" && ` Ahora: +${BED_ENERGY[lv]} de energía máxima.`}
           {part === "caja" && ` Capacidad: ${money(safeCap(s))}.`}
           {part === "armario" && ` Tu bolso: ${bagSize(s)} cosas.`}
-          {next && <><br /><span className="num">Siguiente: {next.name} · {money(next.cost)} · {next.mins} min de obra</span></>}</div></div>
+          {next && <><br /><span className="num">Siguiente: {next.name} · {money(next.cost)} · {durTxt(next.mins)} de obra</span></>}</div></div>
         <div className="act">{!next ? <span className="tag">al máximo</span>
           : roof ? <span className="tag">no entra en tu casa</span>
           : <button disabled={busy || !!o || s.gold < next.cost} onClick={() => act({ type: "build", part })}>Mejorar</button>}</div>
@@ -846,7 +846,7 @@ function Friends({ s, busy, ping, refresh, toast }: Ui) {
   const off = busy || working;
   const c = s.coop;
   const coopMeta = (m: { mins?: number; reward?: { gold: number; xp: number } }) =>
-    `${m.mins ?? COOP_MINS} min · ${COOP_ENERGY} de energía cada uno · ${money(m.reward?.gold ?? 0)} y ${m.reward?.xp ?? 0} XP para cada uno`;
+    `${durTxt(m.mins ?? COOP_MINS)} · ${COOP_ENERGY} de energía cada uno · ${money(m.reward?.gold ?? 0)} y ${m.reward?.xp ?? 0} XP para cada uno`;
 
   return <>
     <h2>Amigos</h2>

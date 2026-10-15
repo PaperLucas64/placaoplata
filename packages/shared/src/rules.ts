@@ -14,6 +14,8 @@ export const rnd = (rng: Rng, a: number, b: number) => Math.floor(rng() * (b - a
 export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 export const pick = <T>(rng: Rng, a: T[]): T => a[rnd(rng, 0, a.length - 1)];
 export const money = (n: number) => `$${n}`;
+/* «7 h 33 min» en vez de «453 min» */
+export const durTxt = (min: number) => { const m = Math.max(1, Math.round(min)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`; };
 const MIN = 60_000;
 
 export const maxHp = (s: Pick<PlayerState, "stats" | "lvl"> & { hpBonus?: number }) => 40 + s.stats.agu * 12 + s.lvl * 6 + (s.hpBonus ?? 0);

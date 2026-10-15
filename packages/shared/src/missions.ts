@@ -8,7 +8,7 @@ import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } f
 import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type FromPoint, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
 import { homePlace } from "./casas.js";
-import { addAff, addHeat, addRespect, news, battle, clamp, eff, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
+import { addAff, addHeat, addRespect, news, durTxt, battle, clamp, eff, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
 import type { Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
 
@@ -61,8 +61,8 @@ export function startTimedMission(s: PlayerState, m: Mission, now: number, mode?
     trip: trip ? { mode: mode!, place: place!, go, back: 0, ev: 0, from, ...(fp?.path ? { path: fp.path } : {}) } : null };
   const total = Math.round((go + work) / MIN);
   log(s, now, trip
-    ? `Saliste a hacer «${m.title}»${fp ? " desde donde estabas" : ""}. ${tripText(s, mode!, place!, rng, fp)} Terminás en ${total} min y después volvés a casa.`
-    : `Saliste a hacer «${m.title}». Terminás en ${total} min.`, "gold");
+    ? `Saliste a hacer «${m.title}»${fp ? " desde donde estabas" : ""}. ${tripText(s, mode!, place!, rng, fp)} Llegás en ${durTxt(go / MIN)} y la misión dura ${durTxt(work / MIN)}; después volvés a casa.`
+    : `Saliste a hacer «${m.title}». Terminás en ${durTxt(total)}.`, "gold");
 }
 
 /* volver a casa: estás en la calle (salvo en ambulancia) hasta llegar */
@@ -416,7 +416,7 @@ export function longMission(rng: Rng, lvl: number, hours: number, id: string): M
   const units = 6 + 3 * hours; // lo que paga, medido en "energía de misión"
   return {
     id, street: true, gang, hours, rank: 0, mins: hours * 60, place: obj.place, difficulty: 1,
-    title: obj.text, intro: `${GANGS[gang].name} te manda a ${obj.place}${zone ? ` (${ZONE_NAMES[zone]})` : ""}. Turno de ${hours} horas.`,
+    title: `${obj.text} (turno de ${hours} h)`, intro: `${GANGS[gang].name} te manda a ${obj.place}${zone ? ` (${ZONE_NAMES[zone]})` : ""}. Turno de ${hours} horas.`,
     steps, outro: "",
     req: { [obj.stat]: Math.max(5, Math.round(typ * 0.7)) },
     aff: hours,

@@ -16,7 +16,7 @@ import { EVENT_MISSIONS } from "./eventos.js";
 import { activeEvents, lugarOf } from "./lugares.js";
 import { routeTo, TRAVEL, tripEvent } from "./geo.js";
 import {
-  news, addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
+  durTxt, news, addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
@@ -155,7 +155,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       const t = trainTime(s.stats[a.stat], s);
       s.gold -= c;
       s.busy = { kind: "gym", since: now, until: now + t, stat: a.stat };
-      log(s, now, `Empezaste a entrenar ${STAT_NAMES[a.stat].toLowerCase()} (−${money(c)}). Termina en ${Math.round(t / 60_000)} min.`);
+      log(s, now, `Empezaste a entrenar ${STAT_NAMES[a.stat].toLowerCase()} (−${money(c)}). Termina en ${durTxt(t / 60_000)}.`);
       return {};
     }
 
@@ -248,8 +248,8 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       const plan = carePlan(s, "guardia", ctx.from);
       s.busy = { kind: "guardia", since: now, until: now + plan.go + plan.stay, hpFrom: s.hp,
         trip: plan.go ? { mode: plan.mode, place: plan.place, go: plan.go, back: 0, ev: 0, from: homePlace(s), ...(ctx.from?.path ? { path: ctx.from.path } : {}) } : null };
-      log(s, now, plan.go ? `Saliste ${plan.mode === "pie" ? "caminando" : "en colectivo"} para la guardia del ${plan.name}, en ${plan.place}. Te dan el alta en unos ${Math.round((plan.go + plan.stay) / 60_000)} min.`
-                          : `Entraste a la guardia del ${plan.name}. Te dan el alta en ${Math.max(1, Math.round(plan.stay / 60_000))} min.`);
+      log(s, now, plan.go ? `Saliste ${plan.mode === "pie" ? "caminando" : "en colectivo"} para la guardia del ${plan.name}, en ${plan.place}. Te dan el alta en unos ${durTxt((plan.go + plan.stay) / 60_000)}.`
+                          : `Entraste a la guardia del ${plan.name}. Te dan el alta en ${durTxt(plan.stay / 60_000)}.`);
       return {};
     }
 
@@ -336,7 +336,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.gold < lv.cost) return fail("No te alcanza la plata.");
       s.gold -= lv.cost;
       s.home.obra = { part: a.part, since: now, until: now + lv.mins * 60_000 };
-      log(s, now, `Arrancó la obra: ${lv.name.toLowerCase()} (−${money(lv.cost)}). Termina en ${lv.mins} min.`);
+      log(s, now, `Arrancó la obra: ${lv.name.toLowerCase()} (−${money(lv.cost)}). Termina en ${durTxt(lv.mins)}.`);
       return {};
     }
 
@@ -472,8 +472,8 @@ function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, nam
   const work = SALIDA_WORK[what] * 60_000;
   s.busy = { kind: "salida", what, ref, place, since: now, until: now + go + work,
     trip: go && mode ? { mode, place, go, back: 0, ev: 0, from: home, ...(from?.path ? { path: from.path } : {}) } : null };
-  log(s, now, go ? `Saliste ${TRAVEL[mode!].verb} a ${place}: ${name}. Lo hacés en ${Math.round((go + work) / 60_000)} min.`
-                 : `${name}, acá en ${place}. Lo hacés en ${Math.round(work / 60_000)} min.`);
+  log(s, now, go ? `Saliste ${TRAVEL[mode!].verb} a ${place}: ${name}. Lo hacés en ${durTxt((go + work) / 60_000)}.`
+                 : `${name}, acá en ${place}. Lo hacés en ${durTxt(work / 60_000)}.`);
   void rng;
 }
 /* se resuelve al llegar y hacerlo; después, a casa */
@@ -575,7 +575,7 @@ export function startChase(att: PlayerState, def: PlayerState, defId: number, pl
   att.energy -= DUEL_COST; att.gold -= plan.cost;
   att.busy = { kind: "caza", since: now, until, meet: plan.meet, target: defId, targetName: def.name, place,
     from: homePt(att), at: plan.at, mode: plan.mode, ...(path ? { path } : {}) };
-  log(att, now, `Saliste a buscar a ${def.name} ${CHASE_NAMES[plan.mode].toLowerCase()}: lo cruzás cerca de ${place} en ${Math.max(1, Math.round((plan.meet - now) / 60_000))} min.`, "gold");
+  log(att, now, `Saliste a buscar a ${def.name} ${CHASE_NAMES[plan.mode].toLowerCase()}: lo cruzás cerca de ${place} en ${durTxt((plan.meet - now) / 60_000)}.`, "gold");
 }
 /* el asalto: una pelea entre jugadores, y quien lo sufre se entera de dónde fue */
 export function ambushPlayer(att: PlayerState, def: PlayerState, ctx: Ctx, where?: string): ActionResult {
