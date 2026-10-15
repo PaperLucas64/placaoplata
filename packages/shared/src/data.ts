@@ -90,6 +90,6 @@ export const TUT: TutStep[] = [
     goal:s=>s.c.heal>=1 || !!s.seenTab.guardia, prog:()=>`Visitar la clínica`, reward:{gold:10,xp:6} },
   { id:"t6", tab:"misiones", title:"Un encargo de confianza",
     say:"Ahora sí. Tengo un trabajo de verdad para vos. Fijate en la pestaña Misiones. Son varias partes y cada una pide algo distinto.",
-    goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.mis ? `etapa ${s.mis.step+1} de ${VALIJA.steps.length}` : "sin empezar"}`, reward:{gold:40,xp:15} }
+    goal:s=>s.c.valija>=1, prog:s=>`Misión «La valija»: ${s.busy?.kind === "mision" ? `en curso (etapa ${s.busy.done + 1} de ${VALIJA.steps.length})` : "sin empezar"}`, reward:{gold:40,xp:15} }
 ];
 export const TAB_NAMES: Record<TabKey, string> = { laburos:"Trabajos", gimnasio:"Gimnasio", feria:"Feria de usados", ring:"Ring", guardia:"Clínica", misiones:"Misiones", calle:"La calle", casa:"Casa", ranking:"Ranking" };

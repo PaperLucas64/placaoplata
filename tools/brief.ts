@@ -11,7 +11,8 @@ for (const gang of ["familia", "sindicato", "barra", "amarillos"] as Gang[]) {
   console.log(" atributo ", Object.entries(r.statsAtLvl).map(([l, v]) => `nv${l}:${v}`).join("  "));
   console.log(" rangos   ", Object.entries(r.ranks).map(([k, v]) => `${k}:${v ?? "-"}`).join("  "));
   console.log(" misiones ", Object.entries(r.events).filter(([k]) => k.startsWith("misión")).map(([k, v]) => `${k.slice(7)}:${v}`).join("  "));
-  console.log(" victorias", Object.entries(r.fights).map(([k, v]) => `${k}:${v}%`).join("  "));
+  console.log(" salen bien", Object.entries(r.fights).filter(([k]) => k.startsWith("misión") || k.startsWith("calle ")).map(([k, v]) => `${k.replace("misión ", "")}:${v}%`).join("  "));
+  console.log(" peleas   ", Object.entries(r.fights).filter(([k]) => !k.startsWith("misión") && !k.startsWith("calle ")).map(([k, v]) => `${k}:${v}%`).join("  "));
   console.log(" horas    ", Object.entries(r.hours).map(([k, v]) => `${k}:${v}h`).join("  "), `  | entrenando ~${r.gymShare}% del tiempo`);
   console.log(" entra    ", share(r.goldIn));
   console.log(" sale     ", share(r.goldOut));

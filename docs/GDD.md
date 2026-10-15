@@ -134,6 +134,8 @@ los golpes y las emboscadas pasan a ser de la policía. El **abogado** baja 40 d
 ### 5.5 Feria y mercado negro
 1 arma + 1 protección equipadas. Lo que dejás de usar va al **armario** si hay lugar; si no, se pierde.
 Neutral: llave (+3), bate (+6), bastón (+9); campera (+2), casco (+5), chaleco (+8); botiquín ($20, +50% de vida).
+**En el tutorial la feria solo vende la llave inglesa**; después muestra lo de tu nivel y avisa en qué nivel se desbloquea lo siguiente.
+**Suplemento de Don Tito** (desde nivel 3): +10 de vida máxima para siempre; cuesta `300 × (n+1)²` (el n-ésimo), hasta 10 (+100).
 Mercado negro (por rango, igual para todos): rango 1 manopla / campera gruesa (+11/+10, $900) · rango 2 navaja / campera
 con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · rango 4 fusil / chaleco del mercado negro (+23, $6.000).
 
@@ -141,9 +143,17 @@ con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · 
 - **Gimnasio:** ver §4.1. **Ring:** 5 rivales de práctica. **Clínica:** paga al instante ($0,25 por punto de vida);
   **guardia** gratis hasta 15 min; **botiquín**.
 
-### 5.7 Misiones (un hilo de 3 por pandilla, 12 en total)
-Etapas con pruebas de atributo (`50% + (atributo − dificultad) × 7%`), peleas contra jefes y entregas. Se reintentan.
-Cualquiera puede hacer misiones de cualquier pandilla (así se gana afinidad).
+### 5.7 Misiones (a tiempo humano)
+- **Duran tiempo de verdad.** Al empezarla, el personaje sale a hacerla y queda ocupado. La energía de todas las etapas se
+  paga al salir. Cada etapa se resuelve sola a su hora (prueba de atributo `50% + (atributo − dificultad) × 7%`, pelea
+  contra un jefe o entrega) y la **crónica narra** lo que pasó. Las resuelve el servidor aunque no estés conectado.
+- **Sale bien** si salen bien al menos el 60% de las etapas (La valija: 2 de 4). Si no, se cae: se pierde la energía y se
+  puede reintentar. Se puede abandonar (la energía no vuelve).
+- **Requisitos:** atributos mínimos para empezarla. Pandillas: 1ª misión 7 y 6, 2ª 10 y 9, 3ª 16 y 15 (en los dos
+  atributos que más usa). Calle: el atributo principal, según la dificultad.
+- Hay que tener al menos la mitad de la vida para salir.
+
+**La valija** (tutorial): 30 min. **Historias de pandilla** (3 por pandilla, en orden, piden rango): 20 / 40 / 60 min.
 
 | Pandilla | 1ª (rango 0) | 2ª (rango 2) | 3ª (rango 4) |
 |---|---|---|---|
@@ -153,6 +163,21 @@ Cualquiera puede hacer misiones de cualquier pandilla (así se gana afinidad).
 | Los Amarillos | Viaje sin taxímetro | El desarmadero | La picada de la costanera (vs. El Gordo Bermejo) |
 
 Premios: $150 / $500 / $1.800 · 60 / 180 / 600 XP · 30 / 90 / 300 respeto · +10 / +20 / +35 calor · +10 / +20 / +40 afinidad.
+
+**Tablón de la calle (misiones generadas):** 4 misiones a tu nivel (de 1 a 50 y más), una por dificultad, cada una de una
+pandilla al azar. Se arman combinando **12 barrios de Malos Aires** (La Bocota, Puerto Mareo, San Telmón, Palermo Soja,
+Villa Crespa, Barrancas, Florida Vieja, Once y Medio, Mataderos, Recoleta Bien, Liniers Sur, Pompeya Chica), **6 objetivos
+por pandilla**, etapas por atributo y un rival (pandillero o policía): cientos de combinaciones. Se renueva cada 6 horas o
+pagando 2 de energía.
+
+| Dificultad | Duración | Energía | Pide (atributo principal) | Paga | Afinidad | Sale bien (bot) |
+|---|---|---|---|---|---|---|
+| Fácil | 10 min | 4 | 55% de lo típico a tu nivel | ×1,0 | +2 | ~93% |
+| Normal | 20 min | 6 | 70% | ×1,15 | +3 | ~79% |
+| Difícil | 35 min | 8 | 85% | ×1,3 | +5 | ~63% |
+| Jodida | 50 min | 10 | 100% | ×1,5 | +8 | ~34% |
+
+Paga por energía: `(10 + 2,4 × nivel) × multiplicador` de plata y `(3 + 0,55 × nivel) × multiplicador` de XP.
 
 ### 5.8 La calle
 Rivales: pandilleros de **las otras pandillas** (si andás suelto, de todas). Hasta 3 jugadores reales de nivel parecido;
@@ -193,7 +218,7 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 | Equipo | 1 arma + 1 protección; armario de 0 a 8 piezas; no se vende |
 | Caja fuerte | $0 a $18.000 según el nivel |
 | Encargos | repetibles sin tope (los limita la energía) |
-| Misiones | 1 vez cada una; 3 por pandilla |
+| Misiones | las de pandilla, 1 vez cada una (3 por pandilla); las de calle, sin tope (tablón de 4, cada 6 h) |
 | Ataques a jugadores | 1 por hora al mismo; sin tope diario |
 | Pandilla | se puede cambiar trabajando para otra |
 | Avatar | se elige al crear el personaje |
@@ -217,7 +242,7 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 
 ### Pandillas
 - **Territorio:** barrios que cambian de dueño según la actividad de los jugadores de cada pandilla.
-- **Más misiones** por pandilla (rangos 1, 3 y 5) y **misiones repetibles** (diarias/semanales).
+- **Más misiones escritas** por pandilla (rangos 1, 3 y 5); más objetivos y barrios para el generador; misiones diarias.
 - **Guerras entre pandillas** y eventos (el clásico, un paro general, una redada policial).
 - Rango propio dentro de la pandilla, títulos por pandilla, chat de pandilla.
 - Consecuencias al cambiar de pandilla (por ejemplo, la anterior te marca como traidor por un tiempo).

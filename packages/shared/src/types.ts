@@ -22,6 +22,10 @@ export interface MissionStep {
 export interface Mission {
   id: string; rank: number; title: string; intro: string; steps: MissionStep[]; outro: string;
   gang?: Gang; tier?: number; // misiones de pandilla: de quién es y si es la 1ª, 2ª o 3ª del hilo
+  mins?: number;               // duración en minutos de verdad (si no está, se calcula por tipo)
+  req?: Partial<Record<StatKey, number>>; // atributos mínimos para empezarla
+  aff?: number;                // afinidad que suma (misiones de calle)
+  street?: boolean; difficulty?: number; // misiones de calle generadas: 0 fácil a 3 jodida
   reward?: { gold: number; xp: number; resp: number; heat?: number };
 }
 
@@ -49,10 +53,10 @@ export interface PlayerState {
   potions: number; wins: number; losses: number;
   tut: number; tutDone: boolean; tabs: TabKey[]; seenTab: Partial<Record<TabKey, boolean>>;
   c: { jobs: number; train: number; buy: number; spar: number; heal: number; valija: number; duelW: number; duelL: number };
-  mis: { id: string; step: number } | null;
   aff: Record<Gang, number>; // afinidad con cada pandilla (de ahí sale a cuál pertenecés)
   respect: number; heat: number; done: Record<string, boolean>; targets: Target[];
   home: Home;
+  board: Mission[]; tBoard: number; // tablón de misiones de calle y cuándo se armó
   tEnergy: number; tHeal: number; tAttack: number; tHeat: number;
   /* algo que lleva tiempo de verdad: mientras dura no se puede trabajar ni pelear */
   busy?: Busy | null;
@@ -61,7 +65,8 @@ export interface PlayerState {
 
 export type Busy =
   | { kind: "gym"; since: number; until: number; stat: StatKey }
-  | { kind: "guardia"; since: number; until: number; hpFrom: number };
+  | { kind: "guardia"; since: number; until: number; hpFrom: number }
+  | { kind: "mision"; since: number; until: number; id: string; done: number; ok: number; res?: boolean[] }; // etapas resueltas, cuántas salieron bien y cuáles
 
 export interface Fighter { name: string; hp: number; max: number; fue: number; dur: number; ref: number; arma: number; armadura: number }
 export interface FightView { p: Fighter; e: Fighter; rounds: { who: "p" | "e"; txt: string }[]; won: boolean }
@@ -83,7 +88,7 @@ export type Action =
   | { type: "cancel" }                  // cortar lo que estés haciendo
   | { type: "spar"; i: number }
   | { type: "mstart"; id: string }
-  | { type: "mstep" }
+  | { type: "reroll" }                  // renovar el tablón de misiones de calle
   | { type: "lawyer" }
   | { type: "build"; part: "cama" | "caja" | "armario" }
   | { type: "deposit"; amount: number }

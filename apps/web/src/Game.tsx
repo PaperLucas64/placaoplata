@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { gangOf, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
+import { gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Sheet } from "./parts";
@@ -40,7 +40,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   }, setLive), [refresh]);
   /* cuando termina el entrenamiento o la guardia, traer el estado del servidor */
   useEffect(() => {
-    const ends = [server.busy?.until, server.home?.obra?.until].filter((x): x is number => !!x);
+    const ends = [server.busy?.until, server.home?.obra?.until, nextMissionEvent(server) ?? undefined].filter((x): x is number => !!x);
     if (!ends.length) return;
     const t = setTimeout(refresh, Math.max(0, Math.min(...ends) - (Date.now() + offset)) + 800);
     return () => clearTimeout(t);

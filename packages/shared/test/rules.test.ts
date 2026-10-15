@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  RANK_AT, regen, safeCap, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
+  missionCatchUp, missionMins, newBoard, RANK_AT, regen, safeCap, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -80,9 +80,12 @@ describe("pandillas", () => {
     expect(canStart(s, deposito)).toBe(true);
   });
   it("terminar una misión suma afinidad con su pandilla", () => {
-    const s = veteran("Ana"); s.energy = 100;
-    applyAction(s, { type: "mstart", id: "trapos" }, ctx());
-    for (let i = 0; i < 40 && s.mis; i++) { s.hp = maxHp(s); s.energy = 100; applyAction(s, { type: "mstep" }, ctx(T0, i + 1)); }
+    let seed = 1, s: PlayerState;
+    do { // con distintas suertes, hasta que salga bien
+      s = veteran("Ana"); s.stats = { fue: 30, dur: 30, ref: 30, agu: 30, lab: 30 }; s.hp = maxHp(s);
+      applyAction(s, { type: "mstart", id: "trapos" }, ctx());
+      missionCatchUp(s, ctx(T0 + 60 * 60_000, seed++));
+    } while (!s.done.trapos && seed < 20);
     expect(s.done.trapos).toBe(true);
     expect(gangOf(s)).toBe("barra");
   });
@@ -95,7 +98,7 @@ describe("pandillas", () => {
     const old = veteran("Viejo") as PlayerState & { side?: string };
     old.side = "plata"; old.gear.arma = "tonfa"; delete (old as Partial<PlayerState>).v;
     const s = upgradeState(old, T0);
-    expect(s.v).toBe(2);
+    expect(s.v).toBe(3);
     expect(gangOf(s)).toBe("familia");
     expect(s.gear.arma).toBe("manopla");
     expect(s.tabs).toContain("casa");
@@ -216,5 +219,38 @@ describe("feria", () => {
     expect(200_000 - g1).toBeLessThan(g1 - s.gold);
     for (let i = 0; i < 20; i++) applyAction(s, { type: "buy", id: "suplemento" }, ctx());
     expect(maxHp(s)).toBe(hp0 + 100); // tope: 10 suplementos
+  });
+});
+
+describe("misiones con tiempo", () => {
+  it("La valija dura 30 minutos y las etapas se resuelven a su hora", () => {
+    const s = newPlayer("Ana", T0); s.tut = 5; s.tabs.push("misiones");
+    expect(applyAction(s, { type: "mstart", id: "valija" }, ctx()).error).toBeUndefined();
+    expect(s.busy?.kind).toBe("mision");
+    expect(missionMins(VALIJA)).toBe(30);
+    expect(applyAction(s, { type: "job", id: "bici" }, ctx(T0 + 1000)).error).toMatch(/misión/);
+    missionCatchUp(s, ctx(T0 + 8 * 60_000));          // pasaron 8 minutos: una etapa
+    expect(s.busy?.kind === "mision" && s.busy.done).toBe(1);
+    missionCatchUp(s, ctx(T0 + 31 * 60_000));
+    expect(s.busy).toBeNull();
+    expect(s.log.some(l => l.msg.includes("La valija"))).toBe(true);
+  });
+  it("las misiones piden atributos mínimos", () => {
+    const s = veteran("Ana"); s.stats = { fue: 5, dur: 5, ref: 5, agu: 5, lab: 5 };
+    expect(applyAction(s, { type: "mstart", id: "kiosco" }, ctx()).error).toMatch(/atributos/);
+  });
+  it("abandonar una misión pierde la energía", () => {
+    const s = veteran("Ana"); const e = s.energy;
+    applyAction(s, { type: "mstart", id: "paro" }, ctx());
+    applyAction(s, { type: "cancel" }, ctx(T0 + 1000));
+    expect(s.busy).toBeNull();
+    expect(s.energy).toBeLessThan(e);
+  });
+  it("el tablón trae cuatro misiones de calle a tu nivel, de fácil a jodida", () => {
+    const s = veteran("Ana");
+    newBoard(s, seeded(3), T0);
+    expect(s.board.map(m => m.difficulty)).toEqual([0, 1, 2, 3]);
+    expect(new Set(s.board.map(m => m.title)).size).toBe(4);
+    expect(s.board[3].reward!.gold).toBeGreaterThan(s.board[0].reward!.gold);
   });
 });

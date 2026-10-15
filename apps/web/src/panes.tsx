@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   affShare, canStart, closetSlots, forSale, SUPPLEMENT_MAX, supplementCost, supplementsTaken, DUEL_COST, ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANGS, gangOf, GOLPES, guardiaTime, HOME, JOBS,
-  trainTime, getMission, healCost, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
+  trainTime, healCost, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, missionMins, missionNeed, missionReq, STREET_DIFF, itemLocked, maxHp, MIN_HP_TO_FIGHT, MISSIONS, money, nextLevel, RANK_NAMES, rankOf, RING, safeCap,
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey
 } from "@pop/shared";
 import { api, type RankRow } from "./api";
@@ -124,54 +124,75 @@ function Hospital({ s, act, busy }: Ui) {
   </>;
 }
 
-function MissionRun({ M, ...ui }: Ui & { M: Mission }) {
-  const { s, act, busy, mission } = ui;
-  const step = s.mis && s.mis.id === M.id ? s.mis.step : M.steps.length;
-  const cur = M.steps[step];
-  return <div className="mission">
-    <h2>{M.title}</h2>
-    <ol className="steps">{M.steps.map((st, i) => (
-      <li key={i} className={i < step ? "ok" : i === step ? "now" : ""}>
-        <span className="n">{i < step ? "✓" : i + 1}</span>
-        <span>{i === step && st.fight && hasPortrait(st.fight.name) && <span style={{ float: "right", marginLeft: 10 }}><Portrait src={portraitOf(st.fight.name)} size={72} /></span>}{st.text}{i === step && <><br /><span className="tag">{st.fight ? "pelea" : st.auto ? "entrega" : `prueba de ${STAT_NAMES[st.stat!].toLowerCase()}`} · {st.energy} energía</span></>}</span>
+const STAT_SHORT: Record<StatKey, string> = { fue: "Fuerza", dur: "Dureza", ref: "Reflejos", agu: "Aguante", lab: "Labia" };
+const DIFF_CLASS = ["r1", "r1", "r2", "r3"];
+
+/* La misión en curso: etapas resueltas (✓ / ✗), la que viene y cuánto falta */
+function MissionProgress({ s, now }: Ui) {
+  const b = s.busy;
+  if (b?.kind !== "mision") return null;
+  const m = findMission(s, b.id);
+  if (!m) return null;
+  const n = m.steps.length, res = b.res ?? [];
+  return <div className="mission thread" style={{ borderColor: m.gang ? GANGS[m.gang].color : "var(--sodium)" }}>
+    <h3>En curso: {m.title}</h3>
+    <ol className="steps">{m.steps.map((st, i) => (
+      <li key={i} className={i < b.done ? (res[i] ? "ok" : "ko") : i === b.done ? "now" : ""}>
+        <span className="n">{i < b.done ? (res[i] ? "✓" : "✗") : i + 1}</span>
+        <span>{st.text}{i === b.done && <><br /><span className="tag">se resuelve en {Math.max(1, Math.ceil((b.since + (b.until - b.since) * (i + 1) / n - now) / 60000))} min</span></>}</span>
       </li>))}
     </ol>
-    {mission && <p className={`result ${mission.ok ? "good" : "bad"}`}>{mission.text}</p>}
-    {cur && <div><button className="primary" disabled={busy || s.energy < cur.energy || s.hp < 2} onClick={() => act({ type: "mstep" })}>{cur.fight ? "Pelear" : cur.auto ? "Entregar" : "Intentarlo"}</button></div>}
+    <p className="tag">Tienen que salir bien {missionNeed(m)} de {n} etapas. Lo que pasa queda en la crónica.</p>
+  </div>;
+}
+
+/* Tarjeta de una misión: duración, energía, requisitos y premio */
+function MissionCard({ m, s, act, busy, note }: Ui & { m: Mission; note?: string }) {
+  const req = Object.entries(missionReq(m)) as [StatKey, number][];
+  const ok = canStart(s, m), meets = meetsReq(s, m), energy = missionEnergy(m);
+  const done = !!s.done[m.id];
+  const can = ok && meets && !s.busy && s.energy >= energy && s.hp >= maxHp(s) * 0.5;
+  return <div className="item">
+    <div><h3>{m.title}{m.street && <span className={`risk ${DIFF_CLASS[m.difficulty ?? 0]}`}>{STREET_DIFF[m.difficulty ?? 0].name}</span>}</h3>
+      <div className="meta">{done ? "Hecha." : m.street ? null : m.intro}</div>
+      {!done && <div className="meta num">
+        {missionMins(m)} min · {energy} energía
+        {req.length > 0 && <> · pide {req.map(([k, v], i) => <span key={k} style={{ color: s.stats[k] < v ? "#eba09e" : undefined }}>{i ? ", " : ""}{STAT_SHORT[k]} {v}</span>)}</>}
+        {m.reward && <> · {money(m.reward.gold)}, {m.reward.xp} XP, +{m.reward.resp} respeto</>}
+        {m.street && m.gang && <> · +{m.aff} afinidad con <span style={{ color: GANGS[m.gang].color }}>{GANGS[m.gang].name}</span></>}
+      </div>}
+      {!done && note && <div className="lock">{note}</div>}</div>
+    <div className="act"><button className={can ? "primary" : ""} disabled={busy || !can} onClick={() => act({ type: "mstart", id: m.id })}>{done ? "Hecha" : "Salir"}</button></div>
   </div>;
 }
 
 function Missions(ui: Ui) {
-  const { s, act, busy, mission } = ui;
-  if (s.mis) return <MissionRun M={getMission(s.mis.id)!} {...ui} />;
-  if (!s.tutDone) {
-    if (s.c.valija) return <MissionRun M={VALIJA} {...ui} />;
-    return <>
-      <h2>Misiones</h2>
-      <p>Las misiones tienen varias etapas. Cada etapa gasta energía y pone a prueba un atributo distinto. Si una etapa sale mal, la podés volver a intentar.</p>
-      <div className="item"><div><h3>{VALIJA.title}</h3><div className="meta">{VALIJA.intro}</div></div>
-        <div className="act"><button className="primary" disabled={busy} onClick={() => act({ type: "mstart", id: "valija" })}>Empezar</button></div></div>
-    </>;
-  }
+  const { s, act, busy } = ui;
+  if (!s.tutDone) return <>
+    <h2>Misiones</h2>
+    <p>Las misiones llevan tiempo de verdad: salís a hacerla y cada etapa se resuelve sola a su hora. Lo que pasa te lo cuenta la crónica.</p>
+    <MissionProgress {...ui} />
+    {!s.c.valija && !s.busy && <MissionCard m={VALIJA} {...ui} />}
+  </>;
   const rk = rankOf(s), mine = gangOf(s);
   return <>
     <h2>Misiones</h2>
-    <p>Cada pandilla tiene su historia: tres misiones en orden, que piden rango. Hacerlas suma mucha afinidad con esa pandilla; con la mitad de tu afinidad pasás a ser de ella. Podés hacer misiones de cualquiera.</p>
-    {mission && <p className={`result ${mission.ok ? "good" : "bad"}`}>{mission.text}</p>}
+    <p>Llevan tiempo de verdad y piden atributos mínimos. Mientras estás en una, no podés hacer otra cosa. Las de calle se renuevan cada 6 horas; las de cada pandilla cuentan su historia y suman mucha afinidad.</p>
+    <MissionProgress {...ui} />
+    <div className="row-actions" style={{ justifyContent: "space-between" }}>
+      <h3>Tablón de la calle</h3>
+      <button disabled={busy || !!s.busy || s.energy < BOARD_REROLL_COST} onClick={() => act({ type: "reroll" })}>Buscar otras · {BOARD_REROLL_COST} energía</button>
+    </div>
+    <div className="list">{s.board.filter(m => !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
     {GANG_KEYS.map(g => {
       const info = GANGS[g];
       return <div key={g} className="thread" style={{ borderColor: info.color }}>
         <div className="with-art"><Portrait src={bossImg(g)} gang={g} size={56} />
           <div><h3 style={{ color: info.color }}>{info.name}{mine === g && <span className="kind">tu pandilla</span>}</h3>
             <div className="meta">{info.boss} · {info.hood} · vos: {Math.round(affShare(s, g) * 100)}%</div></div></div>
-        <div className="list">{MISSIONS[g].map((m: Mission) => {
-          const done = s.done[m.id], ok = canStart(s, m);
-          return <div className="item" key={m.id}>
-            <div><h3>{m.title}</h3><div className="meta">{done ? "Hecha." : m.intro}</div>
-              {!done && !ok && <div className="lock">{rk < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : "Primero terminá la anterior"}</div>}</div>
-            <div className="act"><button className={ok ? "primary" : ""} disabled={busy || !ok} onClick={() => act({ type: "mstart", id: m.id })}>{done ? "Hecha" : "Empezar"}</button></div>
-          </div>;
-        })}</div>
+        <div className="list">{MISSIONS[g].map((m: Mission) =>
+          <MissionCard key={m.id} m={m} {...ui}
+            note={canStart(s, m) ? undefined : rk < m.rank ? `Pide rango ${RANK_NAMES[m.rank]}` : "Primero terminá la anterior"} />)}</div>
       </div>;
     })}
   </>;

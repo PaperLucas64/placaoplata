@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  clamp, energyMax, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
+  clamp, energyMax, findMission, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
   type FightView, type PlayerState, type StatKey
 } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
@@ -126,8 +126,8 @@ export function BusyBar({ s, now, onCancel, disabled }: { s: PlayerState; now: n
   if (!b && !o) return null;
   return <>
     {b && <Countdown now={now} since={b.since} until={b.until}
-      label={b.kind === "gym" ? `Entrenando ${STAT_NAMES[b.stat].toLowerCase()}` : "Internado en la guardia"}
-      note={b.kind === "gym" ? "Si cortás, perdés la plata y el punto." : "Nadie te puede atacar acá."}
+      label={b.kind === "gym" ? `Entrenando ${STAT_NAMES[b.stat].toLowerCase()}` : b.kind === "mision" ? `Misión: ${findMission(s, b.id)?.title ?? ""}` : "Internado en la guardia"}
+      note={b.kind === "gym" ? "Si cortás, perdés la plata y el punto." : b.kind === "mision" ? `Etapa ${Math.min(b.done + 1, findMission(s, b.id)?.steps.length ?? 1)} · la crónica te cuenta.` : "Nadie te puede atacar acá."}
       action={<button className="link" disabled={disabled} onClick={onCancel}>Cancelar</button>} />}
     {o && <Countdown now={now} since={o.since} until={o.until} label={`Obra: ${HOME[o.part].levels[s.home[o.part] + 1]?.name.toLowerCase()}`} />}
   </>;

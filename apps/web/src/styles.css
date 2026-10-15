@@ -204,3 +204,5 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row-actions input{width:140px}
 .item.locked{opacity:.55}
+.steps li.ko{color:var(--muted)}
+.steps li.ko .n{border-color:var(--red);color:var(--red)}

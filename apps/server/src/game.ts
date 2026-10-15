@@ -1,7 +1,7 @@
 /* Servicio del juego: carga el personaje, le aplica el tiempo que pasó, ejecuta la acción y guarda.
    Todo pasa adentro de una transacción y con un candado por jugador, así no hay acciones pisadas. */
 import {
-  ambushCatchUp, applyAction, checkDuel, gangOf, maxHp, MIN_HP_TO_FIGHT, npcTarget, PVP_SAME_TARGET_EVERY, pvp, regen,
+  ambushCatchUp, applyAction, boardCatchUp, checkDuel, missionCatchUp, gangOf, maxHp, MIN_HP_TO_FIGHT, npcTarget, PVP_SAME_TARGET_EVERY, pvp, regen,
   RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type PlayerState, type Rng, type Target
 } from "@pop/shared";
 import type { Db, Queryable } from "./db.js";
@@ -33,7 +33,12 @@ async function saveRow(q: Queryable, id: number, s: PlayerState) {
     [id, JSON.stringify(s), gangOf(s), s.lvl, s.respect, s.gold]);
 }
 /* el tiempo que pasó desde la última vez: recarga y emboscadas */
-function catchUp(s: PlayerState, now: number) { regen(s, now); ambushCatchUp(s, { now, rng }); }
+function catchUp(s: PlayerState, now: number) {
+  regen(s, now);
+  missionCatchUp(s, { now, rng });   // etapas de la misión en curso que ya pasaron
+  boardCatchUp(s, { now, rng });     // tablón de la calle (cada 6 horas)
+  ambushCatchUp(s, { now, rng });
+}
 
 /* Rivales de La calle: primero jugadores reales de otras pandillas (o sueltos) con nivel parecido, después personajes */
 async function fillTargets(q: Queryable, id: number, s: PlayerState) {

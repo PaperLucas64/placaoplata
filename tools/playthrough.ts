@@ -5,7 +5,8 @@
    compra equipo cuando le conviene, mejora la casa, guarda la plata en la caja fuerte, hace encargos y misiones
    de "su" pandilla y pelea en la calle contra rivales accesibles. */
 import {
-  affShare, ambushCatchUp, applyAction, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, getMission, healCost, HOME, itemLocked,
+  affShare, ambushCatchUp, applyAction, boardCatchUp, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, healCost, HOME, itemLocked,
+  meetsReq, missionCatchUp, missionEnergy, missionReq, nextMissionEvent,
   jobList, maxHp, MISSIONS, newPlayer, nextLevel, npcTarget, rankOf, regen, SHOP, TARGETS, trainCost, TUT, VALIJA,
   type Action, type Gang, type Rng, type StatKey
 } from "@pop/shared";
@@ -50,7 +51,6 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
     if (dg > 0) run.goldIn[tag] = (run.goldIn[tag] ?? 0) + dg;
     if (dg < 0) run.goldOut[tag] = (run.goldOut[tag] ?? 0) - dg;
     if (res.fight) fight(tag, res.fight.won);
-    else if (res.mission && a.type === "mstep") fight(`prueba ${tag.slice(7)}`, res.mission.ok);
     for (let l = l0 + 1; l <= s.lvl; l++) { run.lvlAt[l] = spent; run.statsAtLvl[l] = avgCombat(); run.hoursAt[`nv${l}`] = now / 3_600_000; }
     if (a.type === "train" && s.busy) run.gymHours += (s.busy.until - s.busy.since) / 3_600_000;
     if (s.tutDone && rankOf(s) > r0) for (let r = r0 + 1; r <= rankOf(s); r++) { run.rankAt[r] = spent; run.hoursAt[`rango${r}`] = now / 3_600_000; }
@@ -61,7 +61,23 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
 
   for (let guard = 0; guard < 200_000 && spent < maxEnergy; guard++) {
     regen(s, now);
+    /* en una misión: dejar que se resuelvan las etapas (como hace el servidor) */
+    if (s.busy?.kind === "mision") {
+      const id = s.busy.id, tag = s.board.some(m => m.id === id) ? `calle ${s.board.find(m => m.id === id)!.difficulty}` : `misión ${id}`;
+      const g1 = s.gold, l1 = s.lvl, r1 = rankOf(s), v1 = s.c.valija;
+      missionCatchUp(s, { now, rng });
+      if (!s.busy) {
+        const ok = s.c.valija > v1 || s.log.slice(0, 3).some(l => l.msg.includes("salió bien"));
+        fight(tag, ok); if (ok) mark(tag);
+        if (s.gold > g1) run.goldIn.misiones = (run.goldIn.misiones ?? 0) + s.gold - g1;
+        for (let l = l1 + 1; l <= s.lvl; l++) { run.lvlAt[l] = spent; run.statsAtLvl[l] = avgCombat(); run.hoursAt[`nv${l}`] = now / 3_600_000; }
+        if (s.tutDone && rankOf(s) > r1) for (let r = r1 + 1; r <= rankOf(s); r++) { run.rankAt[r] = spent; run.hoursAt[`rango${r}`] = now / 3_600_000; }
+        continue;
+      }
+      now = nextMissionEvent(s) ?? s.busy.until; continue;
+    }
     if (s.busy) { now = s.busy.until; continue; } // entrenando o internado: esperar
+    boardCatchUp(s, { now, rng });
     const g0 = s.gold; ambushCatchUp(s, { now, rng });
     if (s.gold < g0) run.goldOut.emboscadas = (run.goldOut.emboscadas ?? 0) + g0 - s.gold;
     refill();
@@ -96,25 +112,25 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       if (part && act({ type: "build", part: part[0] }, "casa")) continue;
     }
     const low = [...COMBAT].sort((a, b) => s.stats[a] - s.stats[b])[0];
-    const k: StatKey = s.stats.lab < s.stats[low] - 2 ? "lab" : low;
+    /* si la próxima misión de su pandilla pide un atributo que no tiene, entrena ese primero */
+    const story = s.tutDone ? MISSIONS[gang].find(m => canStart(s, m)) : undefined;
+    const lack = story && (Object.entries(missionReq(story)) as [StatKey, number][]).find(([st, v]) => s.stats[st] < v)?.[0];
+    const k: StatKey = lack ?? (s.stats.lab < s.stats[low] - 2 ? "lab" : low);
     if (trainCost(s.stats[k]) <= s.gold - 20 - saving && act({ type: "train", stat: k }, "gimnasio")) continue;
 
     /* tutorial: comprar algo y pelear el ring */
     if (s.tut === 2 && !s.c.buy && act({ type: "buy", id: s.gold >= 30 ? "llave" : "campera" }, "equipo")) continue;
     if (s.tut === 3 && s.energy >= 3 && s.hp > maxHp(s) * 0.5 && act({ type: "spar", i: 0 }, "ring")) continue;
 
-    /* misiones */
-    if (s.mis) {
-      const st = getMission(s.mis.id)!.steps[s.mis.step];
-      if (s.energy >= st.energy && s.hp > maxHp(s) * 0.5) {
-        const id = s.mis.id;
-        if (act({ type: "mstep" }, `misión ${id}`) && !s.mis) mark(`misión ${id}`);
-        continue;
-      }
-      now += ENERGY_EVERY; continue; // en misión: esperar energía o vida en vez de gastarla en otra cosa
-    } else {
-      const next = s.tutDone ? MISSIONS[gang].find(m => canStart(s, m)) : canStart(s, VALIJA) && s.tut === 5 ? VALIJA : undefined;
-      if (next && s.hp > maxHp(s) * 0.5 && act({ type: "mstart", id: next.id })) continue;
+    /* misiones: la de su pandilla apenas puede; si no, a veces una de la calle (la más difícil que puede hacer) */
+    const next = story ?? (!s.tutDone && s.tut === 5 && canStart(s, VALIJA) ? VALIJA : undefined);
+    if (next && meetsReq(s, next) && s.hp > maxHp(s) * 0.5) {
+      if (s.energy >= missionEnergy(next)) { if (act({ type: "mstart", id: next.id })) continue; }
+      else { now += ENERGY_EVERY; continue; } // junta energía para la misión
+    }
+    if (s.tutDone && rng() < 0.35) {
+      const street = [...s.board].reverse().find(m => meetsReq(s, m) && s.energy >= missionEnergy(m));
+      if (street && s.hp > maxHp(s) * 0.6 && act({ type: "mstart", id: street.id })) continue;
     }
 
     /* la calle: rivales de nivel parecido, más o menos la mitad de la energía */

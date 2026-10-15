@@ -3,10 +3,11 @@
 import { AMBUSH_CHANCE, AMBUSH_MAX_CATCHUP, ATTACK_EVERY, DUEL_COST, MIN_HP_TO_FIGHT, SCOUT_COST } from "./config.js";
 import { RING, SHOP, STAT_NAMES, TUT, VALIJA } from "./data.js";
 import {
-  ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSION_AFF, MISSIONS, POLICE_NAMES, RANK_NAMES
+  ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSIONS, POLICE_NAMES
 } from "./gangs.js";
+import { abandonMission, BOARD_REROLL_COST, findMission, meetsReq, missionEnergy, newBoard, startTimedMission } from "./missions.js";
 import {
-  addAff, addHeat, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, getMission, guardiaTime, healCost, isGolpe,
+  addAff, addHeat, addRespect, battle, clamp, closetSlots, finishBusy, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
@@ -15,18 +16,13 @@ import type { Action, ActionResult, Gang, Mission, PlayerState, Rng, Target } fr
 export interface Ctx { now: number; rng: Rng }
 const fail = (error: string): ActionResult => ({ error });
 
-export function addRespect(s: PlayerState, now: number, n: number) {
-  const before = rankOf(s);
-  s.respect = Math.max(0, s.respect + n);
-  const after = rankOf(s);
-  if (s.tutDone && after > before) log(s, now, `Subiste de rango: ahora sos ${RANK_NAMES[after]}.`, "gold");
-}
 
-/* Las misiones de cada pandilla van en orden y piden rango. Cualquiera puede hacerlas: así se gana afinidad. */
+/* Las misiones de cada pandilla van en orden y piden rango. Cualquiera puede hacerlas: así se gana afinidad.
+   Las de calle están en tu tablón. Los atributos mínimos se chequean aparte (meetsReq). */
 export function canStart(s: PlayerState, m: Mission) {
-  if (s.mis) return false;
   if (m.id === VALIJA.id) return !s.c.valija;
   if (!s.tutDone || !m.gang) return false;
+  if (m.street) return s.board.some(x => x.id === m.id);
   const list = MISSIONS[m.gang], i = list.indexOf(m);
   return i >= 0 && !s.done[m.id] && rankOf(s) >= m.rank && list.slice(0, i).every(x => s.done[x.id]);
 }
@@ -43,8 +39,9 @@ export const npcTarget = (rng: Rng, mine: Gang | null, lvl: number): Target => {
 const checkChance = (stat: number, diff: number) => clamp(50 + (stat - diff) * 7, 15, 95);
 
 /* Mientras entrenás o estás internado no podés hacer estas cosas */
-const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "mstep", "duel", "scout", "guardia", "heal"]);
-const busyText = (s: PlayerState) => s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : "Estás internado en la guardia.";
+const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "reroll", "duel", "scout", "guardia", "heal"]);
+const busyText = (s: PlayerState) =>
+  s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión." : "Estás internado en la guardia.";
 
 export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): ActionResult {
   finishBusy(s, now);
@@ -197,6 +194,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
     case "cancel": {
       const b = s.busy;
       if (!b) return fail("No estás haciendo nada.");
+      if (b.kind === "mision") { abandonMission(s, now); return {}; }
       s.busy = null;
       if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
       else {
@@ -223,45 +221,22 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
     }
 
     case "mstart": {
-      const m = getMission(a.id);
+      const m = findMission(s, a.id);
       if (!m || !canStart(s, m)) return fail("Esa misión no está disponible.");
-      s.mis = { id: m.id, step: 0 };
-      log(s, now, `Empezaste la misión «${m.title}».`, "gold");
+      if (!meetsReq(s, m)) return fail("Todavía no tenés los atributos que pide.");
+      if (s.energy < missionEnergy(m)) return fail(`Te hacen falta ${missionEnergy(m)} de energía.`);
+      if (s.hp < maxHp(s) * 0.5) return fail("Así de golpeado no te conviene salir. Curate primero.");
+      startTimedMission(s, m, now);
       return {};
     }
 
-    case "mstep": {
-      if (!s.mis) return fail("No estás en ninguna misión.");
-      const M = getMission(s.mis.id)!, st = M.steps[s.mis.step];
-      if (s.energy < st.energy || s.hp < 2) return fail("No estás para seguir.");
-      s.energy -= st.energy;
-      let ok: boolean, text: string, fight;
-      if (st.fight) {
-        fight = battle(rng, playerFighter(s), scaledEnemy(rng, st.fight.name, s.lvl, st.fight.mult));
-        s.hp = Math.max(1, fight.p.hp);
-        ok = fight.won; text = (ok ? st.win : st.lose) ?? "";
-      } else if (st.auto) { ok = true; text = st.ok ?? ""; }
-      else {
-        ok = rng() * 100 < checkChance(s.stats[st.stat!], st.diff!);
-        if (!ok && st.dmg) s.hp = Math.max(1, s.hp - Math.round(maxHp(s) * st.dmg));
-        text = (ok ? st.ok : st.ko) ?? "";
-      }
-      if (ok) {
-        gainXp(s, now, 4); s.mis.step++;
-        if (s.mis.step >= M.steps.length) {
-          s.mis = null;
-          log(s, now, `Terminaste la misión «${M.title}».`, "gold");
-          if (M.id === VALIJA.id) { s.c.valija = 1; text = M.outro; }
-          else {
-            const r = M.reward!;
-            s.done[M.id] = true; s.gold += r.gold; gainXp(s, now, r.xp); addRespect(s, now, r.resp);
-            if (r.heat) addHeat(s, r.heat);
-            if (M.gang) addAff(s, now, M.gang, MISSION_AFF[M.tier ?? 0]);
-            text = `${M.outro} Cobraste ${money(r.gold)}, +${r.xp} XP y +${r.resp} de respeto.`;
-          }
-        }
-      }
-      return { fight, mission: { ok, text } };
+    case "reroll": {
+      if (!s.tutDone) return fail("Todavía no conocés la calle.");
+      if (s.energy < BOARD_REROLL_COST) return fail("No te alcanza la energía.");
+      s.energy -= BOARD_REROLL_COST;
+      newBoard(s, rng, now);
+      log(s, now, "Preguntaste por el barrio: hay trabajos nuevos en el tablón.");
+      return {};
     }
 
     case "lawyer": {
