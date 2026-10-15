@@ -158,7 +158,8 @@ export function PlacePanel(ui: Ui) {
     </div>
     <p>{l.help}</p>
     {l.kind === "bar" && (s.tutDone ? <>
-        <p>Marga seca un vaso. «Ya no necesitás que te cuide. Pero si querés trabajo, mirá el tablón de la calle: está lleno de banderitas en el mapa.»</p>
+        <p>Marga seca un vaso. «Ya no necesitás que te cuide. Pero si querés trabajo, ahí tenés el tablón. Lo que no te guste, lo cambiamos.»</p>
+        <Tablon {...pane} />
       </> : <><Boss {...ui} />{!s.c.valija && s.tabs.includes("misiones") && <div className="list"><MissionCard m={VALIJA} {...pane} /></div>}</>)}
     {l.kind === "casa" && <><House {...ui} /><Equipment {...ui} /></>}
     {l.kind === "gym" && <><Gym {...pane} /><Ring {...pane} /></>}
@@ -648,16 +649,7 @@ function Missions(ui: Ui) {
   return <>
     <h2>Misiones</h2>
     <p>Llevan tiempo de verdad y piden atributos mínimos. Mientras estás en una, no podés hacer otra cosa. Las de calle se renuevan cada 6 horas; las de cada pandilla cuentan su historia y suman mucha afinidad.</p>
-    <MissionProgress {...ui} />
-    <div className="row-actions" style={{ justifyContent: "space-between" }}>
-      <h3>Tablón de la calle</h3>
-      <button disabled={busy || !!s.busy || s.energy < BOARD_REROLL_COST} onClick={() => act({ type: "reroll" })}>Buscar otras · {BOARD_REROLL_COST} energía</button>
-    </div>
-    <div className="list">{s.board.filter(m => !m.hours && doable(s, m) && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
-    <h3>Trabajos largos en el conurbano</h3>
-    <p className="tag">Turnos de horas en {Object.values(ZONE_NAMES).join(", ")}: para cuando no vas a estar. Pagan mucho por la energía que gastan; mientras tanto la energía se sigue cargando (hasta el tope).</p>
-    <div className="list">{s.board.filter(m => m.hours && doable(s, m) && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
-    {s.lvl < POLICE_LVL && <p className="tag">Desde el nivel {POLICE_LVL}, el comisario Funes también deja trabajos sucios en el tablón.</p>}
+    <Tablon {...ui} />
     <Stories {...ui} />
     <h3>Las pandillas</h3>
     {GANG_KEYS.map(g => {
@@ -669,6 +661,24 @@ function Missions(ui: Ui) {
         <div className="list">{MISSIONS[g].filter(m => doable(s, m)).map((m: Mission) => <MissionCard key={m.id} m={m} {...ui} />)}</div>
       </div>;
     })}
+  </>;
+}
+
+/* El tablón de la calle (en el Bar La Esquina): la misión en curso, las de calle, «Buscar otras» y los turnos largos */
+function Tablon(ui: Ui) {
+  const { s, act, busy } = ui;
+  const free = (m: Mission) => doable(s, m) && !(s.busy?.kind === "mision" && s.busy.id === m.id);
+  return <>
+    <MissionProgress {...ui} />
+    <div className="row-actions" style={{ justifyContent: "space-between" }}>
+      <h3>Tablón de la calle</h3>
+      <button disabled={busy || !!s.busy || s.energy < BOARD_REROLL_COST} onClick={() => act({ type: "reroll" })}>Buscar otras · {BOARD_REROLL_COST} energía</button>
+    </div>
+    <div className="list">{s.board.filter(m => !m.hours && free(m)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    <h3>Trabajos largos</h3>
+    <p className="tag">Turnos de horas, para cuando no vas a estar. Pagan mucho por la energía que gastan; mientras tanto la energía se sigue cargando (hasta el tope).</p>
+    <div className="list">{s.board.filter(m => m.hours && free(m)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    {s.lvl < POLICE_LVL && <p className="tag">Desde el nivel {POLICE_LVL}, el comisario Funes también deja trabajos sucios en el tablón.</p>}
   </>;
 }
 
@@ -696,13 +706,19 @@ function Stories(ui: Ui) {
   </>;
 }
 
-function Street({ s, act, busy }: Ui) {
+export function Street({ s, act, busy }: Ui) {
   const weak = s.hp < maxHp(s) * MIN_HP_TO_FIGHT, mine = gangOf(s);
+  const three = s.targets.slice(0, 3);
+  const cant = busy || !!s.busy || s.energy < DUEL_COST || weak;
   return <>
-    <h2>La calle</h2>
-    <p>Pandilleros {mine ? `de las otras pandillas (a los de ${GANGS[mine].name} no los podés tocar)` : "de todas las pandillas: andás suelto, así que todos son rivales"}. Si ganás, te quedás con parte de lo que llevan encima. Cada pelea gasta {DUEL_COST} de energía. Los que dicen <span className="kind">jugador</span> son personas de verdad, y a vos también te pueden venir a buscar; los <span className="kind">vecino</span> juegan solos, pero con las mismas reglas.</p>
+    <p>Tres que andan dando vueltas, {mine ? `de las otras pandillas (a los de ${GANGS[mine].name} no los podés tocar)` : "de cualquier pandilla: andás suelto"}. Si ganás, te quedás con parte de lo que llevan encima. Cada pelea gasta {DUEL_COST} de energía. Los que dicen <span className="kind">jugador</span> son personas de verdad.</p>
     {weak && <p className="result bad">Estás muy golpeado para salir a pelear. Pasá por la guardia.</p>}
-    <div className="list">{s.targets.map((t, i) => {
+    {s.busy && <p className="tag">Para pelear tenés que estar libre.</p>}
+    <div className="row-actions">
+      <button className="primary" disabled={cant || !three.length} onClick={() => act({ type: "duel", i: Math.floor(Math.random() * three.length) })}>🎲 Atacar a uno al azar</button>
+      <button disabled={busy || s.energy < SCOUT_COST} onClick={() => act({ type: "scout" })}>Buscar a otros · {SCOUT_COST} energía</button>
+    </div>
+    <div className="list">{three.map((t, i) => {
       const d = t.lvl - s.lvl;
       return <div className="item" key={`${t.name}-${i}`}>
         <div className="with-art">
@@ -710,10 +726,9 @@ function Street({ s, act, busy }: Ui) {
           <div><h3>{t.name}<span className={`risk r${d < 0 ? 1 : d < 2 ? 2 : 3}`}>nivel {t.lvl}</span>{t.kind === "player" && <span className="kind">jugador</span>}</h3>
           <div><GangBadge gang={t.gang} /></div>
           <div className="meta num">Lleva unos {money(t.gold)}</div></div></div>
-        <div className="act"><button disabled={busy || s.energy < DUEL_COST || weak} onClick={() => act({ type: "duel", i })}>Atacar</button></div>
+        <div className="act"><button disabled={cant} onClick={() => act({ type: "duel", i })}>Atacar</button></div>
       </div>;
     })}</div>
-    <div><button disabled={busy || s.energy < SCOUT_COST} onClick={() => act({ type: "scout" })}>Buscar a otros · {SCOUT_COST} energía</button></div>
   </>;
 }
 

@@ -3,7 +3,7 @@ import { money, xpNeed, energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meet
 import { api, connectLive, type Snapshot } from "./api";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
-import { CityMap, Pane, PlacePanel, SearchPanel } from "./panes";
+import { CityMap, Pane, PlacePanel, SearchPanel, Street } from "./panes";
 import { GangRing } from "./art";
 import { sceneFor } from "./art";
 
@@ -176,6 +176,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         </div>
       </div>
 
+      {s.tutDone && <button className={`pvp ${shown === "pvp" ? "on" : ""}`} onClick={() => openPanel("pvp")} aria-label="Pelear" title="Pelear">
+        <span aria-hidden="true">⚔️</span><span>Pelear</span></button>}
       <button className={`me ${shown === "me" ? "on" : ""}`} onClick={() => openPanel("me")} aria-label="Tu personaje">
         <GangRing s={s} size={42} />
         <span className="me-bars">
@@ -187,7 +189,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       {shown && <aside className="panel" aria-label="Panel">
         <div className="panel-head">
           <b>{shown === "me" ? s.name : shown === "lugar" ? "" : shown === "cronica" ? "Crónica" : shown === "buscar" ? "Buscar"
-            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : groups.find(g => g.id === shown)?.name}</b>
+            : shown === "inv" ? "Inventario" : shown === "amigos" ? "Amigos" : shown === "clan" ? "Clan" : shown === "pvp" ? "Pelear" : groups.find(g => g.id === shown)?.name}</b>
           <button className="link" onClick={() => { setLugar(null); setPanel(null); }}>Cerrar</button>
         </div>
         {fight && <Fight f={fight} s={s} />}
@@ -202,6 +204,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         {shown === "cronica" && <Chronicle s={s} onOut={onOut} />}
         {shown === "inv" && <section className="pane"><Pane tab="equipo" {...ui} /></section>}
         {shown === "amigos" && <section className="pane"><Pane tab="amigos" {...ui} /></section>}
+        {shown === "pvp" && <section className="pane"><Street {...ui} /></section>}
         {shown === "clan" && <div className="soon"><h2>Clanes</h2><p>Próximamente: armá tu propio clan con amigos, con chat, territorio y misiones de clan.</p></div>}
         {shown === "buscar" && <SearchPanel {...ui} query={query} />}
         {groups.some(g => g.id === shown) && (() => {

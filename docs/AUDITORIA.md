@@ -30,8 +30,8 @@
 
 | Decisión | Qué pasa hoy | Recomendación de Tomi |
 |---|---|---|
-| La calle (lista de rivales, «Atacar», «Buscar a otros») | No tiene botón desde el menú nuevo | Elegir: mostrarla en el panel de cada barrio o sacarla y dejar las peleas solo en el mapa |
-| El tablón («Buscar otras», trabajos largos, misión en curso) | Se ve en el mapa pero no se puede renovar | Ponerlo en el Bar La Esquina |
+| ~~La calle~~ | **Resuelto:** botón ⚔️ «Pelear» al costado del mapa: tres rivales posibles (como en BiteFight), «Atacar a uno al azar» y «Buscar a otros» | — |
+| ~~El tablón~~ | **Resuelto:** está en el Bar La Esquina, con la misión en curso, «Buscar otras» y los trabajos largos | — |
 | Construir fuera de casa | El código lo deja, el GDD dice que no | Dejarlo y corregir el GDD |
 | Caja fuerte desde cualquier lado | Se puede guardar plata justo antes de una emboscada | A criterio |
 | Cancelar una misión de a dos | Devuelve energía aunque pase del tope | Topearlo |

@@ -549,3 +549,10 @@ body{background:transparent}
   .topbar > *{max-width:100%;min-width:0}
   .search{margin-right:56px}
 }
+
+/* el botón de pelear (PvP): al costado del mapa, debajo de tu foto */
+.pvp{position:absolute;right:12px;top:96px;z-index:5;display:grid;justify-items:center;gap:1px;width:56px;padding:7px 0 5px;border-radius:14px;
+  background:#2a1416;border:1px solid #e0524f;color:#f2d6d4;font:700 .66rem/1 var(--mono);text-transform:uppercase;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.pvp span:first-child{font-size:1.3rem;line-height:1.1}
+.pvp.on,.pvp:hover{background:#e0524f;color:#111}
+@media (max-width:820px){.pvp{top:auto;bottom:150px;right:8px;width:48px}}
