@@ -43,7 +43,12 @@ export interface Mission {
   until?: number;              // misiones temporales: se van del mapa a esta hora
   story?: number; final?: boolean; lore?: string; // modo historia: número de misión (1–15), si es el final del capítulo y su bloque de diario
   who?: string;                // encuentros raros: quién te lo pide
+  sideKey?: string;            // misión secundaria (encuentro raro o vecino): su lugar en el catálogo de la Crónica
 }
+
+/* una misión secundaria en la Crónica: la última vez que la hiciste, cómo salió cada etapa y cuántas veces la intentaste */
+export interface SideEntry { t: number; ok: boolean; place?: string; tries: number; wins: number;
+  steps: { text: string; ok: boolean; said?: string }[]; end?: string }
 
 /* una página del diario: cuándo la hiciste, cómo te fue y qué pasaba en la ciudad (otros jugadores) en ese momento */
 export interface DiaryEntry { t: number; got: number; of: number; city?: string[] }
@@ -81,6 +86,7 @@ export interface PlayerState {
   tOdd?: number;                     // cuándo apareció el último encuentro raro
   news?: string[];                   // noticias para el resto de la ciudad (el servidor las publica y las borra)
   diary?: Record<string, DiaryEntry>; // el diario de la Crónica: una entrada por misión de historia hecha
+  secundarias?: Record<string, SideEntry>; // las misiones secundarias de la Crónica (encuentros raros y vecinos)
   /* misión de a dos aceptada: esperando a que los dos estén libres, o en curso */
   coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
   influence?: { gang: Gang; barrio: string; pts: number }[]; // influencia generada, que el servidor suma al mapa

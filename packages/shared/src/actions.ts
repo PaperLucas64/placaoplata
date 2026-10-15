@@ -14,7 +14,7 @@ import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
 import { homePlace, houseById, houseOf, housesIn } from "./casas.js";
 import { EVENT_MISSIONS } from "./eventos.js";
 import { activeEvents, lugarOf } from "./lugares.js";
-import { routeTo, TRAVEL, tripEvent } from "./geo.js";
+import { routeTo, TRAVEL, tripEvent, walkEnergy } from "./geo.js";
 import {
   durTxt, news, addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
@@ -291,7 +291,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (b.kind === "mision") { abandonMission(s, now); return {}; }
       if (b.kind === "vuelta") return fail("Ya estás volviendo a casa.");
       s.busy = null;
-      if (b.kind === "salida") { log(s, now, "Te volviste antes de hacerlo. La energía no vuelve.", "bad"); startReturn(s, b.trip?.mode ?? "pie", b.place, now, rng); return {}; }
+      if (b.kind === "salida") { log(s, now, "Te volviste antes de hacerlo. La energía no vuelve.", "bad"); startReturn(s, b.trip?.mode ?? "pie", b.place, now, rng, false, undefined, undefined, { share: 0.5 }); return {}; }
       if (b.kind === "caza") log(s, now, `Dejaste de buscar a ${b.targetName} y volviste a casa.`);
       else if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
       else {
@@ -332,6 +332,8 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
         if (!mode || !travelModes(s, place, from).includes(mode)) return fail("No podés ir así hasta ahí.");
         const cost = tripCost(s, mode, place, from);
         if (s.gold < cost) return fail(`El viaje sale ${money(cost)} y no te alcanza.`);
+        const walk = walkEnergy(s, mode, place, from);
+        if (walk && s.energy < missionEnergy(m) + walk) return fail(`Caminando hasta ahí gastás ${walk} de energía más: te hacen falta ${missionEnergy(m) + walk}.`);
       }
       startTimedMission(s, m, now, mode, rng, from);
       return {};
@@ -497,9 +499,12 @@ function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, nam
   const home = homePlace(s);
   const r = from ? { calle: from.km, pie: from.km } : !street ? routeTo(home, place) : undefined;
   let mode: TravelMode | undefined;
-  if (r) mode = (r.pie ?? 99) <= 3 ? "pie" : defaultMode(s, place, from);
+  /* caminando si es cerca y te da la energía (el camino de las salidas es la mitad: cansa la mitad) */
+  const walkHalf = (k: TravelMode) => Math.round(walkEnergy(s, k, place, from) / 2);
+  if (r) mode = (r.pie ?? 99) <= 3 && s.energy >= walkHalf("pie") ? "pie" : defaultMode(s, place, from);
   const go = r && mode ? Math.max(1, Math.round(tripMins(s, mode, place, from) / 2)) * 60_000 : 0;
   if (go && mode) s.gold = Math.max(0, s.gold - Math.round(tripCost(s, mode, place, from) / 2));
+  if (go && mode) s.energy = Math.max(0, s.energy - walkHalf(mode));
   const work = SALIDA_WORK[what] * 60_000;
   s.busy = { kind: "salida", what, ref, place, since: now, until: now + go + work,
     trip: go && mode ? { mode, place, go, back: 0, ev: 0, from: home, ...(from?.path ? { path: from.path } : {}) } : null };
@@ -521,7 +526,7 @@ export function salidaCatchUp(s: PlayerState, { now, rng }: { now: number; rng: 
     if (b.what === "golpe") { const j = jobList(s).find(x => x.id === b.ref); if (j) resolveJob(s, j, b.until, rng, b.place); }
     else resolveEncargo(s, b.ref as Gang, b.until, rng);
     const label = b.what === "golpe" ? jobList(s).find(x => x.id === b.ref)?.name ?? "un golpe" : `un encargo para ${GANGS[b.ref as Gang].name}`;
-    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng, false, label);
+    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng, false, label, undefined, { share: 0.5 });
     const v = s.busy as PlayerState["busy"];
     if (v?.kind === "vuelta" && now >= v.until) { s.busy = null; log(s, v.until, "Llegaste a casa."); }
   }

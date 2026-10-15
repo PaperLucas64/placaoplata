@@ -5,7 +5,7 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
+  tripPhase, walkEnergy, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
   EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, durTxt, type ShopKind, spotIn, missionPt
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
@@ -17,6 +17,7 @@ import type { Ui } from "./Game";
 import { Boss } from "./cards";
 import { playerSprite, travelerSprite, avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
+import { StepList } from "./parts";
 
 const GpsMap = lazy(() => import("./gps/GpsMap"));
 const mapFallback = <div className="gps" style={{ height: 260 }} />;
@@ -68,7 +69,7 @@ export function CityMap(ui: Ui & { filter?: string | null }) {
         onBarrio={b => ui.setLugar(`barrio:${b}`)} onMe={() => ui.openMe?.()} focus={ui.lugar?.startsWith("barrio:") ? ui.lugar.slice(7) : null}
         attack={s.tutDone ? { s, why: t => ambushWhy(s, t), go: (t, mode) => act({ type: "chase", id: t.id, mode }) } : undefined} />
     </Suspense>
-    <p className="gps-status num">{status}{crowd}</p>
+    <div className="gps-status num">{status}{crowd}</div>
   </section>;
 }
 
@@ -526,6 +527,9 @@ function Legend({ s, now, km }: { s: Ui["s"]; now: number; km: number }) {
       <span className="lg-line">{doing}</span>
       <span className="lg-line"><span className="lg-steps">{m.steps.map((_, i) => <span key={i} className={i < b.done ? (res[i] ? "ok" : "ko") : i === b.done ? "now" : ""} />)}</span>
         {mood} · necesitás {need} de {n} · {ph?.phase === "ida" ? `cuando llegás, dura ${minTxt(missionMins(m) * 60000)}` : `termina en ${left}`}</span>
+      <StepList steps={m.steps.map((st, i) => i < b.done
+        ? { text: st.text, state: res[i] ? "ok" : "ko", said: st.fight ? (res[i] ? st.win : st.lose) : res[i] ? st.ok : st.ko }
+        : { text: i === b.done ? st.text : undefined, state: i === b.done ? "now" : "next" })} />
     </>;
   }
   if (b.kind === "salida") {
@@ -624,9 +628,10 @@ function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; no
       {choosing && trip && <div className="travel">
         <div className="tag">¿Cómo vas hasta {place}? {from ? `(~${kmTxt(from.km)} desde donde estás)` : `(${kmTxt(tripKm(homePlace(s), place, "colectivo"))} desde tu casa en ${homePlace(s)})`}</div>
         {travelModes(s, place, from).map(k => {
-          const cost = tripCost(s, k, place, from), mins = tripMins(s, k, place, from) + missionMins(m);
-          return <button key={k} className="mode" disabled={busy || s.gold < cost} onClick={() => start(k)}>
-            <b>{TRAVEL[k].name}</b><span className="num">{from ? "~" : ""}{durTxt(mins)} hasta terminar (después volvés a casa) · {cost ? `${money(cost)} ida y vuelta` : "gratis"}</span><span className="tag">{TRAVEL_RISK[k]}</span>
+          const cost = tripCost(s, k, place, from), mins = tripMins(s, k, place, from) + missionMins(m), walk = walkEnergy(s, k, place, from);
+          return <button key={k} className="mode" disabled={busy || s.gold < cost || s.energy < energy + walk} onClick={() => start(k)}>
+            <b>{TRAVEL[k].name}</b><span className="num">{from ? "~" : ""}{durTxt(mins)} hasta terminar (después volvés a casa) · {cost ? `${money(cost)} ida y vuelta` : "gratis"}
+              {walk ? ` · caminar: ${walk} de energía de ida y otro tanto de vuelta` : ""}</span><span className="tag">{TRAVEL_RISK[k]}</span>
           </button>;
         })}
         <button className="mode ghost" onClick={() => setChoosing(false)}>Mejor no</button>

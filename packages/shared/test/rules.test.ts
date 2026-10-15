@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   activeEvents, lugarOf, lugarOpen, canAmbush, onStreet, attackVal, defenseVal, eff, gearBonus, playerFighter, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
+  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, walkEnergy, SIDE_QUESTS, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -404,6 +404,38 @@ describe("viajes y GPS", () => {
     expect(ba.kind === "mision" && ba.done).toBe(0);              // todavía viajando
     missionCatchUp(a, ctx(T0 + go + 1000));
     expect(a.log.some(l => l.msg.includes("Llegaste a Chacarota"))).toBe(true);
+  });
+  it("caminar gasta 1 de energía por km, de ida y de vuelta; en colectivo no", () => {
+    const a = veteran("Ana"), b = veteran("Beto");
+    const m = MISSIONS.sindicato[0];
+    const walk = walkEnergy(a, "pie", "Chacarota");
+    expect(walk).toBeGreaterThan(0);
+    expect(walkEnergy(b, "colectivo", "Chacarota")).toBe(0);
+    const ea = a.energy, eb = b.energy;
+    applyAction(a, { type: "mstart", id: m.id, mode: "pie" }, ctx());
+    applyAction(b, { type: "mstart", id: m.id, mode: "colectivo" }, ctx());
+    expect(eb - b.energy).toBe(missionEnergyOf(m));
+    expect(ea - a.energy).toBe(missionEnergyOf(m) + walk);
+    /* sin energía para caminar, no sale a pie */
+    const c = veteran("Caro"); c.energy = missionEnergyOf(m);
+    expect(applyAction(c, { type: "mstart", id: m.id, mode: "pie" }, ctx()).error).toMatch(/Caminando/);
+    /* la vuelta a pie también cansa */
+    const ba = a.busy!; const end = ba.until;
+    a.energy = 30; a.tEnergy = end + 10;
+    missionCatchUp(a, ctx(end + 1, 3));
+    expect(a.busy?.kind).toBe("vuelta");
+    expect(a.energy).toBe(30 - walk);
+  });
+  it("las misiones secundarias quedan en la Crónica con cada etapa", () => {
+    const s = strong(veteran("Ana"));
+    const m = streetMission(seeded(4), s.lvl, 0, "vecinos", "calle-test-v");
+    s.board = [m];
+    expect(applyAction(s, { type: "mstart", id: m.id, mode: "colectivo" }, ctx()).error).toBeUndefined();
+    finish(s);
+    const page = s.secundarias?.[m.sideKey!];
+    expect(page?.tries).toBe(1);
+    expect(page?.steps).toHaveLength(m.steps.length);
+    expect(SIDE_QUESTS.some(q => q.key === m.sideKey)).toBe(true);
   });
   it("más lejos, más tiempo; los Amarillos no pagan el taxi", () => {
     const s = veteran("Ana"); // vive en Almagrito

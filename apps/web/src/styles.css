@@ -132,8 +132,8 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .side-card .say{font-style:italic}
 
 .log{background:var(--panel);border:1px solid var(--line);padding:14px 18px;display:grid;gap:8px}
-.log ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto;font-size:.92rem}
-.log li{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.log > ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:min(70vh,640px);overflow:auto;font-size:.92rem}
+.log > ol > li{display:grid;grid-template-columns:auto 1fr;gap:10px}
 .log time{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:3px}
 .log .good{color:var(--good)}.log .bad{color:#eba09e}.log .gold{color:var(--sodium)}
 .foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
@@ -480,6 +480,16 @@ body{background:transparent}
 .lg-steps .ok{background:#7fc8a9;border-color:#7fc8a9}
 .lg-steps .ko{background:#e0524f;border-color:#e0524f}
 .lg-steps .now{border-color:var(--sodium);box-shadow:0 0 6px var(--sodium)}
+/* las etapas con su luz: verde bien, amarilla en curso, roja mal; las que no llegaron, apagadas y sin texto */
+.step-list{list-style:none;margin:4px 0 0;padding:6px 0 0;border-top:1px dashed var(--line);display:grid;gap:4px;font-size:.82rem;font-family:var(--body)}
+.step-list li{display:grid;grid-template-columns:12px 1fr;gap:8px;align-items:start;color:var(--muted)}
+.step-list .light{width:10px;height:10px;margin-top:4px;border-radius:50%;border:1px solid var(--line)}
+.step-list em{display:block;font-style:italic;opacity:.85}
+.step-list .ok{color:var(--fg)}.step-list .ok .light{background:#7fc8a9;border-color:#7fc8a9}
+.step-list .ko{color:var(--fg)}.step-list .ko .light{background:#e0524f;border-color:#e0524f}
+.step-list .ko em{color:#eba09e}
+.step-list .now{color:var(--fg)}.step-list .now .light{background:var(--sodium);border-color:var(--sodium);box-shadow:0 0 6px var(--sodium)}
+.step-list .next{opacity:.6}
 
 /* vida, energía y XP: siempre a la vista, chiquito */
 .topbar{flex-wrap:wrap}
@@ -532,6 +542,11 @@ body{background:transparent}
 .diary .page p{margin:6px 0;line-height:1.5}
 .diary .page .num{color:var(--sodium);margin-right:4px}
 .diary .page.locked{border-left-color:var(--line);color:var(--muted);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.diary .page.side.won{border-left-color:#7fc8a9}
+.diary .page.side.lost{border-left-color:#e0524f}
+.diary .side-help{margin:4px 0 6px}
+.diary .side-result{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:6px 0 0;font-weight:700;font-size:.85rem}
+.diary .side-result.ok{color:#7fc8a9}.diary .side-result.ko{color:#eba09e}
 .diary .city-news{display:grid;gap:2px;font-size:.82rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}
 
 /* con el panel abierto, la leyenda del mapa se corre al costado (no queda tapada) */
@@ -555,4 +570,5 @@ body{background:transparent}
   background:#2a1416;border:1px solid #e0524f;color:#f2d6d4;font:700 .66rem/1 var(--mono);text-transform:uppercase;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .pvp span:first-child{font-size:1.3rem;line-height:1.1}
 .pvp.on,.pvp:hover{background:#e0524f;color:#111}
-@media (max-width:820px){.pvp{top:auto;bottom:150px;right:8px;width:48px}}
+@media (max-width:820px){.pvp{top:auto;bottom:150px;right:8px;width:48px}
+  .gm .gps-status:has(.step-list){padding-right:58px}} /* con las etapas, la leyenda crece: que el botón no tape el texto */

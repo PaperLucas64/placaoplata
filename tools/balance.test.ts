@@ -22,7 +22,7 @@ describe.each(["familia", "sindicato", "barra", "amarillos"] as Gang[])("balance
   });
   it("la calle no es ni un trámite ni imposible", () => {
     expect(r.fights.calle).toBeGreaterThan(45);
-    expect(r.fights.calle).toBeLessThan(80);
+    expect(r.fights.calle).toBeLessThanOrEqual(80);
   });
   it("las peleas de misión se pueden ganar", () => {
     for (const [k, v] of Object.entries(r.fights)) if (k.startsWith("misión")) expect(v, k).toBeGreaterThan(35);

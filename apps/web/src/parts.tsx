@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import {
   clamp, energyMax, findMission, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
   type FightView, type PlayerState, type StatKey, eff, gearBonus, SLOTS, SLOT_NAMES, GANGS, GANG_KEYS, MISSIONS, EPISODE, STORY_NAME, ACT_NAMES,
-  type Gang } from "@pop/shared";
+  type Gang, SIDE_QUESTS, ODD_COLOR, VECINOS_COLOR } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
 import { ItemIcon } from "./icons";
 
@@ -103,14 +103,13 @@ const hhmm = (t: number) => new Date(t).toLocaleTimeString("es-AR", { hour: "2-d
 export function Chronicle({ s, onOut }: { s: PlayerState; onOut: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const [credits, setCredits] = useState(false);
-  const [view, setView] = useState<"diario" | "registro">("diario");
+  const [view, setView] = useState<"diario" | "secundarias" | "registro">("diario");
+  const tab = (k: typeof view, label: string) =>
+    <button role="tab" aria-selected={view === k} className={view === k ? "on" : ""} onClick={() => setView(k)}>{label}</button>;
   return (
     <section className="log">
-      <div className="seg" role="tablist">
-        <button role="tab" aria-selected={view === "diario"} className={view === "diario" ? "on" : ""} onClick={() => setView("diario")}>Diario</button>
-        <button role="tab" aria-selected={view === "registro"} className={view === "registro" ? "on" : ""} onClick={() => setView("registro")}>Lo último</button>
-      </div>
-      {view === "diario" ? <Diary s={s} /> : <>
+      <div className="seg" role="tablist">{tab("diario", "Misiones")}{tab("secundarias", "Secundarias")}{tab("registro", "Lo último")}</div>
+      {view === "diario" ? <Diary s={s} /> : view === "secundarias" ? <SideDiary s={s} /> : <>
       <div className="foot"><h3>Crónica</h3>
         <div className="confirm">{confirm
           ? <>¿Salir de tu cuenta? <button className="primary" onClick={onOut}>Sí, salir</button><button onClick={() => setConfirm(false)}>Cancelar</button></>
@@ -151,6 +150,51 @@ function Diary({ s }: { s: PlayerState }) {
             <p>{m.lore}</p>
             {d.city?.length ? <div className="city-news"><span className="tag">Mientras tanto, en Maires:</span>{d.city.map((c, k) => <span key={k}>{c}</span>)}</div> : null}
           </article></div>;
+        })}
+      </details>;
+    })}
+  </div>;
+}
+
+/* Las etapas de una misión con su luz: verde salió bien, amarilla en curso, roja salió mal.
+   Las que todavía no llegaron no dicen nada, para no adelantar la historia. */
+export type StepView = { text?: string; state: "ok" | "ko" | "now" | "next"; said?: string };
+export function StepList({ steps }: { steps: StepView[] }) {
+  return <ol className="step-list">{steps.map((st, i) => <li key={i} className={st.state}>
+    <span className="light" aria-label={{ ok: "salió bien", ko: "salió mal", now: "en curso", next: "todavía no" }[st.state]} />
+    <span>{st.text ?? "· · ·"}{st.said && <em>{st.said}</em>}</span>
+  </li>)}</ol>;
+}
+
+/* Las misiones secundarias: los encuentros raros y los pedidos de los vecinos. Cada una aparece en blanco
+   hasta que te la cruzás; después queda cómo te fue en cada etapa, el desenlace y cuántas veces la hiciste. */
+function SideDiary({ s }: { s: PlayerState }) {
+  const groups = [
+    { kind: "raro" as const, name: "Encuentros raros", color: ODD_COLOR, help: "Gente extraña que aparece un rato en algún barrio." },
+    { kind: "vecino" as const, name: "Vecinos", color: VECINOS_COLOR, help: "Pedidos del tablón de gente que no es de ninguna pandilla." }
+  ];
+  const got = SIDE_QUESTS.filter(q => s.secundarias?.[q.key]).length;
+  const [open, setOpen] = useState<string | null>("raro");
+  return <div className="diary">
+    <header><span className="tag">Misiones secundarias</span>
+      <h3>Lo que te cruzaste en Maires</h3>
+      <span className="num tag">{got} de {SIDE_QUESTS.length} descubiertas</span></header>
+    {groups.map(g => {
+      const list = SIDE_QUESTS.filter(q => q.kind === g.kind), n = list.filter(q => s.secundarias?.[q.key]).length;
+      return <details key={g.kind} open={open === g.kind} onToggle={e => { if ((e.target as HTMLDetailsElement).open) setOpen(g.kind); }}>
+        <summary><b style={{ color: g.color }}>{g.name}</b> <span className="tag">{n} de {list.length}</span></summary>
+        <p className="tag side-help">{g.help}</p>
+        {list.map(q => {
+          const d = s.secundarias?.[q.key];
+          if (!d) return <div key={q.key} className="page locked">· · · <span className="tag">Todavía no te lo cruzaste</span></div>;
+          return <article key={q.key} className={`page side ${d.ok ? "won" : "lost"}`}>
+            <h5>{q.text}</h5>
+            <div className="tag">{q.who[0].toUpperCase() + q.who.slice(1)} · {fecha(d.t)}{d.place ? ` · ${d.place}` : ""}</div>
+            <div className={`side-result ${d.ok ? "ok" : "ko"}`}>{d.ok ? "Salió bien" : "Se cayó"}
+              <span className="tag">{d.tries === 1 ? "La hiciste una vez" : `La hiciste ${d.tries} veces · ${d.wins} bien`}</span></div>
+            <StepList steps={d.steps.map(st => ({ text: st.text, state: st.ok ? "ok" : "ko", said: st.said }))} />
+            {d.end && <p>{d.end}</p>}
+          </article>;
         })}
       </details>;
     })}

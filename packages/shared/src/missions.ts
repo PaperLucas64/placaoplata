@@ -5,7 +5,7 @@ import { ARC_INFLUENCE, ARC_MISSIONS, arcChapterKey, COMISARIO } from "./arcs.js
 import { SHOP, STAT_NAMES, VALIJA } from "./data.js";
 import { EVENT_MISSIONS } from "./eventos.js";
 import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } from "./gangs.js";
-import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type FromPoint, type TravelMode } from "./geo.js";
+import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, walkEnergy, type FromPoint, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
 import { homePlace } from "./casas.js";
 import { addAff, addHeat, addRespect, news, durTxt, battle, clamp, eff, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
@@ -55,22 +55,26 @@ export function startTimedMission(s: PlayerState, m: Mission, now: number, mode?
   const trip = !!(mode && place && (fp ? place : routeTo(from, place)));
   const go = trip ? tripMins(s, mode!, place!, fp) * MIN : 0;
   const work = missionMins(m) * MIN;
-  s.energy -= missionEnergy(m);
+  const walk = trip ? walkEnergy(s, mode!, place!, fp) : 0;
+  s.energy = Math.max(0, s.energy - missionEnergy(m) - walk);
   if (trip) s.gold -= tripCost(s, mode!, place!, fp);
   s.busy = { kind: "mision", id: m.id, since: now, until: now + go + work, done: 0, ok: 0, res: [],
     trip: trip ? { mode: mode!, place: place!, go, back: 0, ev: 0, from, ...(fp?.path ? { path: fp.path } : {}) } : null };
   const total = Math.round((go + work) / MIN);
   log(s, now, trip
-    ? `Saliste a hacer «${m.title}»${fp ? " desde donde estabas" : ""}. ${tripText(s, mode!, place!, rng, fp)} Llegás en ${durTxt(go / MIN)} y la misión dura ${durTxt(work / MIN)}; después volvés a casa.`
+    ? `Saliste a hacer «${m.title}»${fp ? " desde donde estabas" : ""}. ${tripText(s, mode!, place!, rng, fp)} Llegás en ${durTxt(go / MIN)} y la misión dura ${durTxt(work / MIN)}; después volvés a casa.${walk ? ` Caminar te cuesta ${walk} de energía.` : ""}`
     : `Saliste a hacer «${m.title}». Terminás en ${durTxt(total)}.`, "gold");
 }
 
-/* volver a casa: estás en la calle (salvo en ambulancia) hasta llegar */
-export function startReturn(s: PlayerState, mode: TravelMode, place: string, at: number, rng: Rng, safe = false, label?: string, ok?: boolean) {
+/* volver a casa: estás en la calle (salvo en ambulancia) hasta llegar. Caminando, la vuelta también cansa
+   (nunca te deja en negativo; volviendo de curarte, no). share: qué parte del camino cuenta (las salidas son más cortas). */
+export function startReturn(s: PlayerState, mode: TravelMode, place: string, at: number, rng: Rng, safe = false, label?: string, ok?: boolean,
+  walk: { free?: boolean; share?: number } = {}) {
   const home = homePlace(s);
   const r = routeTo(home, place);
   if (!r) { s.busy = null; return; }
   const m: TravelMode = mode === "riel" && !r.riel ? "colectivo" : mode === "pie" && !r.pie ? "colectivo" : mode;
+  if (!walk.free) s.energy = Math.max(0, s.energy - Math.round(walkEnergy(s, m, place) * (walk.share ?? 1)));
   const mins = tripMins(s, m, place);
   s.busy = { kind: "vuelta", since: at, until: at + mins * MIN, mode: m, place, home, ...(safe ? { safe } : {}), ...(label ? { label } : {}), ...(ok !== undefined ? { ok } : {}) };
   if (!safe) tripEvent(s, m, place, true, at, rng);
@@ -120,11 +124,22 @@ export function missionCatchUp(s: PlayerState, { now, rng }: { now: number; rng:
   }
   if (b.done >= m.steps.length && now >= b.until) {
     if (t && t.back && !(t.ev & 2)) { t.ev |= 2; tripEvent(s, t.mode, t.place, true, b.until, rng); } // misiones de antes: la vuelta ya estaba incluida
-    s.busy = null; finishMission(s, m, b.ok, b.until, rng); changed = true;
+    s.busy = null; recordSide(s, m, b.res ?? [], b.until); finishMission(s, m, b.ok, b.until, rng); changed = true;
     if (t && !t.back) { startReturn(s, t.mode, t.place, b.until, rng, false, `«${m.title}»`, b.ok >= missionNeed(m)); finishBusyLater(s, now); }
   }
   return changed;
 }
+/* La página de una misión secundaria en la Crónica: cómo salió cada etapa, el desenlace y cuántas veces la intentaste */
+function recordSide(s: PlayerState, m: Mission, res: boolean[], at: number) {
+  const key = sideKeyOf(m);
+  if (!key) return;
+  const ok = res.filter(Boolean).length >= missionNeed(m), prev = s.secundarias?.[key];
+  const steps = m.steps.map((st, i) => ({ text: st.text, ok: !!res[i],
+    said: st.fight ? (res[i] ? st.win : st.lose) : res[i] ? st.ok : st.ko }));
+  (s.secundarias ??= {})[key] = { t: at, ok, place: m.place, tries: (prev?.tries ?? 0) + 1, wins: (prev?.wins ?? 0) + (ok ? 1 : 0), steps,
+    ...(ok && m.client === "raro" ? { end: RAROS.find(r => r.who === m.who)?.ok } : {}) };
+}
+
 /* si ya pasó también la vuelta, se termina en el momento */
 function finishBusyLater(s: PlayerState, now: number) {
   const v = s.busy;
@@ -143,7 +158,7 @@ function careCatchUp(s: PlayerState, b: Extract<PlayerState["busy"], { kind: "gu
   if (now >= b.until) {
     s.hp = maxHp(s); s.c.heal++; s.tHeal = b.until; s.busy = null; changed = true;
     log(s, b.until, b.clinic ? "Te dieron el alta en la clínica. Vida al máximo. La ambulancia te lleva a casa." : "Te dieron el alta en la guardia. Vida al máximo. Volvés caminando.", "good");
-    startReturn(s, b.clinic ? "ambulancia" : "pie", t.place, b.until, rng, b.clinic, b.clinic ? "la clínica" : "la guardia", true);
+    startReturn(s, b.clinic ? "ambulancia" : "pie", t.place, b.until, rng, b.clinic, b.clinic ? "la clínica" : "la guardia", true, { free: true });
     finishBusyLater(s, now);
   }
   return changed;
@@ -365,6 +380,7 @@ export function streetMission(rng: Rng, lvl: number, d: number, client: StreetCl
   const text = target ? obj.text.replace("{g}", GANGS[target].name) : obj.text;
   return {
     id, street: true, gang, client: gang ? undefined : client, target, difficulty: d, rank: 0, mins: D.mins, place,
+    ...(client === "vecinos" ? { sideKey: `vecino-${VECINOS.indexOf(obj)}` } : {}),
     title: obj.place ? text : `${text} en ${place}`,
     intro: obj.who ? `Te lo pide ${obj.who}.` : target ? `Funes te ofrece un trabajo sucio contra ${GANGS[target].name}.` : "",
     steps, outro: "",
@@ -472,6 +488,19 @@ const RAROS: { who: string; text: string; steps: [OddStep, OddStep]; ok: string 
             ["lab", "Convencer a la dueña de que no lo robaste vos", "La dueña te creyó al toque.", "La dueña llamó a la vecina, a la policía y a la radio."]] }
 ]
 export const ODD_COLOR = "#ff8cc6";
+
+/* El catálogo de misiones secundarias de la Crónica: cada encuentro raro y cada pedido de los vecinos, en orden fijo */
+export interface SideQuest { key: string; kind: "raro" | "vecino"; who: string; text: string }
+export const SIDE_QUESTS: SideQuest[] = [
+  ...RAROS.map((r, i) => ({ key: `raro-${i}`, kind: "raro" as const, who: r.who, text: r.text })),
+  ...VECINOS.map((v, i) => ({ key: `vecino-${i}`, kind: "vecino" as const, who: v.who!, text: v.text }))
+];
+/* las misiones de antes no guardaban su lugar en el catálogo: los raros se reconocen por quién los pide y los vecinos por el título */
+function sideKeyOf(m: Mission) {
+  if (m.sideKey) return m.sideKey;
+  const i = m.client === "raro" ? RAROS.findIndex(r => r.who === m.who) : m.client === "vecinos" ? VECINOS.findIndex(v => m.title.startsWith(v.text)) : -1;
+  return i < 0 ? undefined : `${m.client === "raro" ? "raro" : "vecino"}-${i}`;
+}
 export const ODD_EVERY = 75 * MIN, ODD_MAX = 2;          // uno nuevo cada tanto, como mucho dos a la vez
 export function oddMission(rng: Rng, lvl: number, now: number, id: string): Mission {
   const r = pick(rng, RAROS), place = pick(rng, BARRIOS);
@@ -479,7 +508,7 @@ export function oddMission(rng: Rng, lvl: number, now: number, id: string): Miss
   const steps: MissionStep[] = r.steps.map(([stat, text, ok, ko]) => ({ text, stat, diff, energy: units / 3, dmg: 0.05, ok, ko }));
   steps.push({ text: `Volver con ${r.who}`, energy: units / 3, auto: true, ok: r.ok });
   return {
-    id, street: true, client: "raro", who: r.who, difficulty: 1, rank: 0, mins: 10, place,
+    id, street: true, client: "raro", who: r.who, sideKey: `raro-${RAROS.indexOf(r)}`, difficulty: 1, rank: 0, mins: 10, place,
     title: `${r.text} en ${place}`, intro: `Te lo pide ${r.who}. Está un rato nomás: si no vas, se va.`,
     steps, outro: "", req: { [r.steps[0][0]]: Math.max(5, Math.round(typ * 0.6)) }, aff: 0,
     until: now + rnd(rng, 60, 150) * MIN,

@@ -121,6 +121,17 @@ export function tripCost(s: PlayerState, mode: TravelMode, place: string, fp?: F
     mode === "auto" ? Math.round(km * 0.3) : 0;
   return one * 2;
 }
+/* Caminar cansa: cada km a pie gasta 1 de energía (también los tramos a pie del subte y tren). Se cobra la ida al salir
+   y la vuelta al volver. Ir a curarte es la excepción: no se cobra. */
+export const WALK_KM_PER_ENERGY = 1;
+export function walkKm(s: PlayerState, mode: TravelMode, place: string, fp?: FromPoint): number {
+  const r = routeFrom(s, place, fp);
+  if (!r) return 0;
+  return mode === "pie" ? r.pie ?? r.calle : mode === "riel" ? (r.riel ?? []).reduce((a, l) => a + (l.kind === "pie" ? l.km : 0), 0) : 0;
+}
+export const walkEnergy = (s: PlayerState, mode: TravelMode, place: string, fp?: FromPoint) =>
+  Math.round(walkKm(s, mode, place, fp) / WALK_KM_PER_ENERGY);
+
 /* cómo de riesgoso es cada medio (para mostrar) */
 export const TRAVEL_RISK: Record<TravelMode, string> = {
   pie: "lento, casi sin riesgo", colectivo: "barato; algún punga", riel: "rápido y barato; algún punga",
