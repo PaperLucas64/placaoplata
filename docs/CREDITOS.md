@@ -8,7 +8,7 @@ También se muestran en el juego (botón **Créditos**, al lado de la crónica).
 | Qué | Autor | Licencia | Dónde se usa |
 |---|---|---|---|
 | Fondos (packs 1, 2 y Old) | **Noraneko Games** (@NoranekoGames) | Uso en juegos con crédito; se permite modificar; no se puede vender el pack ni redistribuirlo suelto | Escenas de cada pestaña y tarjetas de Marga y los bandos (`assets/fondos`) |
-| Retratos y siluetas | **わたおきば / Wataokiba** (わたおび) | Uso libre comercial y no comercial; se permite recortar y cambiar colores; prohibido redistribuir o vender el material o decir que es propio | Marga, Ríos, La Señora, el Gallego, Don Tito, avatares y siluetas (`assets/retratos`, `assets/siluetas`) |
+| Retratos y siluetas | **わたおきば / Wataokiba** (わたおび) | Uso libre comercial y no comercial; se permite recortar y cambiar colores; prohibido redistribuir o vender el material o decir que es propio | Marga, Ríos, los cuatro jefes de pandilla, el Gallego, Don Tito, avatares y siluetas (`assets/retratos`, `assets/siluetas`) |
 | Armas de fuego en pixel art | **arlantr** (arlantr.itch.io) | "Free to use any way you want" | Pistola, escopetas y fusil (`assets/iconos/arma_*`) |
 | Íconos (cuchillo, escudo, llave, auto, etc.) | **Prinbles** (prinbles.itch.io) y **Robert Brooks / gamedeveloperstudio.com** | Uso en proyectos personales y comerciales; no se pueden revender ni redistribuir | `assets/iconos` |
 | Íconos de tonfa, bate, chalecos, campera, casco, botiquín, taser, manopla | Mauspi Lab | Propio | `apps/web/src/icons.tsx` |

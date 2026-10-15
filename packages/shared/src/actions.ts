@@ -1,12 +1,16 @@
 /* Acciones del jugador. Cada una valida, cambia el estado y devuelve lo que la pantalla tiene que mostrar.
    El servidor es el único que las ejecuta de verdad; el azar llega como `rng`. */
-import { AMBUSH_CHANCE, AMBUSH_MAX_CATCHUP, ATTACK_EVERY, DUEL_COST, MIN_HP_TO_FIGHT, SALARY_EVERY, SCOUT_COST } from "./config.js";
-import { FOES, MISSIONS, RANKS, RING, SHOP, STAT_NAMES, TUT, VALIJA } from "./data.js";
+import { AMBUSH_CHANCE, AMBUSH_MAX_CATCHUP, ATTACK_EVERY, DUEL_COST, MIN_HP_TO_FIGHT, SCOUT_COST } from "./config.js";
+import { RING, SHOP, STAT_NAMES, TUT, VALIJA } from "./data.js";
 import {
-  addHeat, battle, clamp, finishBusy, foeSide, gainXp, getMission, guardiaTime, healCost, trainTime, itemLocked, jobList, lawyerCost, log, maxHp, money,
-  pick, playerFighter, rankOf, rnd, salary, salaryLeft, scaledEnemy, trainCost
+  ENCARGO_AFF, ENCARGO_COST, ENCARGOS, GANG_KEYS, GANG_MEMBERS, GANGS, HOME, MISSION_AFF, MISSIONS, POLICE_NAMES, RANK_NAMES
+} from "./gangs.js";
+import {
+  addAff, addHeat, battle, clamp, closetSlots, finishBusy, gainXp, gangOf, getMission, guardiaTime, healCost, isGolpe,
+  itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
+  trainCost, trainTime
 } from "./rules.js";
-import type { Action, ActionResult, Mission, PlayerState, Rng, Side, Target } from "./types.js";
+import type { Action, ActionResult, Gang, Mission, PlayerState, Rng, Target } from "./types.js";
 
 export interface Ctx { now: number; rng: Rng }
 const fail = (error: string): ActionResult => ({ error });
@@ -15,23 +19,31 @@ export function addRespect(s: PlayerState, now: number, n: number) {
   const before = rankOf(s);
   s.respect = Math.max(0, s.respect + n);
   const after = rankOf(s);
-  if (s.side && after > before) log(s, now, `Ascendiste: ahora sos ${RANKS[s.side][after]}.`, "gold");
+  if (s.tutDone && after > before) log(s, now, `Subiste de rango: ahora sos ${RANK_NAMES[after]}.`, "gold");
 }
 
+/* Las misiones de cada pandilla van en orden y piden rango. Cualquiera puede hacerlas: así se gana afinidad. */
 export function canStart(s: PlayerState, m: Mission) {
   if (s.mis) return false;
-  if (m.id === "valija") return !s.c.valija && !s.side;
-  const list = s.side ? MISSIONS[s.side] : [], i = list.indexOf(m);
+  if (m.id === VALIJA.id) return !s.c.valija;
+  if (!s.tutDone || !m.gang) return false;
+  const list = MISSIONS[m.gang], i = list.indexOf(m);
   return i >= 0 && !s.done[m.id] && rankOf(s) >= m.rank && list.slice(0, i).every(x => s.done[x.id]);
 }
 
-export const npcTarget = (rng: Rng, side: Side, lvl: number, name = pick(rng, FOES[foeSide(side)])): Target => {
+/* rival de la calle: alguien de otra pandilla (o de cualquiera, si andás suelto) */
+export const otherGangs = (mine: Gang | null) => GANG_KEYS.filter(g => g !== mine);
+export const npcTarget = (rng: Rng, mine: Gang | null, lvl: number): Target => {
+  const gang = pick(rng, otherGangs(mine));
   const l = Math.max(1, lvl + rnd(rng, -2, lvl < 8 ? 1 : 2)); // a nivel bajo, un nivel pesa mucho
-  return { kind: "npc", name, lvl: l, gold: rnd(rng, l * 20, l * 55) };
+  return { kind: "npc", name: pick(rng, GANG_MEMBERS[gang]), lvl: l, gold: rnd(rng, l * 20, l * 55), gang };
 };
 
+/* chance de pasar una prueba: 50% + 7% por punto de diferencia con la dificultad */
+const checkChance = (stat: number, diff: number) => clamp(50 + (stat - diff) * 7, 15, 95);
+
 /* Mientras entrenás o estás internado no podés hacer estas cosas */
-const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "train", "spar", "mstart", "mstep", "duel", "scout", "guardia", "heal"]);
+const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "mstep", "duel", "scout", "guardia", "heal"]);
 const busyText = (s: PlayerState) => s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : "Estás internado en la guardia.";
 
 export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): ActionResult {
@@ -48,7 +60,12 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       s.tut++;
       const nx = TUT[s.tut];
       if (nx) { if (!s.tabs.includes(nx.tab)) s.tabs.push(nx.tab); }
-      else s.tutDone = true;
+      else {
+        /* fin del tutorial: se abre la ciudad (golpes, encargos, misiones de pandilla, la calle y tu casa) */
+        s.tutDone = true; s.tAttack = now; s.tHeat = now;
+        for (const k of ["calle", "casa", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
+        log(s, now, "Las cuatro pandillas de Bahía Gris ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
+      }
       return {};
     }
 
@@ -58,8 +75,9 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (s.lvl < j.lvl) return fail(`Pide nivel ${j.lvl}.`);
       if (s.energy < j.cost) return fail("No te alcanza la energía.");
       s.energy -= j.cost;
-      /* la plata: con calor alto es más fácil que te agarren (con 50 de calor, ~1 de cada 7 golpes) */
-      if (s.side === "plata" && rng() < s.heat / 400 + j.risk * 0.01) {
+      const golpe = isGolpe(j.id);
+      /* en los golpes, con calor alto es más fácil que te agarre la policía (con 50 de calor, ~1 de cada 7) */
+      if (golpe && rng() < s.heat / 400 + j.risk * 0.01) {
         const fine = Math.min(s.gold, Math.round(s.gold * 0.1) + s.lvl * 5);
         s.gold -= fine; addHeat(s, -35);
         log(s, now, `${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.`, "bad");
@@ -68,7 +86,8 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
         s.hp = Math.max(1, s.hp - dmg);
         log(s, now, `${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
       } else {
-        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015));
+        const perk = golpe && gangOf(s) === "familia" ? 1.1 : 1; // La Familia saca más de cada golpe
+        const gold = Math.round(rnd(rng, ...j.gold) * (1 + s.stats.lab * 0.015) * perk);
         const xp = rnd(rng, ...j.xp);
         s.gold += gold; gainXp(s, now, xp); s.c.jobs++;
         if (j.resp) addRespect(s, now, j.resp);
@@ -78,12 +97,36 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       return {};
     }
 
+    /* encargo de una pandilla: repetible, suma afinidad con ella */
+    case "encargo": {
+      const e = ENCARGOS[a.gang];
+      if (!e || !s.tutDone) return fail("Ese encargo no existe.");
+      if (s.energy < ENCARGO_COST) return fail("No te alcanza la energía.");
+      if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return fail("Estás muy golpeado. Pasá por la clínica.");
+      s.energy -= ENCARGO_COST;
+      const diff = Math.round(Math.max(5, 0.5 + s.lvl * 1.4) * 0.85);
+      const g = GANGS[a.gang];
+      if (rng() * 100 < checkChance(s.stats[e.stat], diff)) {
+        const gold = Math.round(rnd(rng, s.lvl * 10, s.lvl * 18) * (1 + s.stats.lab * 0.015));
+        const xp = 6 + s.lvl * 3;
+        s.gold += gold; gainXp(s, now, xp); addRespect(s, now, 3); addHeat(s, 3);
+        log(s, now, `${e.name} para ${g.name}: ${e.ok} +${money(gold)}, +${xp} XP.`, "good");
+        addAff(s, now, a.gang, ENCARGO_AFF);
+      } else {
+        const dmg = Math.round(maxHp(s) * 0.12);
+        s.hp = Math.max(1, s.hp - dmg);
+        log(s, now, `${e.name} para ${g.name}: ${e.ko} Perdiste ${dmg} de vida.`, "bad");
+        addAff(s, now, a.gang, 1); // aunque salga mal, se acuerdan de que diste la cara
+      }
+      return {};
+    }
+
     case "train": {
       if (!(a.stat in s.stats)) return fail("Ese atributo no existe.");
       const c = trainCost(s.stats[a.stat]);
       if (s.gold < c) return fail("No te alcanza la plata.");
       /* se paga ahora y el punto llega cuando termina el entrenamiento (tiempo de verdad) */
-      const t = trainTime(s.stats[a.stat]);
+      const t = trainTime(s.stats[a.stat], s);
       s.gold -= c;
       s.busy = { kind: "gym", since: now, until: now + t, stat: a.stat };
       log(s, now, `Empezaste a entrenar ${STAT_NAMES[a.stat].toLowerCase()} (−${money(c)}). Termina en ${Math.round(t / 60_000)} min.`);
@@ -92,13 +135,29 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
 
     case "buy": {
       const it = SHOP.find(i => i.id === a.id);
-      if (!it || (it.side && it.side !== s.side)) return fail("Eso no se vende acá.");
+      if (!it) return fail("Eso no se vende acá.");
       if (itemLocked(s, it)) return fail("Todavía no te lo venden.");
       if (s.gold < it.price) return fail("No te alcanza la plata.");
-      if (it.slot !== "consumible" && s.gear[it.slot] === it.id) return fail("Ya lo tenés.");
+      if (it.slot !== "consumible" && (s.gear[it.slot] === it.id || s.home.closet.includes(it.id))) return fail("Ya lo tenés.");
       s.gold -= it.price; s.c.buy++;
-      if (it.slot === "consumible") { s.potions++; log(s, now, "Compraste un botiquín."); }
-      else { s.gear[it.slot] = it.id; log(s, now, `Te llevaste ${it.name.toLowerCase()} (−${money(it.price)}).`, "gold"); }
+      if (it.slot === "consumible") { s.potions++; log(s, now, "Compraste un botiquín."); return {}; }
+      const old = s.gear[it.slot];
+      s.gear[it.slot] = it.id;
+      log(s, now, `Te llevaste ${it.name.toLowerCase()} (−${money(it.price)}).`, "gold");
+      if (old) stash(s, now, old);
+      return {};
+    }
+
+    /* sacar algo del armario: lo que tenías puesto vuelve al armario */
+    case "equip": {
+      const it = SHOP.find(i => i.id === a.id);
+      const k = s.home.closet.indexOf(a.id);
+      if (!it || k < 0 || it.slot === "consumible") return fail("Eso no está en tu armario.");
+      s.home.closet.splice(k, 1);
+      const old = s.gear[it.slot];
+      s.gear[it.slot] = it.id;
+      if (old) s.home.closet.push(old);
+      log(s, now, `Te pusiste ${it.name.toLowerCase()}.`);
       return {};
     }
 
@@ -175,8 +234,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
         ok = fight.won; text = (ok ? st.win : st.lose) ?? "";
       } else if (st.auto) { ok = true; text = st.ok ?? ""; }
       else {
-        const chance = clamp(50 + (s.stats[st.stat!] - st.diff!) * 7, 15, 95);
-        ok = rng() * 100 < chance;
+        ok = rng() * 100 < checkChance(s.stats[st.stat!], st.diff!);
         if (!ok && st.dmg) s.hp = Math.max(1, s.hp - Math.round(maxHp(s) * st.dmg));
         text = (ok ? st.ok : st.ko) ?? "";
       }
@@ -190,6 +248,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
             const r = M.reward!;
             s.done[M.id] = true; s.gold += r.gold; gainXp(s, now, r.xp); addRespect(s, now, r.resp);
             if (r.heat) addHeat(s, r.heat);
+            if (M.gang) addAff(s, now, M.gang, MISSION_AFF[M.tier ?? 0]);
             text = `${M.outro} Cobraste ${money(r.gold)}, +${r.xp} XP y +${r.resp} de respeto.`;
           }
         }
@@ -197,37 +256,50 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       return { fight, mission: { ok, text } };
     }
 
-    case "side": {
-      if (!s.tutDone || s.side) return fail("Eso ya está decidido.");
-      if (a.side !== "placa" && a.side !== "plata") return fail("Elegí un bando.");
-      s.side = a.side; s.tSalary = now - SALARY_EVERY; s.tAttack = now; s.tHeat = now;
-      for (const k of ["calle", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
-      log(s, now, a.side === "placa"
-        ? "Aceptaste la placa. La comisaria Ríos te da una placa con tu nombre mal escrito y un escritorio que cojea."
-        : "Aceptaste la plata. La Señora te da un celular viejo y una sola regla: nunca preguntes de dónde sale la plata.", "gold");
-      return {};
-    }
-
-    case "salary": {
-      if (s.side !== "placa") return fail("No cobrás sueldo.");
-      if (salaryLeft(s, now)) return fail("Todavía no es día de cobro.");
-      const g = salary(s); s.gold += g; s.tSalary = now;
-      log(s, now, `Cobraste el sueldo: ${money(g)}.`, "gold");
-      return {};
-    }
-
     case "lawyer": {
       const c = lawyerCost(s);
-      if (s.side !== "plata" || !s.heat) return fail("No necesitás abogado.");
+      if (!s.heat) return fail("No necesitás abogado.");
       if (s.gold < c) return fail("No te alcanza la plata.");
-      s.gold -= c; addHeat(s, -40);
-      log(s, now, `El abogado de La Señora hizo unas llamadas (−${money(c)}). Bajó el calor.`);
+      s.gold -= c; s.heat = Math.max(0, s.heat - 40);
+      log(s, now, `Un abogado hizo unas llamadas (−${money(c)}). Bajó el calor.`);
+      return {};
+    }
+
+    /* ---------- la casa ---------- */
+    case "build": {
+      if (!s.tutDone) return fail("Todavía no tenés casa.");
+      if (!(a.part in HOME)) return fail("Eso no se puede mejorar.");
+      if (s.home.obra) return fail("Ya hay una obra en tu casa. Esperá a que termine.");
+      const lv = nextLevel(s, a.part);
+      if (!lv) return fail("Ya está al máximo.");
+      if (s.gold < lv.cost) return fail("No te alcanza la plata.");
+      s.gold -= lv.cost;
+      s.home.obra = { part: a.part, since: now, until: now + lv.mins * 60_000 };
+      log(s, now, `Arrancó la obra: ${lv.name.toLowerCase()} (−${money(lv.cost)}). Termina en ${lv.mins} min.`);
+      return {};
+    }
+
+    case "deposit": {
+      const room = safeCap(s) - s.home.safe;
+      const n = Math.floor(Math.min(a.amount, s.gold, room));
+      if (!safeCap(s)) return fail("Todavía no tenés caja fuerte.");
+      if (n <= 0) return fail(room <= 0 ? "La caja fuerte está llena." : "No tenés plata encima.");
+      s.gold -= n; s.home.safe += n;
+      log(s, now, `Guardaste ${money(n)} en la caja fuerte.`);
+      return {};
+    }
+
+    case "withdraw": {
+      const n = Math.floor(Math.min(a.amount, s.home.safe));
+      if (n <= 0) return fail("La caja fuerte está vacía.");
+      s.home.safe -= n; s.gold += n;
+      log(s, now, `Sacaste ${money(n)} de la caja fuerte.`);
       return {};
     }
 
     /* scout y duel contra jugadores reales necesitan la base de datos: el servidor los completa */
     case "scout": {
-      if (!s.side) return fail("Primero elegí bando.");
+      if (!s.tutDone) return fail("Todavía no conocés la calle.");
       if (s.energy < SCOUT_COST) return fail("No te alcanza la energía.");
       s.energy -= SCOUT_COST;
       return {};
@@ -248,9 +320,16 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
   }
 }
 
+/* lo que dejás de usar va al armario si hay lugar; si no, se pierde */
+function stash(s: PlayerState, now: number, id: string) {
+  const it = SHOP.find(i => i.id === id);
+  if (s.home.closet.length < closetSlots(s)) { s.home.closet.push(id); log(s, now, `Guardaste ${it?.name.toLowerCase()} en el armario.`); }
+  else log(s, now, `No tenías lugar en el armario: ${it?.name.toLowerCase()} quedó en la feria.`);
+}
+
 export function checkDuel(s: PlayerState, i: number): string | null {
   if (s.busy) return `${busyText(s)} Esperá a que termine o cancelalo.`;
-  if (!s.side || !s.targets[i]) return "Ese rival ya no está.";
+  if (!s.tutDone || !s.targets[i]) return "Ese rival ya no está.";
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
   if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
   return null;
@@ -258,50 +337,43 @@ export function checkDuel(s: PlayerState, i: number): string | null {
 
 /* Premio o castigo de una pelea en la calle. `loot` es lo que lleva encima el rival. */
 export function duelOutcome(s: PlayerState, t: { name: string; lvl: number }, won: boolean, now: number, loot: number, bonusResp = 0) {
-  const p = s.side === "placa";
   if (won) {
-    const gold = p ? Math.round(loot * 0.2) + t.lvl * 6 : Math.round(loot * 0.35);
+    const gold = Math.round(loot * 0.35);
     const xp = 6 + t.lvl * 2, r = clamp(4 + (t.lvl - s.lvl) * 2, 1, 12) + bonusResp;
     s.gold += gold; gainXp(s, now, xp); addRespect(s, now, r); s.c.duelW++;
-    if (!p) addHeat(s, 5);
-    log(s, now, p ? `Arrestaste a ${t.name}: ${money(gold)} de recompensa, +${xp} XP, +${r} de respeto.`
-                  : `Le ganaste a ${t.name} y le sacaste ${money(gold)}. +${xp} XP, +${r} de respeto.`, "good");
+    addHeat(s, 4);
+    log(s, now, `Le ganaste a ${t.name} y le sacaste ${money(gold)}. +${xp} XP, +${r} de respeto.`, "good");
     return gold;
   }
   s.c.duelL++; addRespect(s, now, -2);
-  log(s, now, p ? `${t.name} se te escapó y te dejó en el piso. −2 de respeto.`
-                : `${t.name} te redujo; te soltaste y saliste corriendo. −2 de respeto.`, "bad");
+  log(s, now, `${t.name} te dio una paliza; saliste corriendo. −2 de respeto.`, "bad");
   return 0;
 }
 
-/* Pelea contra otro jugador de verdad. Cambia los dos estados. */
+/* Pelea contra otro jugador de verdad. Cambia los dos estados. Lo guardado en la caja fuerte no se toca. */
 export function pvp(att: PlayerState, def: PlayerState, { now, rng }: Ctx): ActionResult {
   att.energy -= DUEL_COST;
   const fight = battle(rng, playerFighter(att), playerFighter(def));
   att.hp = Math.max(1, fight.p.hp);
   def.hp = Math.max(1, fight.e.hp);
-  const won = fight.won;
-  /* lo que se lleva el ganador sale del bolsillo del perdedor */
   const stake = Math.round(def.gold * 0.25);
-  const gold = duelOutcome(att, { name: def.name, lvl: def.lvl }, won, now, stake, 2);
-  if (won) {
-    /* la plata se lleva todo lo que ganó; la placa decomisa una parte y el resto es recompensa del Estado */
-    const lost = Math.min(def.gold, att.side === "placa" ? Math.round(stake * 0.2) : gold);
+  const gold = duelOutcome(att, { name: def.name, lvl: def.lvl }, fight.won, now, stake / 0.35, 2);
+  const ag = gangOf(att), tag = ag ? ` (${GANGS[ag].name})` : "";
+  if (fight.won) {
+    const lost = Math.min(def.gold, gold);
     def.gold -= lost;
-    log(def, now, def.side === "placa" ? `${att.name} te emboscó en la calle y se llevó ${money(lost)}.`
-                                       : `${att.name} te detuvo y te decomisó ${money(lost)}.`, "bad");
+    log(def, now, `${att.name}${tag} te agarró en la calle y se llevó ${money(lost)}.`, "bad");
   } else {
     addRespect(def, now, 3);
-    log(def, now, def.side === "placa" ? `${att.name} quiso asaltarte y lo dejaste en el piso. +3 de respeto.`
-                                       : `${att.name} te quiso detener y te le escapaste a las piñas. +3 de respeto.`, "good");
+    log(def, now, `${att.name}${tag} te quiso apretar y lo dejaste en el piso. +3 de respeto.`, "good");
   }
   def.seenTab.calle = false;
   return { fight };
 }
 
-/* Emboscadas de personajes del juego mientras jugás (o mientras no estabas) */
+/* Emboscadas mientras jugás (o mientras no estabas): de otra pandilla, o de la policía si tenés mucho calor */
 export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
-  if (!s.side) { s.tAttack = now; return 0; }
+  if (!s.tutDone) { s.tAttack = now; return 0; }
   const windows = Math.floor((now - s.tAttack) / ATTACK_EVERY);
   if (windows <= 0) return 0;
   s.tAttack += windows * ATTACK_EVERY;
@@ -309,17 +381,19 @@ export function ambushCatchUp(s: PlayerState, { now, rng }: Ctx): number {
   for (let i = 0; i < Math.min(windows, AMBUSH_MAX_CATCHUP); i++) {
     if (rng() >= AMBUSH_CHANCE || s.hp < maxHp(s) * MIN_HP_TO_FIGHT || s.busy?.kind === "guardia") continue;
     hits++;
-    const name = pick(rng, FOES[foeSide(s.side)]);
+    const police = s.heat >= 40 && rng() < s.heat / 100;
+    const gang = pick(rng, otherGangs(gangOf(s)));
+    const name = police ? pick(rng, POLICE_NAMES) : pick(rng, GANG_MEMBERS[gang]);
     const fight = battle(rng, scaledEnemy(rng, name, Math.max(1, s.lvl + rnd(rng, -1, 2)), 0.9), playerFighter(s));
     s.hp = Math.max(1, fight.e.hp);
     if (fight.won) {
       const lost = Math.round(s.gold * 0.08); s.gold -= lost;
-      log(s, now, s.side === "placa" ? `${name} te emboscó a la salida de la comisaría y se llevó ${money(lost)}.`
-                                     : `${name} te paró en la calle, te revisó y te sacó ${money(lost)}.`, "bad");
+      log(s, now, police ? `${name} te paró, te revisó y te "decomisó" ${money(lost)}.`
+                         : `${name}, de ${GANGS[gang].name}, te emboscó y se llevó ${money(lost)}.`, "bad");
     } else {
       addRespect(s, now, 2);
-      log(s, now, s.side === "placa" ? `${name} intentó emboscarte, pero lo redujiste. +2 de respeto.`
-                                     : `${name} te quiso detener, pero te le escapaste a las piñas. +2 de respeto.`, "good");
+      log(s, now, police ? `${name} te quiso detener y te le escapaste. +2 de respeto.`
+                         : `${name}, de ${GANGS[gang].name}, te quiso emboscar y lo dejaste en el piso. +2 de respeto.`, "good");
     }
     s.seenTab.calle = false;
   }

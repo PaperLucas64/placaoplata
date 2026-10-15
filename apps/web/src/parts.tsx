@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-  clamp, ENERGY_EVERY, ENERGY_MAX, maxHp, money, RANKS, rankOf, SHOP, STAT_NAMES, xpNeed,
+  clamp, energyMax, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
   type FightView, type PlayerState, type StatKey
 } from "@pop/shared";
-import { avatarImg, Portrait, portraitOf } from "./art";
+import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
 import { ItemIcon } from "./icons";
 
 export function Bar({ cls, label, v, max, note }: { cls: string; label: string; v: number; max: number; note?: string }) {
@@ -17,24 +17,26 @@ export function Bar({ cls, label, v, max, note }: { cls: string; label: string; 
 
 export function Sheet({ s, now }: { s: PlayerState; now: number }) {
   const mh = maxHp(s);
-  const nextE = s.energy < ENERGY_MAX ? Math.max(0, Math.ceil((ENERGY_EVERY - (now - s.tEnergy)) / 1000)) : 0;
+  const em = energyMax(s), g = gangOf(s);
+  const nextE = s.energy < em ? Math.max(0, Math.ceil((ENERGY_EVERY - (now - s.tEnergy)) / 1000)) : 0;
   const w = SHOP.find(i => i.id === s.gear.arma), a = SHOP.find(i => i.id === s.gear.armadura);
   return (
     <aside className="sheet">
       <div className="who-row">
-      <Portrait src={avatarImg(s.avatar)} side={s.side} size={84} />
+      <GangRing s={s} size={84} />
       <div className="who">
         <h2>{s.name}</h2>
-        {s.side === "placa" ? <span className="badge placa">Policía</span> : s.side === "plata" ? <span className="badge plata">Delincuente</span> : <span className="badge">Recién llegado</span>}
+        {s.tutDone ? <GangBadge gang={g} /> : <span className="badge">Recién llegado</span>}
         <span className="tag">Nivel {s.lvl}</span>
       </div>
       </div>
       <Bar cls="hp" label="Vida" v={Math.round(s.hp)} max={mh} />
-      <Bar cls="en" label="Energía" v={s.energy} max={ENERGY_MAX} note={nextE ? `+1 en ${nextE}s` : ""} />
+      <Bar cls="en" label="Energía" v={s.energy} max={em} note={nextE ? `+1 en ${nextE}s` : ""} />
       <Bar cls="xp" label="Experiencia" v={s.xp} max={xpNeed(s)} />
-      {s.side === "plata" && <Bar cls="heat" label="Calor policial" v={s.heat} max={100} note={s.heat >= 60 ? "cuidado" : ""} />}
-      {s.side && <div className="stat"><span>{RANKS[s.side][rankOf(s)]}</span><span className="num">{s.respect} de respeto</span></div>}
-      <div className="money"><span>Plata</span><span className="num">{money(s.gold)}</span></div>
+      {s.tutDone && <Bar cls="heat" label="Calor policial" v={s.heat} max={100} note={s.heat >= 60 ? "cuidado" : ""} />}
+      {s.tutDone && <div className="stat"><span>{RANK_NAMES[rankOf(s)]}</span><span className="num">{s.respect} de respeto</span></div>}
+      <div className="money"><span>Plata encima</span><span className="num">{money(s.gold)}</span></div>
+      {s.home.safe > 0 && <div className="stat"><span>En la caja fuerte</span><span className="num">{money(s.home.safe)}</span></div>}
       {s.tabs.includes("gimnasio") && (
         <div className="stats">{(Object.keys(STAT_NAMES) as StatKey[]).map(k =>
           <div className="stat" key={k}><span>{STAT_NAMES[k]}</span><span className="num">{s.stats[k]}</span></div>)}
@@ -51,14 +53,13 @@ export function Sheet({ s, now }: { s: PlayerState; now: number }) {
   );
 }
 
-export function Fight({ f, avatar, side }: { f: FightView; avatar?: number; side?: PlayerState["side"] }) {
-  const foe = side === "placa" ? "plata" : side === "plata" ? "placa" : null;
+export function Fight({ f, s }: { f: FightView; s: PlayerState }) {
   return (
     <section className={`fight ${f.won ? "" : "shake"}`} aria-live="polite">
       <div className="vs">
-        <div className="side"><Portrait src={avatarImg(avatar)} side={side} size={72} /><h3>{f.p.name}</h3><Bar cls="hp" label="Vida" v={f.p.hp} max={f.p.max} /></div>
+        <div className="side"><Portrait src={avatarImg(s.avatar)} gang={gangOf(s)} size={72} /><h3>{f.p.name}</h3><Bar cls="hp" label="Vida" v={f.p.hp} max={f.p.max} /></div>
         <div className="mid">VS</div>
-        <div className="side"><Portrait src={portraitOf(f.e.name)} side={foe} silhouetteOf size={72} /><h3>{f.e.name}</h3><Bar cls="hp" label="Vida" v={f.e.hp} max={f.e.max} /></div>
+        <div className="side"><Portrait src={portraitOf(f.e.name)} silhouetteOf size={72} /><h3>{f.e.name}</h3><Bar cls="hp" label="Vida" v={f.e.hp} max={f.e.max} /></div>
       </div>
       <div className="rounds">{f.rounds.map((r, i) => <div key={i} className={r.who}>{r.txt}</div>)}</div>
       <div className={`verdict ${f.won ? "win" : "lose"}`}>{f.won ? "Ganaste" : "Perdiste"}</div>

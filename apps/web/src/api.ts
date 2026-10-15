@@ -1,4 +1,4 @@
-import type { Action, ActionResult, PlayerState } from "@pop/shared";
+import type { Action, ActionResult, Gang, PlayerState } from "@pop/shared";
 
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
@@ -15,7 +15,7 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export interface Snapshot { state: PlayerState; now: number }
-export interface RankRow { name: string; side: "placa" | "plata"; resp: number; lvl: number; me: boolean; npc: boolean }
+export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean }
 
 export const api = {
   register: (username: string, password: string, avatar: number) => call("/api/auth/register", { username, password, avatar }),

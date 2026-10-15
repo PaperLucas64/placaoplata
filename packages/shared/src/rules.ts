@@ -1,47 +1,91 @@
-/* Fórmulas: progreso, combate y recarga. Funciones puras: el azar entra como parámetro. */
-import { CLINIC_PER_HP, ENERGY_EVERY, ENERGY_MAX, GUARDIA_FULL, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, SALARY_EVERY, TRAIN_MAX, TRAIN_MIN, TRAIN_PER_POINT } from "./config.js";
-import { JOBS, MISSIONS, RANK_AT, SHOP, SIDE_JOBS, STAT_NAMES, VALIJA } from "./data.js";
-import type { Fighter, FightView, Item, LogEntry, Mission, PlayerState, Rng, Side } from "./types.js";
+/* Fórmulas: progreso, pandillas, casa, combate y recarga. Funciones puras: el azar entra como parámetro. */
+import {
+  CLINIC_PER_HP, ENERGY_EVERY, ENERGY_MAX, GUARDIA_FULL, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, TRAIN_MAX, TRAIN_MIN, TRAIN_PER_POINT
+} from "./config.js";
+import { JOBS, OLD_ITEMS, SHOP, STAT_NAMES, VALIJA } from "./data.js";
+import {
+  BED_ENERGY, BED_HEAL, CLOSET_SLOTS, GANG_KEYS, GANG_MIN_POINTS, GANG_THRESHOLD, GANGS, GOLPES, HOME, MISSIONS, RANK_AT, SAFE_CAP
+} from "./gangs.js";
+import type { Fighter, FightView, Gang, Home, Item, LogEntry, Mission, PlayerState, Rng } from "./types.js";
 
 export const rnd = (rng: Rng, a: number, b: number) => Math.floor(rng() * (b - a + 1)) + a;
 export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 export const pick = <T>(rng: Rng, a: T[]): T => a[rnd(rng, 0, a.length - 1)];
 export const money = (n: number) => `$${n}`;
+const MIN = 60_000;
 
 export const maxHp = (s: Pick<PlayerState, "stats" | "lvl">) => 40 + s.stats.agu * 12 + s.lvl * 6;
 export const xpNeed = (s: Pick<PlayerState, "lvl">) => Math.round(40 * Math.pow(s.lvl, 1.55));
 export const trainCost = (v: number) => Math.round(3 * Math.pow(v, 2));
 export const gearVal = (s: PlayerState, slot: "arma" | "armadura") => SHOP.find(i => i.id === s.gear[slot])?.val ?? 0;
 export const rankOf = (s: Pick<PlayerState, "respect">) => RANK_AT.filter(r => s.respect >= r).length - 1;
-export const foeSide = (side: Side): Side => (side === "placa" ? "plata" : "placa");
-export const jobList = (s: PlayerState) => (s.side ? SIDE_JOBS[s.side] : JOBS);
-export const allMissions = (): Mission[] => [VALIJA, ...MISSIONS.placa, ...MISSIONS.plata];
-export const getMission = (id: string) => allMissions().find(m => m.id === id);
-export const salary = (s: PlayerState) => 30 + s.lvl * 12 + rankOf(s) * 25;
-export const salaryLeft = (s: PlayerState, now: number) => Math.max(0, SALARY_EVERY - (now - s.tSalary));
 export const lawyerCost = (s: PlayerState) => 20 + s.lvl * 8;
 export const healCost = (s: PlayerState) => Math.max(0, Math.round((maxHp(s) - s.hp) * CLINIC_PER_HP));
-const MIN = 60_000;
-/* minutos de verdad que lleva entrenar un atributo que hoy vale `v` */
-export const trainTime = (v: number) => Math.round(Math.min(TRAIN_MAX, TRAIN_MIN + v * TRAIN_PER_POINT) * MIN);
+export const itemLocked = (s: PlayerState, it: Item) => s.lvl < it.lvl || (!!it.rank && rankOf(s) < it.rank);
+export const allMissions = (): Mission[] => [VALIJA, ...GANG_KEYS.flatMap(g => MISSIONS[g])];
+export const getMission = (id: string) => allMissions().find(m => m.id === id);
+/* trabajos honestos mientras sos recién llegado; después, los golpes también */
+export const jobList = (s: PlayerState) => (s.tutDone ? [...JOBS, ...GOLPES] : JOBS);
+export const isGolpe = (id: string) => GOLPES.some(j => j.id === id);
+
+/* ---------- pandillas ---------- */
+export const affTotal = (s: Pick<PlayerState, "aff">) => GANG_KEYS.reduce((a, g) => a + (s.aff[g] ?? 0), 0);
+export const affShare = (s: Pick<PlayerState, "aff">, g: Gang) => { const t = affTotal(s); return t ? (s.aff[g] ?? 0) / t : 0; };
+/* sos de una pandilla si tiene la mitad o más de tu afinidad; si no, andás suelto */
+export function gangOf(s: Pick<PlayerState, "aff">): Gang | null {
+  if (affTotal(s) < GANG_MIN_POINTS) return null;
+  return GANG_KEYS.find(g => affShare(s, g) >= GANG_THRESHOLD) ?? null;
+}
+export const gangName = (g: Gang | null) => (g ? GANGS[g].name : "Suelto");
+
+/* ---------- casa ---------- */
+export const energyMax = (s: Pick<PlayerState, "home">) => ENERGY_MAX + BED_ENERGY[s.home?.cama ?? 0];
+export const safeCap = (s: Pick<PlayerState, "home">) => SAFE_CAP[s.home?.caja ?? 0];
+export const closetSlots = (s: Pick<PlayerState, "home">) => CLOSET_SLOTS[s.home?.armario ?? 0];
+export const nextLevel = (s: PlayerState, part: keyof typeof HOME) => HOME[part].levels[s.home[part] + 1];
+export const newHome = (): Home => ({ cama: 0, caja: 0, armario: 0, safe: 0, closet: [], obra: null });
+
+/* ---------- tiempos ---------- */
+/* minutos de verdad que lleva entrenar un atributo que hoy vale `v` (el Sindicato entrena 25% más rápido) */
+export const trainTime = (v: number, s?: Pick<PlayerState, "aff">) =>
+  Math.round(Math.min(TRAIN_MAX, TRAIN_MIN + v * TRAIN_PER_POINT) * MIN * (s && gangOf(s) === "sindicato" ? 0.75 : 1));
 /* minutos en la guardia según cuánta vida falta (mínimo 1 minuto) */
 export const guardiaTime = (s: Pick<PlayerState, "hp" | "stats" | "lvl">) =>
   Math.max(MIN, Math.round((1 - s.hp / maxHp(s)) * GUARDIA_FULL * MIN));
 export const busyLeft = (s: PlayerState, now: number) => (s.busy ? Math.max(0, s.busy.until - now) : 0);
-export const itemLocked = (s: PlayerState, it: Item) => s.lvl < it.lvl || (!!it.rank && rankOf(s) < it.rank);
 
 export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
   const s: PlayerState = {
-    name, avatar, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
+    v: 2, name, avatar, lvl: 1, xp: 0, gold: 10, energy: ENERGY_MAX, hp: 0,
     stats: { fue: 5, dur: 5, ref: 5, agu: 5, lab: 5 },
     gear: { arma: null, armadura: null }, potions: 0, wins: 0, losses: 0,
     tut: 0, tutDone: false, tabs: ["laburos"], seenTab: {},
     c: { jobs: 0, train: 0, buy: 0, spar: 0, heal: 0, valija: 0, duelW: 0, duelL: 0 },
-    mis: null, side: null, respect: 0, heat: 0, done: {}, targets: [],
-    tEnergy: now, tHeal: now, tSalary: now - SALARY_EVERY, tAttack: now, tHeat: now, log: []
+    mis: null, aff: { familia: 0, sindicato: 0, barra: 0, amarillos: 0 },
+    respect: 0, heat: 0, done: {}, targets: [], home: newHome(),
+    tEnergy: now, tHeal: now, tAttack: now, tHeat: now, log: []
   };
   s.hp = maxHp(s);
   log(s, now, `${name} se baja del micro en Bahía Gris con ${money(10)} en el bolsillo.`, "gold");
+  return s;
+}
+
+/* Partidas de la versión con policía (placa o plata): se pasan al formato de pandillas */
+export function upgradeState(s: PlayerState & { side?: string | null; tSalary?: number }, now: number): PlayerState {
+  if (s.v === 2) return s;
+  const old = s.side;
+  delete s.side; delete s.tSalary;
+  s.aff = { familia: 0, sindicato: 0, barra: 0, amarillos: 0 };
+  if (old === "plata") s.aff.familia = Object.keys(s.done ?? {}).filter(id => ["kiosco", "blindado", "comisaria"].includes(id)).length * 20 + 10;
+  for (const id of ["ronda", "allanamiento", "senora"]) delete s.done?.[id];
+  if (s.mis && !getMission(s.mis.id)) s.mis = null;
+  for (const slot of ["arma", "armadura"] as const) { const g = s.gear[slot]; if (g && OLD_ITEMS[g]) s.gear[slot] = OLD_ITEMS[g]; }
+  s.home = newHome();
+  s.targets = [];
+  if (s.tutDone && !s.tabs.includes("casa")) s.tabs.splice(s.tabs.indexOf("ranking"), 0, "casa");
+  for (const k of ["calle", "ranking"] as const) if (s.tutDone && !s.tabs.includes(k)) s.tabs.push(k);
+  s.v = 2;
+  log(s, now, old ? "Bahía Gris cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Bahía Gris cambió: ahora mandan las cuatro pandillas.", "gold");
   return s;
 }
 
@@ -53,44 +97,70 @@ export function gainXp(s: PlayerState, now: number, n: number) {
   s.xp += n;
   while (s.xp >= xpNeed(s)) { s.xp -= xpNeed(s); s.lvl++; s.hp = maxHp(s); log(s, now, `Subiste al nivel ${s.lvl}. Vida al máximo.`, "gold"); }
 }
-export const addHeat = (s: PlayerState, n: number) => { s.heat = clamp(s.heat + n, 0, 100); };
-
-/* Energía, vida y calor se recargan solos con el paso del tiempo (sin cron: se calcula al leer) */
-/* Termina lo que estaba en curso si ya pasó el tiempo */
-export function finishBusy(s: PlayerState, now: number) {
-  const b = s.busy;
-  if (!b || now < b.until) return;
-  s.busy = null;
-  if (b.kind === "gym") {
-    s.stats[b.stat]++; s.c.train++;
-    if (b.stat === "agu") s.hp += 12;
-    log(s, b.until, `Terminaste de entrenar: ${STAT_NAMES[b.stat].toLowerCase()} sube a ${s.stats[b.stat]}.`, "good");
-  } else {
-    s.hp = maxHp(s); s.c.heal++; s.tHeal = b.until;
-    log(s, b.until, "Te dieron el alta en la guardia. Vida al máximo.", "good");
+/* Los Amarillos juntan 30% menos de calor */
+export const addHeat = (s: PlayerState, n: number) => {
+  if (n > 0 && gangOf(s) === "amarillos") n = Math.round(n * 0.7);
+  s.heat = clamp(s.heat + n, 0, 100);
+};
+/* Suma afinidad con una pandilla y avisa si eso te hace entrar o salir de alguna */
+export function addAff(s: PlayerState, now: number, g: Gang, n: number) {
+  const before = gangOf(s);
+  s.aff[g] = (s.aff[g] ?? 0) + n;
+  const after = gangOf(s);
+  if (after !== before) {
+    if (after) log(s, now, `Ahora sos de ${GANGS[after].name}. ${GANGS[after].boss} te reconoce como propio.`, "gold");
+    else log(s, now, `Ya no sos de ${GANGS[before!].name}: andás suelto.`, "bad");
   }
 }
 
+/* ---------- el paso del tiempo ---------- */
+/* Termina lo que estaba en curso si ya pasó el tiempo */
+export function finishBusy(s: PlayerState, now: number) {
+  const b = s.busy;
+  if (b && now >= b.until) {
+    s.busy = null;
+    if (b.kind === "gym") {
+      s.stats[b.stat]++; s.c.train++;
+      if (b.stat === "agu") s.hp += 12;
+      log(s, b.until, `Terminaste de entrenar: ${STAT_NAMES[b.stat].toLowerCase()} sube a ${s.stats[b.stat]}.`, "good");
+    } else {
+      s.hp = maxHp(s); s.c.heal++; s.tHeal = b.until;
+      log(s, b.until, "Te dieron el alta en la guardia. Vida al máximo.", "good");
+    }
+  }
+  const o = s.home?.obra;
+  if (o && now >= o.until) {
+    s.home.obra = null;
+    s.home[o.part]++;
+    log(s, o.until, `Terminó la obra en tu casa: ${HOME[o.part].levels[s.home[o.part]].name.toLowerCase()}.`, "good");
+  }
+}
+
+/* Energía, vida y calor se recargan solos con el paso del tiempo (sin cron: se calcula al leer) */
 export function regen(s: PlayerState, now: number) {
   finishBusy(s, now);
-  if (s.energy < ENERGY_MAX) {
+  const em = energyMax(s);
+  if (s.energy < em) {
     const g = Math.floor((now - s.tEnergy) / ENERGY_EVERY);
-    if (g > 0) { s.energy = Math.min(ENERGY_MAX, s.energy + g); s.tEnergy += g * ENERGY_EVERY; }
+    if (g > 0) { s.energy = Math.min(em, s.energy + g); s.tEnergy += g * ENERGY_EVERY; }
   } else s.tEnergy = now;
   const mh = maxHp(s);
   if (s.hp < mh) {
     const h = Math.floor((now - s.tHeal) / HEAL_EVERY);
-    if (h > 0) { s.hp = Math.min(mh, s.hp + h * Math.ceil(mh * 0.02)); s.tHeal += h * HEAL_EVERY; }
+    const per = Math.ceil(mh * 0.02 * (1 + BED_HEAL[s.home?.cama ?? 0]));
+    if (h > 0) { s.hp = Math.min(mh, s.hp + h * per); s.tHeal += h * HEAL_EVERY; }
   } else s.tHeal = now;
-  if (s.side === "plata" && s.heat > 0) {
+  if (s.heat > 0) {
     const h = Math.floor((now - s.tHeat) / HEAT_EVERY);
     if (h > 0) { s.heat = Math.max(0, s.heat - h); s.tHeat += h * HEAT_EVERY; }
   } else s.tHeat = now;
 }
 
 /* ---------- combate ---------- */
+/* La Barra pega 10% más fuerte */
 export function playerFighter(s: PlayerState): Fighter {
-  return { name: s.name, hp: s.hp, max: maxHp(s), fue: s.stats.fue, dur: s.stats.dur, ref: s.stats.ref, arma: gearVal(s, "arma"), armadura: gearVal(s, "armadura") };
+  const fue = gangOf(s) === "barra" ? Math.round(s.stats.fue * 1.1) : s.stats.fue;
+  return { name: s.name, hp: s.hp, max: maxHp(s), fue, dur: s.stats.dur, ref: s.stats.ref, arma: gearVal(s, "arma"), armadura: gearVal(s, "armadura") };
 }
 /* Golpes fuertes y con variación: las peleas duran pocos rounds y un rival un poco mejor no es imposible.
    Curva medida con tools/playthrough.ts y docs/BALANCE.md. */

@@ -193,3 +193,13 @@ input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--l
 .busy{border:1px solid var(--sodium);background:#241d13;padding:12px 16px;display:grid;gap:8px}
 .busy .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
 .busy .fill{background:var(--sodium)}
+
+/* ---- pandillas y casa ---- */
+.ring{display:inline-grid;place-items:center;border-radius:50%;flex:none}
+.ring > .portrait{border:3px solid var(--panel)}
+.aff-bars{display:grid;gap:6px;grid-column:2}
+.aff{display:grid;grid-template-columns:110px 1fr 3em;gap:8px;align-items:center;font-size:.88rem}
+.aff .num{text-align:right}
+.thread{border-left:3px solid;padding-left:12px;display:grid;gap:10px;margin-top:8px}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row-actions input{width:140px}

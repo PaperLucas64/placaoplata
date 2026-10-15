@@ -2,18 +2,13 @@
 
 Juego de navegador online al estilo BiteFight, de policías y ladrones, en la ciudad de Bahía Gris.
 
-Llegás solo con tu nombre. Marga, la dueña del bar La Esquina, te enseña cada mecánica con un encargo
-(laburos, gimnasio, feria, ring, guardia, misiones) y al final elegís bando: **la placa** o **la plata**.
+Llegás solo con tu nombre. Marga, la dueña del bar La Esquina, te enseña cada mecánica con un encargo. Después, cuatro
+pandillas se pelean Bahía Gris —**La Familia** (rojo), **El Sindicato** (azul), **La Barra** (verde) y **Los Amarillos**
+(amarillo)— y terminás siendo de la que más trabajaste: un anillo de colores alrededor de tu avatar muestra tu afinidad.
+La policía persigue a todos (calor, detenciones). Tenés tu **casa** (cama, caja fuerte y armario) y algunas cosas llevan
+**tiempo de verdad**, como en BiteFight: entrenar, la guardia gratis y las obras.
 
-| | La placa | La plata |
-|---|---|---|
-| Jefa | Comisaria Inés Ríos | La Señora |
-| Caza | **Patrullaje**: paga menos, sueldo cada 10 min | **Golpes**: paga más, pero suma **calor** (con mucho calor te detienen) |
-| La calle | Arrestás delincuentes: jugadores reales y personajes del juego | Asaltás policías: jugadores reales y personajes del juego |
-| Misiones | Ronda nocturna → Allanamiento en el puerto → Detener a La Señora | La protección → El blindado → La libreta de la 4ª |
-| Armería | Tonfa, chaleco antibalas, pistola, escudo | Manopla, campera con placas, recortada, chaleco |
-
-Además: respeto y 6 rangos por bando, emboscadas, ranking de la ciudad y avisos en vivo cuando otro jugador te ataca.
+Diseño completo en [docs/GDD.md](docs/GDD.md).
 
 ## Cómo correrlo en tu compu
 
@@ -32,7 +27,7 @@ Para probar La calle con rivales de verdad, creá jugadores de prueba (con `npm 
 npm run seed
 ```
 
-Crea `Cabo Prueba`, `Agente Test` (placa), `Rata Prueba` y `Turca Test` (plata). Contraseña: `prueba123`.
+Crea `Cabo Prueba` (Sindicato), `Agente Test` (Barra), `Rata Prueba` (Familia) y `Turca Test` (Amarillos). Contraseña: `prueba123`.
 
 ## Cómo está armado
 

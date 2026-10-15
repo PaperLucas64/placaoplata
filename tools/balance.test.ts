@@ -1,13 +1,14 @@
 /* Guardia del balance: el bot juega partidas completas y estos rangos tienen que seguir valiendo.
    Si un cambio los rompe, revisar docs/BALANCE.md antes de tocar los números del test. */
 import { describe, expect, it } from "vitest";
-import { ENERGY_MAX, type Side } from "@pop/shared";
+import { ENERGY_MAX, type Gang } from "@pop/shared";
 import { play, summarize } from "./playthrough.js";
 
-const runs = (side: Side) => summarize(Array.from({ length: 12 }, (_, i) => play(side, 500 + i, 6000)));
+const runs = (gang: Gang) => summarize(Array.from({ length: 10 }, (_, i) => play(gang, 500 + i, 6000)));
 
-describe.each(["placa", "plata"] as Side[])("balance de la %s", side => {
-  const r = runs(side);
+describe.each(["familia", "sindicato", "barra", "amarillos"] as Gang[])("balance de %s", gang => {
+  const r = runs(gang);
+  it("haciendo lo suyo, el jugador termina siendo de esa pandilla", () => expect(r.share).toBeGreaterThanOrEqual(50));
   it("el tutorial entra en la primera sesión", () => expect(r.events["misión valija"]).toBeLessThanOrEqual(ENERGY_MAX));
   it("los rangos llegan a buen ritmo", () => {
     expect(r.ranks[1]).toBeLessThan(150);           // primer día

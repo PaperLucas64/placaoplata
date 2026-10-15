@@ -1,6 +1,6 @@
-export type Side = "placa" | "plata";
+export type Gang = "familia" | "sindicato" | "barra" | "amarillos";
 export type StatKey = "fue" | "dur" | "ref" | "agu" | "lab";
-export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "ranking";
+export type TabKey = "laburos" | "gimnasio" | "feria" | "ring" | "guardia" | "misiones" | "calle" | "casa" | "ranking";
 export type Rng = () => number;
 
 export interface Job {
@@ -11,7 +11,7 @@ export interface Job {
 export interface RingRival { name: string; lvl: number; mult: number; lore: string }
 export interface Item {
   id: string; slot: "arma" | "armadura" | "consumible"; name: string; val: number; price: number; lvl: number;
-  side?: Side; rank?: number;
+  rank?: number;
 }
 export interface MissionStep {
   text: string; energy: number;
@@ -21,17 +21,26 @@ export interface MissionStep {
 }
 export interface Mission {
   id: string; rank: number; title: string; intro: string; steps: MissionStep[]; outro: string;
+  gang?: Gang; tier?: number; // misiones de pandilla: de quién es y si es la 1ª, 2ª o 3ª del hilo
   reward?: { gold: number; xp: number; resp: number; heat?: number };
 }
 
 export interface LogEntry { t: number; msg: string; cls?: "good" | "bad" | "gold" }
 
-/* Rivales de La calle: personajes del juego o jugadores reales del otro bando */
+/* Rivales de La calle: personajes del juego o jugadores reales de otra pandilla (o sueltos) */
 export type Target =
-  | { kind: "npc"; name: string; lvl: number; gold: number }
-  | { kind: "player"; id: number; name: string; lvl: number; gold: number; avatar?: number };
+  | { kind: "npc"; name: string; lvl: number; gold: number; gang: Gang }
+  | { kind: "player"; id: number; name: string; lvl: number; gold: number; avatar?: number; gang: Gang | null };
+
+export interface Home {
+  cama: number; caja: number; armario: number;
+  safe: number;        // plata en la caja fuerte (a salvo de robos y fianzas)
+  closet: string[];    // equipo guardado en el armario
+  obra: { part: "cama" | "caja" | "armario"; since: number; until: number } | null; // mejora en construcción
+}
 
 export interface PlayerState {
+  v?: number; // versión del formato (2: pandillas y casa)
   name: string; lvl: number; xp: number; gold: number; energy: number; hp: number;
   avatar?: number; // retrato elegido al crear el personaje (1 a 4)
   stats: Record<StatKey, number>;
@@ -40,8 +49,10 @@ export interface PlayerState {
   tut: number; tutDone: boolean; tabs: TabKey[]; seenTab: Partial<Record<TabKey, boolean>>;
   c: { jobs: number; train: number; buy: number; spar: number; heal: number; valija: number; duelW: number; duelL: number };
   mis: { id: string; step: number } | null;
-  side: Side | null; respect: number; heat: number; done: Record<string, boolean>; targets: Target[];
-  tEnergy: number; tHeal: number; tSalary: number; tAttack: number; tHeat: number;
+  aff: Record<Gang, number>; // afinidad con cada pandilla (de ahí sale a cuál pertenecés)
+  respect: number; heat: number; done: Record<string, boolean>; targets: Target[];
+  home: Home;
+  tEnergy: number; tHeal: number; tAttack: number; tHeat: number;
   /* algo que lleva tiempo de verdad: mientras dura no se puede trabajar ni pelear */
   busy?: Busy | null;
   log: LogEntry[];
@@ -61,17 +72,20 @@ export type Action =
   | { type: "claimTut" }
   | { type: "seen"; tab: TabKey }
   | { type: "job"; id: string }
+  | { type: "encargo"; gang: Gang }
   | { type: "train"; stat: StatKey }
   | { type: "buy"; id: string }
+  | { type: "equip"; id: string }       // sacar algo del armario
   | { type: "kit" }
-  | { type: "heal" }      // clínica: paga y es al instante
-  | { type: "guardia" }   // hospital público: gratis, pero esperás
-  | { type: "cancel" }    // cortar lo que estés haciendo
+  | { type: "heal" }                    // clínica: paga y es al instante
+  | { type: "guardia" }                 // hospital público: gratis, pero esperás
+  | { type: "cancel" }                  // cortar lo que estés haciendo
   | { type: "spar"; i: number }
   | { type: "mstart"; id: string }
   | { type: "mstep" }
-  | { type: "side"; side: Side }
-  | { type: "salary" }
   | { type: "lawyer" }
+  | { type: "build"; part: "cama" | "caja" | "armario" }
+  | { type: "deposit"; amount: number }
+  | { type: "withdraw"; amount: number }
   | { type: "scout" }
   | { type: "duel"; i: number };

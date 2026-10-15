@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
+import { gangOf, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type Snapshot } from "./api";
-import { Boss, Choice, Faction } from "./cards";
+import { Boss, Situation } from "./cards";
 import { BusyBar, Chronicle, Fight, Sheet } from "./parts";
 import { Pane } from "./panes";
 import { sceneFor } from "./art";
@@ -10,7 +10,7 @@ export type Act = (a: Action) => Promise<void>;
 export interface Ui { s: PlayerState; now: number; act: Act; busy: boolean; mission: { ok: boolean; text: string } | null }
 
 const tabName = (s: PlayerState, k: TabKey) =>
-  k === "laburos" && s.side ? (s.side === "placa" ? "Patrullaje" : "Golpes") : TAB_NAMES[k];
+  TAB_NAMES[k];
 
 export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void }) {
   const [server, setServer] = useState(initial.state);
@@ -54,7 +54,6 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       apply(r);
       if (r.result.error) setToast({ text: r.result.error });
       if (a.type !== "seen") { setFight(r.result.fight ?? null); if (r.result.mission || a.type === "mstart") setMission(r.result.mission ?? null); }
-      if (a.type === "side") setTab("misiones");
       if (a.type === "claimTut" && r.state.tabs.length > s.tabs.length) setTab(r.state.tabs[r.state.tabs.length - 1]);
     } catch (e: any) { setToast({ text: e.message }); }
     finally { setBusy(false); }
@@ -79,7 +78,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
         <Sheet s={s} now={now} />
         <main className="board">
           <BusyBar s={s} now={now} disabled={busy} onCancel={() => act({ type: "cancel" })} />
-          {s.tutDone && !s.side ? <Choice act={act} busy={busy} /> : s.side ? <Faction {...ui} /> : <Boss {...ui} />}
+          {s.tutDone ? <Situation {...ui} /> : <Boss {...ui} />}
           <nav className="tabs" role="tablist">
             {s.tabs.map(k => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => open(k)}>
@@ -88,10 +87,10 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
             ))}
           </nav>
           <section className="pane">
-            <div className="scene" style={{ backgroundImage: `url(${sceneFor(tab, s.side)})` }} aria-hidden="true" />
+            <div className="scene" style={{ backgroundImage: `url(${sceneFor(tab, gangOf(s))})` }} aria-hidden="true" />
             <Pane tab={tab} {...ui} />
           </section>
-          {showFight && <Fight f={fight} avatar={s.avatar} side={s.side} />}
+          {showFight && <Fight f={fight} s={s} />}
         </main>
       </div>
       <Chronicle s={s} onOut={onOut} />

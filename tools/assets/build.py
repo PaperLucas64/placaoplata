@@ -30,8 +30,12 @@ BACKGROUNDS = {
     "misiones": ("Train_Night_Rain.png", "sodio"),
     "guardia":  ("Bathroom.png", "frio"),
     "ranking":  ("Apartment_Exterior_Night.png", "sodio"),
-    "placa":    ("City_Raining.png", "azul"),
-    "plata":    ("Restaurant_A.png", "rojo"),
+    # una escena por pandilla, teñida con su color
+    "familia":   ("Restaurant_A.png", "rojo"),
+    "sindicato": ("City_Raining.png", "azul"),
+    "barra":     ("Street_Spring_Night.png", "verde"),
+    "amarillos": ("Train_Night.png", "amarillo"),
+    "casa":      ("Futon_Room_Night.png", "sodio"),
 }
 # retrato -> (carpeta del pack, variante de expresión)
 PORTRAITS = {
@@ -40,6 +44,9 @@ PORTRAITS = {
     "senora":    ("josei_04_akamafu", "a"),
     "gallego":   ("dansei_09_modscoat", "a"),
     "tito":      ("dansei_15_looptie", "a"),
+    "bermejo":   ("dansei_14_sussg", "a"),     # El Sindicato
+    "lucero":    ("dansei_06_gakuran", "a"),   # La Barra
+    "rita":      ("josei_05_wa", "a"),         # Los Amarillos
     # avatares para elegir al crear el personaje
     "avatar_1":  ("dansei_03_kuropa", "a"),
     "avatar_2":  ("dansei_01_gakusei", "a"),
@@ -57,7 +64,8 @@ ICON_FILES = {
 # armas en pixel art (arlantr, "free to use any way you want"): se agrandan sin suavizar
 GUNS_DIR = SRC / "free-guns-pixel-art/free-guns-pixel-art"
 GUNS = {"pistola": "Pistol-3.png", "antimotin": "Shotgun-2.png", "recortada": "Shotgun-4.png", "fusil": "Assaut-rifle-1.png"}
-TINTS = {"sodio": (255, 168, 80), "azul": (90, 140, 255), "rojo": (255, 90, 80), "frio": (170, 210, 220)}
+TINTS = {"sodio": (255, 168, 80), "azul": (90, 140, 255), "rojo": (255, 90, 80), "frio": (170, 210, 220),
+         "verde": (110, 220, 120), "amarillo": (255, 215, 90)}
 
 
 def sprite(folder: str, variant: str = "") -> Image.Image:

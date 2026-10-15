@@ -1,12 +1,13 @@
 /* Bot que juega Placa o Plata de punta a punta con las reglas reales, para medir el balance.
-   Uso: npm run playthrough            (resumen de 30 partidas por bando)
+   Uso: npm run playthrough            (resumen de partidas enfocadas en cada pandilla)
         npm run playthrough -- --json  (datos crudos, para el documento de balance)
    Juega como una persona razonable: hace el tutorial, se cura cuando está golpeado, entrena parejo,
-   compra equipo cuando le conviene, hace misiones cuando puede y pelea en la calle contra rivales accesibles. */
+   compra equipo cuando le conviene, mejora la casa, guarda la plata en la caja fuerte, hace encargos y misiones
+   de "su" pandilla y pelea en la calle contra rivales accesibles. */
 import {
-  ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, gearVal, getMission, healCost, itemLocked, jobList, maxHp,
-  MISSIONS, newPlayer, npcTarget, rankOf, regen, salaryLeft, SHOP, TARGETS, trainCost, TUT, VALIJA,
-  type Action, type PlayerState, type Rng, type Side, type StatKey
+  affShare, ambushCatchUp, applyAction, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, getMission, healCost, HOME, itemLocked,
+  jobList, maxHp, MISSIONS, newPlayer, nextLevel, npcTarget, rankOf, regen, SHOP, TARGETS, trainCost, TUT, VALIJA,
+  type Action, type Gang, type Rng, type StatKey
 } from "@pop/shared";
 
 const seeded = (seed: number): Rng => () => {
@@ -17,7 +18,7 @@ const seeded = (seed: number): Rng => () => {
 };
 
 export interface Run {
-  side: Side;
+  gang: Gang;
   /* energía gastada acumulada al llegar a cada nivel / rango / hito */
   lvlAt: Record<number, number>; rankAt: Record<number, number>; events: Record<string, number>;
   fights: Record<string, { w: number; n: number }>;
@@ -26,15 +27,16 @@ export interface Run {
   /* horas de reloj (jugador muy activo: vuelve apenas se llena la energía o termina lo que estaba haciendo) */
   hoursAt: Record<string, number>; gymHours: number;
   statsAtLvl: Record<number, number>; // promedio de fue/dur/ref/agu por nivel
+  finalShare: number; // parte de la afinidad con su pandilla al final
 }
 
 const COMBAT: StatKey[] = ["fue", "dur", "ref", "agu"];
 
-export function play(side: Side, seed: number, maxEnergy = 8000): Run {
+export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
   const rng = seeded(seed);
   let now = 0, spent = 0;
   const s = newPlayer("Bot", now);
-  const run: Run = { side, lvlAt: { 1: 0 }, rankAt: {}, events: {}, fights: {}, goldIn: {}, goldOut: {}, final: null!, statsAtLvl: {}, hoursAt: {}, gymHours: 0 };
+  const run: Run = { gang, finalShare: 0, lvlAt: { 1: 0 }, rankAt: {}, events: {}, fights: {}, goldIn: {}, goldOut: {}, final: null!, statsAtLvl: {}, hoursAt: {}, gymHours: 0 };
   const fight = (k: string, won: boolean) => { const f = (run.fights[k] ??= { w: 0, n: 0 }); f.n++; if (won) f.w++; };
   const avgCombat = () => COMBAT.reduce((a, k) => a + s.stats[k], 0) / COMBAT.length;
 
@@ -44,17 +46,17 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
     const res = applyAction(s, a, { now, rng });
     if (res.error) return false;
     spent += Math.max(0, e0 - s.energy);
-    const dg = s.gold - g0;
+    const dg = a.type === "deposit" || a.type === "withdraw" ? 0 : s.gold - g0; // mover plata a la caja no es ganar ni gastar
     if (dg > 0) run.goldIn[tag] = (run.goldIn[tag] ?? 0) + dg;
     if (dg < 0) run.goldOut[tag] = (run.goldOut[tag] ?? 0) - dg;
     if (res.fight) fight(tag, res.fight.won);
     else if (res.mission && a.type === "mstep") fight(`prueba ${tag.slice(7)}`, res.mission.ok);
     for (let l = l0 + 1; l <= s.lvl; l++) { run.lvlAt[l] = spent; run.statsAtLvl[l] = avgCombat(); run.hoursAt[`nv${l}`] = now / 3_600_000; }
     if (a.type === "train" && s.busy) run.gymHours += (s.busy.until - s.busy.since) / 3_600_000;
-    if (s.side && rankOf(s) > r0) for (let r = r0 + 1; r <= rankOf(s); r++) { run.rankAt[r] = spent; run.hoursAt[`rango${r}`] = now / 3_600_000; }
+    if (s.tutDone && rankOf(s) > r0) for (let r = r0 + 1; r <= rankOf(s); r++) { run.rankAt[r] = spent; run.hoursAt[`rango${r}`] = now / 3_600_000; }
     return true;
   };
-  const refill = () => { while (s.side && s.targets.length < TARGETS) s.targets.push(npcTarget(rng, s.side, s.lvl)); };
+  const refill = () => { while (s.tutDone && s.targets.length < TARGETS) s.targets.push(npcTarget(rng, gangOf(s), s.lvl)); };
   const mark = (k: string) => { run.events[k] ??= spent; };
 
   for (let guard = 0; guard < 200_000 && spent < maxEnergy; guard++) {
@@ -64,12 +66,13 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
     if (s.gold < g0) run.goldOut.emboscadas = (run.goldOut.emboscadas ?? 0) + g0 - s.gold;
     refill();
 
-    /* tutorial y elección */
-    if (TUT[s.tut]?.goal(s)) { act({ type: "claimTut" }, "tutorial"); if (s.tutDone) mark("tutorial"); continue; }
+    /* tutorial */
+    if (TUT[s.tut]?.goal(s)) { act({ type: "claimTut" }, "tutorial"); if (s.tutDone) { mark("tutorial"); refill(); } continue; }
     if (s.tabs.includes("guardia") && !s.seenTab.guardia) { act({ type: "seen", tab: "guardia" }); continue; }
-    if (s.tutDone && !s.side) { act({ type: "side", side }); mark("bando"); refill(); continue; }
-    if (s.side === "placa" && !salaryLeft(s, now)) { act({ type: "salary" }, "sueldo"); continue; }
-    if (s.side === "plata" && s.heat >= 60 && act({ type: "lawyer" }, "abogado")) continue;
+    if (gangOf(s) === gang && run.events.pandilla === undefined) { mark("pandilla"); run.hoursAt.pandilla = now / 3_600_000; }
+    if (s.tutDone && s.heat >= 60 && act({ type: "lawyer" }, "abogado")) continue;
+    /* al volver, saca la plata de la caja fuerte para gastarla */
+    if (s.home.safe > 0) act({ type: "withdraw", amount: s.home.safe });
 
     /* curarse */
     if (s.hp <= maxHp(s) * 0.5) {
@@ -79,13 +82,19 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
     }
 
     /* gastar plata: primero el siguiente escalón de equipo (ahorrando si hace falta), después entrenar lo más bajo */
-    const upgrade = SHOP.filter(it => it.slot !== "consumible" && (!it.side || it.side === s.side) && !itemLocked(s, it)
+    const upgrade = SHOP.filter(it => it.slot !== "consumible" && !itemLocked(s, it)
       && it.val >= gearVal(s, it.slot) + 2).sort((a, b) => a.price - b.price)[0]; // el siguiente escalón, no el más caro
     if (upgrade && upgrade.price <= s.gold && act({ type: "buy", id: upgrade.id }, "equipo")) continue;
     /* ahorra si el ítem cuesta como mucho ~2,5 sesiones de trabajo */
     const best = jobList(s).filter(j => j.lvl <= s.lvl).at(-1)!;
-    const perSession = ENERGY_MAX * (best.gold[0] + best.gold[1]) / 2 / best.cost;
+    const perSession = energyMax(s) * (best.gold[0] + best.gold[1]) / 2 / best.cost;
     const saving = upgrade && upgrade.price <= perSession * 2.5 ? upgrade.price : 0;
+    /* casa: la mejora más barata, si no se come más de un tercio de la plata */
+    if (s.tutDone && !s.home.obra) {
+      const part = (Object.keys(HOME) as (keyof typeof HOME)[]).map(k => [k, nextLevel(s, k)] as const)
+        .filter(([, lv]) => lv && lv.cost <= s.gold / 3).sort((a, b) => a[1]!.cost - b[1]!.cost)[0];
+      if (part && act({ type: "build", part: part[0] }, "casa")) continue;
+    }
     const low = [...COMBAT].sort((a, b) => s.stats[a] - s.stats[b])[0];
     const k: StatKey = s.stats.lab < s.stats[low] - 2 ? "lab" : low;
     if (trainCost(s.stats[k]) <= s.gold - 20 - saving && act({ type: "train", stat: k }, "gimnasio")) continue;
@@ -104,24 +113,28 @@ export function play(side: Side, seed: number, maxEnergy = 8000): Run {
       }
       now += ENERGY_EVERY; continue; // en misión: esperar energía o vida en vez de gastarla en otra cosa
     } else {
-      const next = s.side ? MISSIONS[s.side].find(m => canStart(s, m)) : canStart(s, VALIJA) && s.tut === 5 ? VALIJA : undefined;
+      const next = s.tutDone ? MISSIONS[gang].find(m => canStart(s, m)) : canStart(s, VALIJA) && s.tut === 5 ? VALIJA : undefined;
       if (next && s.hp > maxHp(s) * 0.5 && act({ type: "mstart", id: next.id })) continue;
     }
 
     /* la calle: rivales de nivel parecido, más o menos la mitad de la energía */
-    if (s.side && s.energy >= 3 && s.hp > maxHp(s) * 0.5 && rng() < 0.5) {
+    /* encargos de su pandilla: un tercio de la energía, más o menos */
+    if (s.tutDone && s.energy >= 4 && s.hp > maxHp(s) * 0.5 && rng() < 0.3 && act({ type: "encargo", gang }, "encargo")) continue;
+    if (s.tutDone && s.energy >= 3 && s.hp > maxHp(s) * 0.5 && rng() < 0.5) {
       const i = s.targets.findIndex(t => t.lvl <= s.lvl + 1);
       if (i >= 0 && act({ type: "duel", i }, "calle")) { refill(); continue; }
     }
 
     /* trabajar: el que más paga por energía */
     const job = jobList(s).filter(j => j.lvl <= s.lvl && j.cost <= s.energy).sort((a, b) => (b.gold[0] + b.gold[1]) / b.cost - (a.gold[0] + a.gold[1]) / a.cost)[0];
-    if (job && (!s.tutDone || s.side) && act({ type: "job", id: job.id }, "trabajo")) continue;
-    if (job && s.tut <= 1 && act({ type: "job", id: job.id }, "trabajo")) continue;
+    if (job && act({ type: "job", id: job.id }, "trabajo")) continue;
 
-    now += Math.max(1, ENERGY_MAX - s.energy) * ENERGY_EVERY; // fin de la sesión: vuelve con la energía llena
+    /* fin de la sesión: guarda lo que puede en la caja fuerte y vuelve con la energía llena */
+    if (s.gold > 0) act({ type: "deposit", amount: s.gold });
+    now += Math.max(1, energyMax(s) - s.energy) * ENERGY_EVERY;
   }
-  run.final = { lvl: s.lvl, respect: s.respect, gold: s.gold, stats: { ...s.stats }, energy: spent };
+  run.final = { lvl: s.lvl, respect: s.respect, gold: s.gold + s.home.safe, stats: { ...s.stats }, energy: spent };
+  run.finalShare = affShare(s, gang);
   return run;
 }
 
@@ -149,7 +162,8 @@ export function summarize(runs: Run[]) {
     events: Object.fromEntries([...new Set(runs.flatMap(r => Object.keys(r.events)))].map(k => [k, ev(k)])),
     fights, goldIn: sum("goldIn"), goldOut: sum("goldOut"),
     final: { lvl: median(runs.map(r => r.final.lvl)), respect: median(runs.map(r => r.final.respect)) },
-    hours: Object.fromEntries(["nv5", "nv10", "nv15", "nv20", "rango1", "rango2", "rango4", "rango5"].map(k => [k, Math.round(median(runs.map(r => r.hoursAt[k])) * 10) / 10])),
+    share: Math.round(median(runs.map(r => r.finalShare)) * 100),
+    hours: Object.fromEntries(["pandilla", "nv5", "nv10", "nv15", "nv20", "rango1", "rango2", "rango4", "rango5"].map(k => [k, Math.round(median(runs.map(r => r.hoursAt[k])) * 10) / 10])),
     gymShare: Math.round(median(runs.map(r => r.gymHours / Math.max(1e-9, r.hoursAt.nv15 ?? r.hoursAt.nv10 ?? 1))) * 100)
   };
 }
@@ -157,10 +171,10 @@ export function summarize(runs: Run[]) {
 if (process.argv[1]?.includes("playthrough")) {
   const N = 30;
   const out: Record<string, ReturnType<typeof summarize>> = {};
-  for (const side of ["placa", "plata"] as Side[]) out[side] = summarize(Array.from({ length: N }, (_, i) => play(side, 1000 + i)));
+  for (const gang of ["familia", "sindicato", "barra", "amarillos"] as Gang[]) out[gang] = summarize(Array.from({ length: N }, (_, i) => play(gang, 1000 + i)));
   if (process.argv.includes("--json")) console.log(JSON.stringify(out, null, 1));
-  else for (const [side, r] of Object.entries(out)) {
-    console.log(`\n===== ${side.toUpperCase()} (mediana de ${N} partidas; números = energía gastada) =====`);
+  else for (const [gang, r] of Object.entries(out)) {
+    console.log(`\n===== ${gang.toUpperCase()} (mediana de ${N} partidas; números = energía gastada) =====`);
     console.log("nivel:", r.levels);
     console.log("atributo de combate promedio por nivel:", r.statsAtLvl);
     console.log("rango:", r.ranks);
