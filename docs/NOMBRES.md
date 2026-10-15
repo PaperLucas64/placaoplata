@@ -1,0 +1,63 @@
+# Maires — nombres y lugares (para revisar)
+
+Todos los nombres que hay hoy en el juego, sacados del código, y una propuesta de **construcciones fijas** en el mapa
+para que las misiones pasen siempre en los mismos lugares (como en GTA). Marcá lo que quieras cambiar.
+
+## Nombres que conviene revisar
+
+- **Apellidos repetidos** (se confunden): Funes (Chino Funes, La Pantera Funes, el comisario Funes) · Medina (El Toro,
+  Chispa) · Paz (La Zurda, La Colorada) · Benítez (Chueco, Oficial, La Rubia, Pocho) · Ferreyra (Cacho, Cabo, Tincho) ·
+  Toledo (El Polaco, Oficial) · Luna (Petiso, Subinspectora) · Paredes (El Negro, Sargento) · Sosa (La Colo, Agente) ·
+  Godoy (El Pelado, Juanca). Propuesta: dejar Funes solo para el comisario y cambiar el resto.
+- **Barrios sin parodia:** Mataderos y Barrancas (casi igual a Barracas). Ideas: «Matadores», «Barrancas» se puede dejar.
+- **«El clásico»** es la 3ª misión de La Barra y también la historia «La semana del clásico». Conviene renombrar una.
+- **«La Turca»** (pandillera) y «Turca Test» (jugador de prueba).
+
+## Lo que hay hoy
+
+- **Pandillas:** La Familia (La Señora, el puerto) · El Sindicato (El Gordo Bermejo, los galpones) · La Barra (El Tano
+  Lucero, la cancha) · Los Amarillos (Rita "Taxi" Quiroga, las remiserías).
+- **Personajes fijos:** Marga (bar La Esquina) · Don Tito (gimnasio) · comisaria Inés Ríos · comisario Funes · intendente
+  Ramírez · Bocota Juniors y Ríver Plateado (clubes) · El Gallego.
+- **Pandilleros:** Familia: El Rengo Acosta, Manco Suárez, La Gata Ibarra, Nene Cabral, Pochi Villalba, La Turca ·
+  Sindicato: Cacho Ferreyra, «Grúa» Ledesma, El Negro Paredes, Tito Bermúdez, El Ruso Olmedo, Chueco Benítez · Barra: El
+  Pelado Godoy, Chino Funes, «Bombo» Molina, El Polaco Toledo, Fideo Romero, La Colo Sosa · Amarillos: Turco Abdala, Petiso
+  Luna, «Rueda» Gómez, Mecha Vidal, Pirata Arce, La Rubia Benítez.
+- **Policía:** Agente Sosa, Cabo Ferreyra, Sargento Paredes, Oficial Benítez, Subinspectora Luna, Oficial Toledo.
+- **Vecinos que juegan solos:** Tincho Ferreyra, La Colorada Paz, Pocho Benítez, Yésica Ramos, Nacho del Once, Juanca
+  Godoy, Lali Torres, El Chino Acuña.
+- **Ring:** Sparring del gimnasio, El Toro Medina, La Zurda Paz, Kid Cemento, El campeón del barrio · torneo: Rocky
+  Balbuena, El Pibe Ricota, Mano de Piedra Ibáñez, La Pantera Funes, Martillo Gómez, El Oso Pereyra, Chispa Medina.
+- **Rangos:** Perejil, Pibe, Soldado, Puntero, Lugarteniente, Capo. **Atributos:** Fuerza, Dureza, Reflejos, Aguante, Labia.
+- **Lugares:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,
+  Mataderos, Recoleta Bien, Liniers Sur, Pompeya Chica · Zona Norte: Tigre Mojado, San Isidrón, Pilar de Oro · Zona Sur:
+  Avellanada, Lomas de Zafarrancho, Quilmates · Zona Oeste: Moronga, La Matancera, Moreno del Fondo · Interior: La Plata
+  Dulce, Rosarito, Mar del Plato, Cordobita.
+- **Salud:** hospitales Argerico, Ramos Mejido, Fernandito, Penita, Santojanito, Rivadavio, de Barrancas, Central de San
+  Isidrón, Fiorito Chico, Posadito · clínicas: Sanatorio Recoleta Bien, Clínica Palermo Soja, Clínica del Puerto,
+  Sanatorio de la Costa.
+- **Casas, negocios, vehículos, equipo, misiones:** ver docs/GDD.md (§5.5, §5.7, §5.9, §5.9b).
+
+## Propuesta: construcciones fijas del mapa
+
+Cada construcción tiene un nombre, un barrio y un punto real en el mapa. Las misiones, golpes y encargos dejan de
+sortear el lugar: el «Laburo en el desarmadero» siempre es en un desarmadero de verdad del mapa, y se ve en el GPS.
+
+| Tipo | Cuántos | Propuesta de nombres (barrio) | Lo usan |
+|---|---|---|---|
+| Desarmaderos | 3 | Desarmadero El Tuerca (Barrancas) · Autopartes Lo de Cacho (Liniers Sur) · Chatarrería La Matancera (La Matancera) | golpes, Amarillos, taller |
+| Locales que pagan protección | 6 | Pizzería El Cuartetazo (Once y Medio) · Kiosco de Belgrano y Mitre (San Telmón) · Almacén de Doña Elsa (La Bocota) · Ferretería Los Tornillos (Villa Crespa) · Verdulería La Ñata (Pompeya Chica) · Parrilla Don Chacho (Mataderos) | encargos y misiones de La Familia |
+| Bicicleterías | 2 | Bicis Rodado 26 (Palermo Soja) · El Pedal (Florida Vieja) | laburo de reparto, robos |
+| Concesionarias | 2 | Autos del Bajo (Florida Vieja) · Motos Ruta 3 (Mataderos) | comprar moto/auto, robos de autos |
+| Estaciones de servicio | 3 | YPFita de la Costanera (Puerto Mareo) · Shellita Avenida (Liniers Sur) · Estación El Surtidor (Avellanada) | golpe «estación de servicio», laburo |
+| Bancos y financieras | 3 | Banco Nacioncita (Florida Vieja) · Financiera Las Cuevas (Once y Medio) · Casa de cambio del Turco (Recoleta Bien) | golpe «financiera», El blindado |
+| Puerto | 3 | Muelle 4 · Depósito 7 · Aduanita (Puerto Mareo) | Sindicato, Río Bravo, contrabando |
+| Canchas | 2 | La Bombonerita (La Bocota) · El Monumentito (Florida Vieja) | La Barra, el clásico |
+| Galpones | 2 | Galpón 3 del Sindicato (Barrancas) · Mercado Central (La Matancera) | Sindicato, trabajos largos |
+| Remiserías | 2 | Remises Rita (Once y Medio) · Radiotaxi Amarillo (Liniers Sur) | Los Amarillos |
+| Boliches y casinos | 3 | Boliche Soja (Palermo Soja) · Casino flotante Estrella del Plata (Puerto Mareo) · Bingo Lomas (Lomas de Zafarrancho) | La Familia, negocios |
+| Mercados de usados | 2 | Feria de usados de Pompeya Chica · La Saladita (Lomas de Zafarrancho) | Mercado (comprar/vender) |
+| Fijos de la historia | — | Bar La Esquina y Gimnasio de Don Tito (San Telmón) · Comisaría 4ª (San Telmón) · Municipalidad (Recoleta Bien) | tutorial, Funes, el intendente |
+
+**Para decidir:** ¿te sirven estos tipos y cantidades? ¿Cambiamos algún nombre? ¿Agregamos tipos (escuelas, iglesias,
+cárcel, aeropuerto, hipódromo)? Con eso armo el mapa del mundo y conecto cada misión a su construcción.
