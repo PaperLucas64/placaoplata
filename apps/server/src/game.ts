@@ -116,6 +116,13 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   /* Abre una sesión sobre varios jugadores: candados, transacción, el tiempo que pasó y la misión de a dos.
      Al final guarda a todos. */
   /* las noticias que dejó cada uno pasan al diario de la ciudad */
+  /* cada página nueva del diario anota lo que pasaba en la ciudad: noticias de otros jugadores */
+  async function fillDiary(q: Queryable, s: PlayerState) {
+    const open = Object.values(s.diary ?? {}).filter(d => !d.city);
+    if (!open.length) return;
+    const r = await q.query<{ msg: string }>(`SELECT msg FROM news WHERE position($1 in msg) = 0 ORDER BY id DESC LIMIT 3`, [s.name]);
+    for (const d of open) d.city = r.rows.map(x => x.msg);
+  }
   async function drainNews(q: Queryable, s: PlayerState, now: number) {
     const items = s.news;
     if (!items?.length) return;
@@ -134,7 +141,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
       for (const r of rows.values()) if (r.state.coop) await coopProgress(q, r.state.coop.id, rows, now);
       for (const r of rows.values()) await returnPath(r.state);
       const out = await fn(q, rows, now);
-      for (const r of rows.values()) { await territory.drain(q, r.state, now); await drainNews(q, r.state, now); await saveRow(q, r.id, r.state); }
+      for (const r of rows.values()) { await territory.drain(q, r.state, now); await drainNews(q, r.state, now); await fillDiary(q, r.state); await saveRow(q, r.id, r.state); }
       return out;
     }));
   }

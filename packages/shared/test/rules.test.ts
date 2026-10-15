@@ -74,22 +74,30 @@ describe("pandillas", () => {
   });
   it("las misiones de cualquier pandilla van en orden y piden rango", () => {
     const s = veteran("Ana");
-    const [paro, deposito] = MISSIONS.sindicato;
+    const list = MISSIONS.sindicato, [paro] = list, deposito = list[5]; // la 6ª abre el acto II: pide rango
     expect(canStart(s, paro)).toBe(true);
     expect(canStart(s, MISSIONS.barra[0])).toBe(true);
-    s.done.paro = true;
+    expect(canStart(s, list[1])).toBe(false);
+    for (const m of list.slice(0, 5)) s.done[m.id] = true;
     expect(canStart(s, deposito)).toBe(false);
     s.respect = RANK_AT[deposito.rank];
     expect(canStart(s, deposito)).toBe(true);
+  });
+  it("el final del capítulo es solo para tu pandilla", () => {
+    const s = veteran("Ana", "amarillos"); s.respect = RANK_AT[3];
+    for (const g of ["amarillos", "barra"] as const) for (const m of MISSIONS[g].slice(0, 14)) s.done[m.id] = true;
+    expect(canStart(s, MISSIONS.amarillos[14])).toBe(true);
+    expect(canStart(s, MISSIONS.barra[14])).toBe(false);
   });
   it("terminar una misión suma afinidad con su pandilla", () => {
     let seed = 1, s: PlayerState;
     do { // con distintas suertes, hasta que salga bien
       s = veteran("Ana"); s.stats = { fue: 30, dur: 30, ref: 30, agu: 30, lab: 30 }; s.hp = maxHp(s);
-      applyAction(s, { type: "mstart", id: "trapos" }, ctx());
+      applyAction(s, { type: "mstart", id: "h-barra-1" }, ctx());
       missionCatchUp(s, ctx(T0 + 60 * 60_000, seed++));
-    } while (!s.done.trapos && seed < 20);
-    expect(s.done.trapos).toBe(true);
+    } while (!s.done["h-barra-1"] && seed < 20);
+    expect(s.done["h-barra-1"]).toBe(true);
+    expect(s.diary?.["h-barra-1"]?.t).toBeGreaterThan(0);   // destrabó su página del diario
     expect(gangOf(s)).toBe("barra");
   });
   it("no aparecen rivales de tu propia pandilla en la calle", () => {
@@ -277,11 +285,11 @@ describe("misiones con tiempo", () => {
   });
   it("las misiones piden atributos mínimos", () => {
     const s = veteran("Ana"); s.stats = { fue: 5, dur: 5, ref: 5, agu: 5, lab: 5 };
-    expect(applyAction(s, { type: "mstart", id: "kiosco" }, ctx()).error).toMatch(/atributos/);
+    expect(applyAction(s, { type: "mstart", id: "h-familia-1" }, ctx()).error).toMatch(/atributos/);
   });
   it("abandonar una misión pierde la energía", () => {
     const s = veteran("Ana"); const e = s.energy;
-    applyAction(s, { type: "mstart", id: "paro" }, ctx());
+    applyAction(s, { type: "mstart", id: "h-sindicato-1" }, ctx());
     applyAction(s, { type: "cancel" }, ctx(T0 + 1000));
     expect(s.busy).toBeNull();
     expect(s.energy).toBeLessThan(e);

@@ -84,7 +84,7 @@ function decide(s: PlayerState, b: BotDef): Action | null {
   /* se muda dentro de su barrio, o a uno al azar */
   const house = [...housesIn(homePlace(s)), ...housesIn(pick(rng, BARRIOS))].find(h => h.lvl <= s.lvl && h.price > houseOf(s).price && h.price <= s.gold / 2);
   if (house && rng() < 0.5) return { type: "move", id: house.id };
-  const prop = PROPS.find(p => s.props?.[p.id] === undefined && p.lvl <= s.lvl && p.price <= s.gold / 2);
+  const prop = PROPS.find(p => s.props?.[p.id] === undefined && p.lvl <= s.lvl && p.price <= s.gold / 2 && (!p.needs || s.done[p.needs]));
   if (prop && rng() < 0.5) return { type: "prop", id: prop.id };
   if (!s.home.obra) {
     const part = (Object.keys(HOME) as (keyof typeof HOME)[]).map(k => [k, nextLevel(s, k)] as const)

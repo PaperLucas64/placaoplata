@@ -2,8 +2,9 @@
    Cada negocio trae sus propias misiones al tablón de la calle. */
 import type { StatKey } from "./types.js";
 
-export type PropId = "kiosco24" | "taxi" | "terraza" | "lavadero" | "taller" | "boliche";
-export interface Prop { id: PropId; name: string; lvl: number; price: number; perHour: number; place: string; help: string; heat?: number; who: string }
+export type PropId = "kiosco24" | "taxi" | "terraza" | "lavadero" | "taller" | "boliche" | "vamo";
+export interface Prop { id: PropId; name: string; lvl: number; price: number; perHour: number; place: string; help: string; heat?: number; who: string;
+  needs?: string } // misión de historia que lo pone a la venta
 export const PROPS: Prop[] = [
   { id: "kiosco24", name: "Maxikiosco 24 horas", lvl: 4,  price: 2500,  perHour: 25,  place: "Once y Medio", who: "el kiosco",
     help: "Golosinas, cigarrillos y lo que no está en la vidriera." },
@@ -16,7 +17,9 @@ export const PROPS: Prop[] = [
   { id: "taller",   name: "Taller mecánico",     lvl: 20, price: 35000, perHour: 260, place: "Villa Lurio", who: "el taller",
     help: "Los arreglos de tu moto o tu auto salen 30% menos." },
   { id: "boliche",  name: "Boliche en Palermo Soja", lvl: 25, price: 60000, perHour: 420, place: "Palermo Soja", who: "el boliche",
-    help: "La noche de Maires pasa por tu puerta." }
+    help: "La noche de Maires pasa por tu puerta." },
+  { id: "vamo", name: "Vamo, la aplicación", lvl: 20, price: 90000, perHour: 650, place: "Palermo Soja", who: "Vamo", needs: "h-amarillos-15",
+    help: "La aplicación que casi se queda con la calle. Después de «Última bajada» se puso a la venta. Ahora los autos violetas trabajan para vos." }
 ];
 export const PROP_CAP_HOURS = 24;
 export const propOf = (id: string) => PROPS.find(p => p.id === id);
@@ -28,6 +31,10 @@ export const propIncome = (p: Prop, since: number, now: number) =>
 /* misiones de cada negocio (las arma el generador del tablón). Algunas son viajes al interior (`place`). */
 export interface PropObjective { text: string; stat: StatKey; place?: string }
 export const PROP_OBJECTIVES: Record<PropId, PropObjective[]> = {
+  vamo: [
+    { text: "Convencer a los choferes violetas de que ahora manejan para vos", stat: "lab" }, { text: "Sacar a la Fundación de los servidores", stat: "ref" },
+    { text: "Recuperar los autos que se quedaron los choferes", stat: "fue" }, { text: "Bancarte la reunión con los inversores", stat: "dur" }
+  ],
   kiosco24: [
     { text: "Recibir mercadería que llegó sin factura", stat: "lab" }, { text: "Sacar a los pibes que afanan alfajores", stat: "fue" },
     { text: "Esconder la recaudación antes de que pase el inspector", stat: "ref" }, { text: "Bancarte la noche detrás del mostrador", stat: "dur" }

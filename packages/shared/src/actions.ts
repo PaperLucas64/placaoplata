@@ -40,6 +40,7 @@ export function canStart(s: PlayerState, m: Mission) {
   }
   if (!m.gang) return false;
   const list = MISSIONS[m.gang], i = list.indexOf(m);
+  if (m.final && gangOf(s) !== m.gang) return false; // el final del capítulo, solo con tu pandilla
   return i >= 0 && !s.done[m.id] && rankOf(s) >= m.rank && list.slice(0, i).every(x => s.done[x.id]);
 }
 
@@ -376,6 +377,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (!p || !s.tutDone) return fail("Ese negocio no existe.");
       if (s.props?.[p.id] !== undefined) return fail("Ya es tuyo.");
       if (s.lvl < p.lvl) return fail(`Pide nivel ${p.lvl}.`);
+      if (p.needs && !s.done[p.needs]) return fail("Todavía no está a la venta.");
       if (s.gold < p.price) return fail("No te alcanza la plata.");
       s.gold -= p.price; (s.props ??= {})[p.id] = now;
       log(s, now, `Compraste ${p.name.toLowerCase()} (−${money(p.price)}). Deja ${money(p.perHour)} por hora: pasá a cobrar.`, "gold");

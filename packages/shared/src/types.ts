@@ -41,9 +41,12 @@ export interface Mission {
   prize?: string;              // ítem de regalo al salir bien
   reward?: { gold: number; xp: number; resp: number; heat?: number };
   until?: number;              // misiones temporales: se van del mapa a esta hora
+  story?: number; final?: boolean; lore?: string; // modo historia: número de misión (1–15), si es el final del capítulo y su bloque de diario
   who?: string;                // encuentros raros: quién te lo pide
 }
 
+/* una página del diario: cuándo la hiciste, cómo te fue y qué pasaba en la ciudad (otros jugadores) en ese momento */
+export interface DiaryEntry { t: number; got: number; of: number; city?: string[] }
 export interface LogEntry { t: number; msg: string; cls?: "good" | "bad" | "gold" }
 
 /* Rivales de La calle: personajes del juego o jugadores reales de otra pandilla (o sueltos) */
@@ -77,6 +80,7 @@ export interface PlayerState {
   board: Mission[]; tBoard: number; // tablón de misiones de calle y cuándo se armó
   tOdd?: number;                     // cuándo apareció el último encuentro raro
   news?: string[];                   // noticias para el resto de la ciudad (el servidor las publica y las borra)
+  diary?: Record<string, DiaryEntry>; // el diario de la Crónica: una entrada por misión de historia hecha
   /* misión de a dos aceptada: esperando a que los dos estén libres, o en curso */
   coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
   influence?: { gang: Gang; barrio: string; pts: number }[]; // influencia generada, que el servidor suma al mapa

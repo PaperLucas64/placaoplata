@@ -181,7 +181,8 @@ function givePrize(s: PlayerState, id: string, at: number) {
 function statReward(s: PlayerState, m: Mission, at: number, rng: Rng) {
   const k = mainStat(m);
   if (!k) return;
-  const n = m.hours ? (m.hours >= 8 ? 1 : 0)
+  const n = m.story ? (m.final ? 2 : [3, 5, 8, 10, 12, 14].includes(m.story) ? 1 : 0) // la historia: algunas misiones enseñan algo
+    : m.hours ? (m.hours >= 8 ? 1 : 0)
     : m.street ? (rng() < STREET_STAT_CHANCE[m.difficulty ?? 0] ? 1 : 0)
     : 1;
   if (!n) return;
@@ -210,6 +211,7 @@ function finishMission(s: PlayerState, m: Mission, ok: number, at: number, rng: 
   if (r.heat) addHeat(s, r.heat);
   if (m.street) s.board = s.board.filter(x => x.id !== m.id);
   else s.done[m.id] = true;
+  if (m.story) (s.diary ??= {})[m.id] = { t: at, got: ok, of: m.steps.length }; // se destraba su página del diario
   if (m.arc) s.done[arcChapterKey(m.arc, m.chapter ?? 0)] = true;
   news(s, m.client === "raro" ? `${s.name} ayudó a ${m.who} en ${place}.` : m.street ? `${s.name} cumplió un trabajo en ${place}.` : `${s.name} completó «${m.title}».`);
   log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto${r.heat && r.heat < 0 ? `, ${r.heat} de búsqueda` : ""}.`, "gold");

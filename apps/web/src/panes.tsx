@@ -99,7 +99,7 @@ function allLugares(s: Ui["s"]): Lugar[] {
   const subte: Lugar[] = SUBTE.map(x => ({ id: `subte-${x.name}`, name: `Estación ${x.name}`, kind: "subte" as const, icon: "subte", barrio: x.barrio,
     color: LINE_COLOR[x.line], lat: x.lat, lng: x.lng, deep: true, help: `Línea ${x.line} del subte. Pronto vas a poder viajar en subte entre barrios.` }));
   const props: Lugar[] = PROPS.map(p => { const [lat, lng] = near(p.place, p.id);
-    return { id: `negocio-${p.id}`, name: p.name, kind: "negocio" as const, icon: p.id === "kiosco24" ? "kiosco" : p.id, prop: p.id, barrio: p.place, lat, lng, help: p.help, tutDone: true }; });
+    return { id: `negocio-${p.id}`, name: p.name, kind: "negocio" as const, icon: p.id === "kiosco24" ? "kiosco" : p.id === "vamo" ? "taxi" : p.id, prop: p.id, barrio: p.place, lat, lng, help: p.help, tutDone: true }; });
   return [casa, ...LUGARES, ...care.map(c => ({ ...c, deep: true })), ...props, ...local, ...subte];
 }
 /* los filtros de arriba del mapa: qué clases de lugar muestra cada uno */
@@ -111,7 +111,8 @@ const FILTER_KINDS: Record<string, string[]> = {
 function mapPins(s: Ui["s"], now: number, filter?: string | null): Pin[] {
   const kinds = filter ? FILTER_KINDS[filter] : null;
   const pins: Pin[] = allLugares(s).filter(l => (l.id === "casa" || lugarOpen(s, l, now)) && (!kinds || kinds.includes(l.kind)))
-    .filter(l => l.kind !== "negocio" || s.lvl >= (propOf(l.prop!)?.lvl ?? 99) - 2 || s.props?.[l.prop!] !== undefined)
+    .filter(l => l.kind !== "negocio" || s.props?.[l.prop!] !== undefined
+      || (s.lvl >= (propOf(l.prop!)?.lvl ?? 99) - 2 && (!propOf(l.prop!)?.needs || !!s.done[propOf(l.prop!)!.needs!])))
     .map(l => ({ id: l.id, name: l.name, icon: l.icon, color: l.gang ? GANGS[l.gang].color : l.color ?? KIND_COLOR[l.kind], lat: l.lat, lng: l.lng,
       badge: l.kind === "contacto" && l.gang ? String(MISSIONS[l.gang].filter(m => doable(s, m)).length || "") || undefined : undefined,
       near: !kinds && ["golpe", "laburo", "salud", "negocio", "municipio", "concesionaria", "estadio"].includes(l.kind), deep: !kinds && !!l.deep }));
@@ -503,7 +504,7 @@ function Legend({ s, now, km }: { s: Ui["s"]; now: number; km: number }) {
   const b = s.busy;
   const left = b ? minTxt(b.until - now) : "";
   const who = (name: string, color: string) => <span className="lg-who" style={{ color, borderColor: color }}>{name}</span>;
-  if (!b) return <>Estás en tu {houseOf(s).name.toLowerCase()} de {homePlace(s)}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>;
+  if (!b) return <>Estás en tu {houseOf(s).name.replace(/^w/, c => c.toLowerCase())}, en {homePlace(s)}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>;
   if (b.kind === "mision") {
     const m = findMission(s, b.id);
     if (!m) return <>En una misión · {left}</>;
@@ -516,7 +517,7 @@ function Legend({ s, now, km }: { s: Ui["s"]; now: number; km: number }) {
       <span className="lg-top">{who(c.name, c.color)}<b className="lg-title">{m.title}</b></span>
       <span className="lg-line">{doing}</span>
       <span className="lg-line"><span className="lg-steps">{m.steps.map((_, i) => <span key={i} className={i < b.done ? (res[i] ? "ok" : "ko") : i === b.done ? "now" : ""} />)}</span>
-        {mood} · necesitás {need} de {n} · termina en {left}</span>
+        {mood} · necesitás {need} de {n} · {ph?.phase === "ida" ? `cuando llegás, dura ${minTxt(missionMins(m) * 60000)}` : `termina en ${left}`}</span>
     </>;
   }
   if (b.kind === "salida") {
@@ -604,7 +605,7 @@ function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; no
         {m.until && !done && <span className="client until">⏳ {minTxt(m.until - now)}</span>}</h3>
       <div className="meta">{done ? "Hecha." : m.street ? m.intro || null : m.intro}</div>
       {!done && <div className="meta num">
-        {place && <>{place} · </>}{m.hours ? `${m.hours} h` : `${missionMins(m)} min`}{trip ? " + viaje" : ""} · {energy} energía
+        {place && <>{place} · </>}{m.hours ? `${m.hours} h` : minTxt(missionMins(m) * 60000)}{trip ? " (más el viaje)" : ""} · {energy} energía
         {req.length > 0 && <> · pide {req.map(([k, v], i) => <span key={k} style={{ color: eff(s, k) < v ? "#eba09e" : undefined }}>{i ? ", " : ""}{STAT_SHORT[k]} {v}</span>)}</>}
         {m.reward && <> · {money(m.reward.gold)}, {m.reward.xp} XP, +{m.reward.resp} respeto</>}
         {m.reward?.heat && m.reward.heat < 0 ? <> · <b>−{-m.reward.heat} de búsqueda</b></> : null}

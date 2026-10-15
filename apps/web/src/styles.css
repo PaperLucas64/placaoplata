@@ -516,3 +516,20 @@ body{background:transparent}
   .gm .gps-status{bottom:90px}
 }
 @media (prefers-reduced-motion:reduce){.news-track{animation:none}}
+
+/* el diario de la Crónica */
+.log .seg{display:flex;gap:6px}
+.log .seg button{background:none;border:1px solid var(--line);border-radius:14px;padding:3px 12px;font-size:.8rem;color:var(--muted)}
+.log .seg button.on{color:var(--fg);border-color:var(--sodium)}
+.diary{display:grid;gap:10px}
+.diary header{display:grid;gap:2px}
+.diary header h3{margin:0}
+.diary details{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#15171c}
+.diary summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.diary .act{margin:12px 0 4px;font:700 .7rem/1 var(--mono);text-transform:uppercase;color:var(--muted)}
+.diary .page{border-left:2px solid var(--sodium);padding:6px 0 6px 12px;margin:6px 0}
+.diary .page h5{margin:0 0 2px;font-size:.95rem}
+.diary .page p{margin:6px 0;line-height:1.5}
+.diary .page .num{color:var(--sodium);margin-right:4px}
+.diary .page.locked{border-left-color:var(--line);color:var(--muted);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.diary .city-news{display:grid;gap:2px;font-size:.82rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}

@@ -1,119 +1,148 @@
-# Malandro — Modo historia (propuesta para revisar)
+# Malandro — Modo historia
 
 > **Temporada 1 · Arco Capital Federal — Episodio 01: «Los inicios»**
-> Estado: **propuesta**. Todavía no está escrita ni programada. Marcá lo que va, lo que no y lo que cambiarías.
+> Estado: las **60 misiones de los cuatro jefes están escritas y en el juego** (`packages/shared/src/historia.ts`). Los 8 contactos vienen después.
 
-## 1. La idea en una línea
+## 1. Lo que se decidió
 
-Llegás a Maires con un bolso y diez pesos. Cuatro jefes se reparten la ciudad, y cada uno tiene **una historia de 15 misiones** que va quedando escrita en tu **Crónica**. A mitad de camino aparecen **8 contactos** con historias cortas de 4 misiones, como Lester en GTA. Todo eso es el Episodio 01, y termina cuando la ciudad elige quién manda.
+1. **Temas:** la herencia (Familia), el diario (Sindicato), el clásico (Barra) y la aplicación de autos (Amarillos). Después del final de Rita, **Vamo se puede comprar** como negocio: nivel 20, $90.000, deja $650 por hora.
+2. **Se pueden jugar las cuatro historias**, salvo la misión 15 (el final del capítulo), que es solo para la pandilla de la que sos.
+3. **Los 8 contactos** quedan como estaban en la propuesta.
+4. **El villano oculto es Marga**, la dueña del bar La Esquina: la que te recibe en el tutorial y te consigue la pieza.
+   - Nadie la nombra. Las cuatro historias la van rozando: la Fundación La Esquina, los chalecos violetas, el «2027», el café con leche, la letra redonda de maestra y la foto de 1987.
+   - Al final de cada capítulo queda claro que se quiere postular a intendenta. Eso es el gancho del Episodio 02.
+   - El rival de la barra se llama **el Pelado Salvedad**.
+5. **Duraciones:**
+   - El tiempo de la misión empieza **cuando llegás**. El viaje va aparte: primero dice «llegás en X» y después corre la cuenta regresiva.
+   - Las primeras son cortas, para que el que recién empieza juegue varias seguidas y aprenda.
+   - Después se alargan:
 
-## 2. Cómo se juega
+| Acto | Misiones | Duración en el lugar | Rango |
+|---|---|---|---|
+| I · Mandadero | 1 a 5 | 5 a 20 min | desde el tutorial |
+| II · De confianza | 6 a 10 | 1 a 4 horas | Soldado |
+| III · Mano derecha | 11 a 14 | 4 a 8 horas | Puntero |
+| Final del capítulo | 15 | 18 horas | Puntero, y ser de esa pandilla |
 
-| Qué | Cuántas | Cuándo se destraban |
-|---|---|---|
-| Historia de cada jefe | 4 × 15 = **60** | Acto I al terminar el tutorial · Acto II en rango Soldado · Acto III en rango Puntero |
-| Misiones de contacto | 8 × 4 = **32** | Al terminar la misión 5 de cualquier jefe, y cada contacto con su condición propia (ver §4) |
-| Final del episodio | **1** (con 4 versiones) | Al terminar la misión 15 de un jefe |
+6. **El diario de la Crónica:**
+   - La Crónica tiene dos solapas: **Diario** y **Lo último**.
+   - El diario es el episodio, dividido en un capítulo por jefe, y cada capítulo en sus 15 misiones, agrupadas en tres actos.
+   - Cada misión hecha destraba su **bloque de lore**, con la fecha y la hora reales en que la hiciste, cómo te fue (cuántas etapas salieron bien) y la historia.
+   - Cada página anota también **qué pasaba en la ciudad en ese momento**: tres noticias reales de otros jugadores («Mientras tanto, en Maires: Malickud robó un kiosco en Floreros…»).
+   - Las misiones que faltan aparecen como páginas en blanco. De la que sigue se ve el título.
 
-- **Los tres actos** de cada jefe: I *«Mandadero»* (misiones 1 a 5), II *«De confianza»* (6 a 10) y III *«Mano derecha»* (11 a 15).
-- **Se pueden jugar las cuatro historias**, pero la misión 15 de cada jefe es contra los otros. Al terminar una, las misiones finales de las demás quedan «del otro lado»: las podés jugar, pero contra tu propia pandilla. Esto aprovecha lo que ya tenemos de «la misma misión desde cada bando».
-- **Crónica:** cada misión de historia que terminás deja una entrada con fecha, título y una línea de lo que pasó. Las de contacto se agrupan por contacto. En la Crónica se ve «Episodio 01 · 23 de 93».
-- **Cada misión de historia pasa en un punto fijo del mapa**, con banderita propia, y no se renueva como las del tablón.
-- **Mientras tanto siguen el tablón, las misiones temporales y los encuentros raros.** Eso es el día a día: siempre hay algo para hacer.
+## 2. Premios
 
-## 3. Los cuatro jefes y sus 15 misiones
+Pagan por energía, como el resto del juego, para no romper el ritmo. El balance está medido con el bot de `tools/balance.test.ts`. Las de muchas horas pagan más en total, pero no más por energía. Algunas misiones enseñan algo: dan +1 a un atributo (la 3, 5, 8, 10, 12 y 14) y la final da +2.
 
-### La Familia — Elvira «La Señora» Santoro · Puerto Mareo
-Viuda de un contrabandista y dueña del puerto. Nunca levanta la voz.
-**Historia: «La herencia».** El marido dejó una libreta con todo lo que se le debe a la Familia. Un sobrino quiere la libreta y el lugar de Elvira.
+## 3. Las 60 misiones
 
-| # | Misión | De qué va |
-|---|---|---|
-| 1 | El sobre | Llevar un sobre a un comercio de Mosecraft y volver sin abrirlo |
-| 2 | La cuota | Cobrarle a un kiosco que dejó de pagar |
-| 3 | Carga sin papeles | Sacar del muelle 4 un contenedor antes de la inspección |
-| 4 | El contador | Convencer a un contador de que «se olvide» de unas cifras |
-| 5 | La libreta | Elvira te muestra la libreta del marido: hay que esconderla |
-| 6 | Sangre nueva | Conocés a Franco, el sobrino: simpático, demasiado |
-| 7 | La subasta | Comprar (o robar) un cuadro en una subasta de Reloquita |
-| 8 | Doble fondo | Descubrir que alguien vacía los depósitos de la Familia |
-| 9 | La cena | Custodiar una cena de Elvira con un juez |
-| 10 | Una página menos | Falta una hoja de la libreta y Franco tiene coartada |
-| 11 | El prestamista | Seguir la plata hasta Once: Franco le debe a La Turca |
-| 12 | Fuego en el dique | Incendian un depósito: salvar lo que se pueda |
-| 13 | La traición | Franco se pasa al Sindicato con media libreta |
-| 14 | Recuperar el nombre | Volver a armar la libreta, deudor por deudor |
-| 15 | **La última página** | Final: el muelle viejo, Franco y Don Ramón contra vos |
+### La Familia — Elvira «La Señora» Santoro · «La herencia»
 
-### El Sindicato — Don Ramón Ferrante, el diarero · Chacarota
-Atiende un kiosco de diarios en Chacarota hace cuarenta años. Lee todos los diarios, así que sabe todo antes que nadie. Detrás de las revistas manejan los canillitas, los camioneros y los paros.
-**Historia: «Primera plana».** Un diario nuevo, *El Faro de Maires*, publica los negocios del Sindicato. Alguien de adentro está hablando.
+| # | Misión | Dónde | Dura | Energía |
+|---|---|---|---|---|
+| 1 | El sobre | Mosecraft | 5 min | 5 |
+| 2 | La cuota | Belgranito | 8 min | 6 |
+| 3 | Carga sin papeles | Puerto Mareo | 12 min | 6 |
+| 4 | El contador | San Nicolasito | 15 min | 7 |
+| 5 | La libreta | Puerto Mareo | 20 min | 8 |
+| 6 | Sangre nueva | Palermo Soja | 1 h | 10 |
+| 7 | La subasta | Reloquita | 1 h 30 | 10 |
+| 8 | Doble fondo | La Paterna | 2 h | 11 |
+| 9 | La cena | Puerto Mareo | 3 h | 12 |
+| 10 | Una página menos | Puerto Mareo | 4 h | 12 |
+| 11 | El prestamista | Once y Medio | 4 h | 14 |
+| 12 | Fuego en el dique | Puerto Mareo | 5 h | 14 |
+| 13 | La traición | Chacarota | 6 h | 15 |
+| 14 | Recuperar el nombre | Villa Crespa | 8 h | 16 |
+| 15 | **La última página** | Puerto Mareo | 18 h | 20 |
 
-| # | Misión | De qué va |
-|---|---|---|
-| 1 | El reparto | Repartir los diarios del amanecer… y los sobres adentro |
-| 2 | Paro de brazos caídos | Convencer a un galpón de que pare |
-| 3 | El camión del Faro | Que el diario nuevo no llegue a los kioscos |
-| 4 | Canillita | Recuperar una esquina que tomó otro canillita |
-| 5 | La primera plana | Sale una nota sobre Don Ramón: averiguar quién la firmó |
-| 6 | El periodista | Seguir a un periodista que no firma con su nombre |
-| 7 | La imprenta | Entrar de noche a la imprenta del Faro |
-| 8 | Asamblea | Ganar una votación del gremio a los gritos |
-| 9 | El soplón | Hay alguien en la mesa chica que habla con el Faro |
-| 10 | Fe de erratas | Plantar una noticia falsa para ver quién la repite |
-| 11 | Huelga general | Organizar el paro más grande de Maires |
-| 12 | La lista negra | El Faro publica una lista con nombres, y el tuyo está |
-| 13 | El dueño del Faro | Descubrir quién paga el diario (spoiler: alguien de la Familia) |
-| 14 | Última edición | La última noche antes de que salga la nota que hunde al Sindicato |
-| 15 | **Paren las rotativas** | Final: la imprenta, el puerto y una elección de gremio |
+### El Sindicato — Don Ramón Ferrante · «Primera plana»
 
-### La Barra — El Tano Lucero · Ñuñez
-Vive en la tribuna, aunque no haya partido. Para él la lealtad es todo, y la lealtad se paga.
-**Historia: «El clásico».** Falta un mes para el clásico del siglo, el club está quebrado y la barra se divide.
+| # | Misión | Dónde | Dura | Energía |
+|---|---|---|---|---|
+| 1 | El reparto | Chacarota | 5 min | 5 |
+| 2 | Paro de brazos caídos | La Paterna | 8 min | 6 |
+| 3 | El camión del Faro | Villa Crespa | 12 min | 6 |
+| 4 | Canillita | Colegas | 15 min | 7 |
+| 5 | La primera plana | Chacarota | 20 min | 8 |
+| 6 | El periodista | Villa Ortuzán | 1 h | 10 |
+| 7 | La imprenta | Villa Mitrecito | 1 h 30 | 10 |
+| 8 | Asamblea | Chacarota | 2 h | 11 |
+| 9 | El soplón | Chacarota | 3 h | 12 |
+| 10 | Fe de erratas | Villa Mitrecito | 4 h | 12 |
+| 11 | Huelga general | San Nicolasito | 4 h | 14 |
+| 12 | La lista negra | Chacarota | 5 h | 14 |
+| 13 | El dueño del Faro | Almagrito | 6 h | 15 |
+| 14 | Última edición | Villa Mitrecito | 8 h | 16 |
+| 15 | **Paren las rotativas** | Villa Mitrecito | 18 h | 20 |
 
-| # | Misión | De qué va |
-|---|---|---|
-| 1 | El trapo | Recuperar la bandera que se llevaron los del Oeste |
-| 2 | Los trapitos | Ordenar a los cuidacoches del estadio |
-| 3 | La reventa | Vender entradas que todavía no existen |
-| 4 | El micro | Que el micro de la visitante llegue tarde |
-| 5 | La interna | Conocés al Pelado Ibarra, que quiere la tribuna para él |
-| 6 | El presidente | Apretar al presidente del club, que quiere vender el estadio |
-| 7 | El bombo | Robar el bombo de la barra rival, que es sagrado |
-| 8 | El jugador | Convencer a la figura de que no se vaya al exterior |
-| 9 | El árbitro | Averiguar quién compró al árbitro del clásico |
-| 10 | Partida | El Pelado arma su propia barra |
-| 11 | El estadio | Una inmobiliaria de Reloquita quiere demoler la cancha |
-| 12 | Los papeles | Robar la escritura del estadio |
-| 13 | La semana del clásico | Tres días de guerra en la calle |
-| 14 | El día antes | Unir la tribuna |
-| 15 | **El clásico** | Final: noventa minutos adentro y afuera de la cancha |
+### La Barra — El Tano Lucero · «El clásico»
 
-### Los Amarillos — Rita «Taxi» Quiroga · Once y Medio
-Taxista de toda la vida. Maneja la ciudad desde una radio y sabe dónde está cada auto de Maires.
-**Historia: «Bajada de bandera».** Llega una aplicación de autos, *Vamo*, que deja sin trabajo a los taxis. Pero no es solo una aplicación.
+| # | Misión | Dónde | Dura | Energía |
+|---|---|---|---|---|
+| 1 | El trapo | Floreros | 5 min | 5 |
+| 2 | Los trapitos | Ñuñez | 8 min | 6 |
+| 3 | La reventa | Ñuñez | 12 min | 6 |
+| 4 | El micro | Salida | 15 min | 7 |
+| 5 | La interna | Ñuñez | 20 min | 8 |
+| 6 | El presidente | Ñuñez | 1 h | 10 |
+| 7 | El bombo | Floreros | 1 h 30 | 10 |
+| 8 | El jugador | Belgranito | 2 h | 11 |
+| 9 | El árbitro | San Nicolasito | 3 h | 12 |
+| 10 | Partida | Ñuñez | 4 h | 12 |
+| 11 | El estadio | Reloquita | 4 h | 14 |
+| 12 | Los papeles | Reloquita | 5 h | 14 |
+| 13 | La semana del clásico | Ñuñez | 6 h | 15 |
+| 14 | El día antes | Ñuñez | 8 h | 16 |
+| 15 | **El clásico** | Ñuñez | 18 h | 20 |
 
-| # | Misión | De qué va |
-|---|---|---|
-| 1 | Viaje sin taxímetro | Un paquete, una dirección y nada de preguntas |
-| 2 | El desarmadero | Llevar un auto «prestado» a desarmar |
-| 3 | La radio | Recuperar el equipo de radio que robaron |
-| 4 | La picada | Correr una picada en la costanera |
-| 5 | Vamo | Aparece la aplicación: los clientes se van |
-| 6 | Pasajero misterioso | Pedir un Vamo y seguir al chofer |
-| 7 | La oficina | Las oficinas de Vamo están en un PH de Palermo Soja |
-| 8 | El servidor | Con un hacker, entrar a su sistema |
-| 9 | Lo que ven | Vamo graba todos los viajes y le vende los datos a alguien |
-| 10 | Bloqueo | Cortar la 9 de Julio con cien taxis |
-| 11 | El comprador | Los datos de Vamo los compra la policía… o eso parece |
-| 12 | La flota | Robar veinte autos de Vamo en una noche |
-| 13 | Choque | Le chocan el taxi a Rita, a propósito |
-| 14 | La grabación | Encontrar el viaje que lo explica todo |
-| 15 | **Última bajada** | Final: persecución por toda la ciudad, con la radio abierta |
+### Los Amarillos — Rita "Taxi" Quiroga · «Bajada de bandera»
 
-> Las cuatro historias **se cruzan**: el sobrino de la Familia financia el Faro, el estadio lo quiere la misma inmobiliaria que compra los datos de Vamo, y así. El final del episodio revela quién está detrás de todo: un intendente que nadie votó. Ese queda como gancho para el Episodio 02.
+| # | Misión | Dónde | Dura | Energía |
+|---|---|---|---|---|
+| 1 | Viaje sin taxímetro | Almagrito | 5 min | 5 |
+| 2 | El desarmadero | Liniers Sur | 8 min | 6 |
+| 3 | La radio | Once y Medio | 12 min | 6 |
+| 4 | La picada | Puerto Mareo | 15 min | 7 |
+| 5 | Vamo | Palermo Soja | 20 min | 8 |
+| 6 | Pasajero misterioso | Reloquita | 1 h | 10 |
+| 7 | La oficina | Palermo Soja | 1 h 30 | 10 |
+| 8 | El servidor | Villa Urquisa | 2 h | 11 |
+| 9 | Lo que ven | Almagrito | 3 h | 12 |
+| 10 | Bloqueo | San Nicolasito | 4 h | 12 |
+| 11 | El comprador | Mosecraft | 4 h | 14 |
+| 12 | La flota | Palermo Soja | 5 h | 14 |
+| 13 | Choque | Once y Medio | 6 h | 15 |
+| 14 | La grabación | Almagrito | 8 h | 16 |
+| 15 | **Última bajada** | San Nicolasito | 18 h | 20 |
 
-## 4. Los 8 contactos (misiones de 4, al estilo Lester)
+
+> El texto completo de cada misión (presentación, etapas, cómo sale bien o mal, peleas y el bloque de diario) está en `packages/shared/src/historia.ts`.
+
+## 4. El hilo de Marga, misión por misión
+
+- **Familia:**
+  - la página 47 de la libreta: «M. — La Esquina — no se le cobra»;
+  - la deuda de Franco la paga la Fundación;
+  - las anotaciones «vota / no vota» con letra de maestra;
+  - el cartel «Intendenta» en la vidriera.
+- **Sindicato:**
+  - el borrador corregido con birome azul;
+  - la sede de la Fundación arriba del bar;
+  - la foto de 1987, donde la moza escuchó cómo se repartían la ciudad;
+  - la tapa violeta que nunca salió: «Elecciones 2027. Ya sabés quién».
+- **Barra:**
+  - el micro violeta «Recorrida Nacional»;
+  - Desarrollos Esquina SA quiere el estadio «después de las elecciones»;
+  - el plano de la ciudad pintado de violeta;
+  - el volante: «Te esperamos a tomar un café».
+- **Amarillos:**
+  - Vamo manda los datos a «PADRON_2027» en Almagrito;
+  - la voz amable que dice «querido»;
+  - la grabación: «Cuando se peleen todos, yo les voy a ofrecer un café».
+
+## 5. Los 8 contactos (misiones de 4, al estilo Lester) — próximo paso
 
 Aparecen como **contactos en el mapa** cuando cumplís su condición. Cada historia es corta, con un tono propio y un premio único: un ítem, un descuento o un lugar nuevo.
 
@@ -128,7 +157,7 @@ Aparecen como **contactos en el mapa** cuando cumplís su condición. Cada histo
 | **Sor Mónica** | San Nicolasito | Hacer 5 misiones para vecinos | Robarle al que roba · La colecta · El obispo · El comedor | Bajar el nivel de búsqueda a la mitad, una vez por semana |
 | **El Ingeniero Sasaki**, hacker del cyber | Villa Urquisa | Robar 2 cybers | Las cámaras · Los semáforos · La base de la comisaría · El apagón | Los golpes tienen menos riesgo de policía |
 
-## 5. Eventos y cosas que aparecen solas (ya empezado)
+## 6. Eventos y cosas que aparecen solas (ya empezado)
 
 - **Misiones temporales:** una «Urgente» por tablón, que paga más y dura dos horas. **Ya está.**
 - **Encuentros raros:** gente extraña que aparece un rato en un barrio (Batman con la Zanella, la vidente, el del futuro, la estatua viviente…). Hay 14 y aparece uno cada hora y cuarto. **Ya está.**
@@ -145,12 +174,3 @@ Aparecen como **contactos en el mapa** cuando cumplís su condición. Cada histo
   - Negocios y propiedades
   - Gimnasio
 
-## 6. Para decidir
-
-1. ¿Te cierran los cuatro temas: la herencia, el diario, el clásico y la aplicación de autos?
-2. ¿Se pueden jugar las cuatro historias, o solo la de tu pandilla y las demás «del otro lado»?
-3. ¿Los 8 contactos te sirven? ¿Cambiarías alguno?
-4. ¿El villano oculto del episodio es el intendente, o preferís otro?
-5. ¿Las misiones de historia tienen duración real, de 15 a 60 minutos como las de pandilla? ¿O la 15 de cada jefe es un «evento» más largo, de varias horas?
-
-Cuando lo apruebes, escribo las misiones completas, con etapas, textos, peleas y premios, y las cargo en el juego.

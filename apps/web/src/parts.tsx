@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import {
   clamp, energyMax, findMission, HOME, ENERGY_EVERY, gangOf, maxHp, money, RANK_NAMES, rankOf, SHOP, STAT_NAMES, xpNeed,
-  type FightView, type PlayerState, type StatKey, eff, gearBonus, SLOTS, SLOT_NAMES, GANGS } from "@pop/shared";
+  type FightView, type PlayerState, type StatKey, eff, gearBonus, SLOTS, SLOT_NAMES, GANGS, GANG_KEYS, MISSIONS, EPISODE, STORY_NAME, ACT_NAMES,
+  type Gang } from "@pop/shared";
 import { avatarImg, GangBadge, GangRing, Portrait, portraitOf } from "./art";
 import { ItemIcon } from "./icons";
 
@@ -102,18 +103,58 @@ const hhmm = (t: number) => new Date(t).toLocaleTimeString("es-AR", { hour: "2-d
 export function Chronicle({ s, onOut }: { s: PlayerState; onOut: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const [credits, setCredits] = useState(false);
+  const [view, setView] = useState<"diario" | "registro">("diario");
   return (
     <section className="log">
+      <div className="seg" role="tablist">
+        <button role="tab" aria-selected={view === "diario"} className={view === "diario" ? "on" : ""} onClick={() => setView("diario")}>Diario</button>
+        <button role="tab" aria-selected={view === "registro"} className={view === "registro" ? "on" : ""} onClick={() => setView("registro")}>Lo último</button>
+      </div>
+      {view === "diario" ? <Diary s={s} /> : <>
       <div className="foot"><h3>Crónica</h3>
         <div className="confirm">{confirm
           ? <>¿Salir de tu cuenta? <button className="primary" onClick={onOut}>Sí, salir</button><button onClick={() => setConfirm(false)}>Cancelar</button></>
           : <><button className="link" onClick={() => setCredits(true)}>Créditos</button><button className="link" onClick={() => setConfirm(true)}>Salir</button></>}
         </div>
       </div>
-      <ol>{s.log.map((l, i) => <li key={i}><time>{hhmm(l.t)}</time><span className={l.cls}>{l.msg}</span></li>)}</ol>
+      <ol>{s.log.map((l, i) => <li key={i}><time>{hhmm(l.t)}</time><span className={l.cls}>{l.msg}</span></li>)}</ol></>}
       {credits && <Credits onClose={() => setCredits(false)} />}
     </section>
   );
+}
+
+/* El diario: el episodio dividido en capítulos (uno por jefe) y cada capítulo en sus misiones.
+   Cada misión hecha destraba su bloque: la fecha real, cómo te fue, la historia y qué pasaba en la ciudad. */
+const fecha = (t: number) => new Date(t).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" }) + ", " + hhmm(t);
+function Diary({ s }: { s: PlayerState }) {
+  const all = GANG_KEYS.flatMap(g => MISSIONS[g]), done = all.filter(m => s.diary?.[m.id]).length;
+  const mine = gangOf(s);
+  const order = [...GANG_KEYS].sort((a, b) => (b === mine ? 1 : 0) - (a === mine ? 1 : 0)
+    || MISSIONS[b].filter(m => s.diary?.[m.id]).length - MISSIONS[a].filter(m => s.diary?.[m.id]).length);
+  const [open, setOpen] = useState<Gang | null>(order[0]);
+  return <div className="diary">
+    <header><span className="tag">Temporada {EPISODE.season} · {EPISODE.arc}</span>
+      <h3>Episodio {EPISODE.num} — {EPISODE.name}</h3>
+      <span className="num tag">{done} de {all.length} páginas</span></header>
+    {order.map(g => {
+      const list = MISSIONS[g], got = list.filter(m => s.diary?.[m.id]).length;
+      return <details key={g} open={open === g} onToggle={e => { if ((e.target as HTMLDetailsElement).open) setOpen(g); }}>
+        <summary><b style={{ color: GANGS[g].color }}>{STORY_NAME[g]}</b> <span className="tag">{GANGS[g].boss} · {got} de {list.length}</span></summary>
+        {list.map((m, i) => {
+          const d = s.diary?.[m.id];
+          const act = i % 5 === 0 ? <h4 key={`a${i}`} className="act">Acto {["I", "II", "III"][i / 5]} · {ACT_NAMES[i / 5]}</h4> : null;
+          if (!d) return <div key={m.id}>{act}<div className="page locked"><span className="num">{m.story}</span> {i === 0 || s.diary?.[list[i - 1].id] ? m.title : "· · ·"}
+            <span className="tag">{m.final ? "Final del capítulo · solo con tu pandilla" : "Sin escribir"}</span></div></div>;
+          return <div key={m.id}>{act}<article className="page">
+            <h5><span className="num">{m.story}</span> {m.title}</h5>
+            <div className="tag">{fecha(d.t)} · {m.place} · {d.got} de {d.of} etapas salieron bien</div>
+            <p>{m.lore}</p>
+            {d.city?.length ? <div className="city-news"><span className="tag">Mientras tanto, en Maires:</span>{d.city.map((c, k) => <span key={k}>{c}</span>)}</div> : null}
+          </article></div>;
+        })}
+      </details>;
+    })}
+  </div>;
 }
 
 /* Créditos del arte (algunas licencias lo piden; las demás lo agradecen). Ver docs/CREDITOS.md */
