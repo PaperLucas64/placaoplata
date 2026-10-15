@@ -140,7 +140,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
 
   /* Como Google Maps: el mapa ocupa todo; a la izquierda los menús, arriba buscar y los filtros, arriba a la derecha vos */
   return (
-    <div className="gm">
+    <div className={`gm ${shown ? "with-panel" : ""}`}>
       <CityMap {...ui} filter={filter} />
 
       <News />

@@ -177,7 +177,9 @@ export function Credits({ onClose }: { onClose: () => void }) {
   );
 }
 
-const mmss = (ms: number) => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+/* 4:52 o, si pasa la hora, 5:04:52 (horas:minutos:segundos) */
+const mmss = (ms: number) => { const t = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s2 = String(t % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s2}` : `${m}:${s2}`; };
 
 /* Lo que estás haciendo en tiempo real (entrenar, guardia) y la obra de la casa: cuenta regresiva con su línea de tiempo */
 function Countdown({ label, since, until, now, note, action }: { label: string; since: number; until: number; now: number; note?: string; action?: ReactNode }) {

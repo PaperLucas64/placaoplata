@@ -533,3 +533,6 @@ body{background:transparent}
 .diary .page .num{color:var(--sodium);margin-right:4px}
 .diary .page.locked{border-left-color:var(--line);color:var(--muted);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .diary .city-news{display:grid;gap:2px;font-size:.82rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}
+
+/* con el panel abierto, la leyenda del mapa se corre al costado (no queda tapada) */
+@media (min-width:821px){.gm.with-panel .gps-status{left:calc(100px + min(440px, 100% - 180px));max-width:min(520px, calc(100% - 600px))}}
