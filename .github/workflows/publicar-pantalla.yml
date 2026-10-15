@@ -1,7 +1,7 @@
 # Publica la pantalla del juego en cinectomia.com/juego por FTP cada vez que cambia en main.
 # Necesita, en GitHub → Settings → Secrets and variables → Actions:
 #   Secrets:   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD
-#   Variables: FTP_DIR  (carpeta destino, termina en /; por defecto public_html/juego/)
+#   Variables: FTP_DIR  (carpeta destino desde donde entra la cuenta FTP, termina en /; por defecto juego/)
 #              API_URL  (dirección del servidor del juego, cuando esté publicado; vacío = mismo sitio)
 name: Publicar pantalla
 
@@ -37,7 +37,7 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_DIR: ${{ vars.FTP_DIR || 'public_html/juego/' }}
+          FTP_DIR: ${{ vars.FTP_DIR || 'juego/' }}   # la cuenta FTP entra directo a public_html
         run: |
           sudo apt-get install -y -qq lftp > /dev/null
           # FTPS (Donweb exige cifrado). Sube todo; en assets/ borra lo viejo (los nombres cambian en cada versión).
