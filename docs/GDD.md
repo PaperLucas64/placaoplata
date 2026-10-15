@@ -510,3 +510,25 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 
 ### Infraestructura
 - Plan pago de Render si hay muchos jugadores; vigilar horas gratis de Neon; copias de seguridad; repo privado.
+
+## Novedades (15/10/2026)
+
+- **Nombre:** el juego se llama **Malandro**; la ciudad, Maires.
+- **Pantalla:** vida, energía, XP y plata siempre a la vista. El menú quedó en Vos, Inventario, Amigos, Crónica y Crear clan (próximamente). Lo demás se hace tocando lugares del mapa.
+- **Arranque:** naciste en una de 10 pensiones fijas, al azar. Cada casa, hospital, contacto y misión tiene su punto exacto en el mapa.
+- **Para robar:** 1 o 2 locales por barrio (kiosco, pet shop, cyber, farmacia, electro, joyería), con golpes propios.
+- **Tiendas por rubro:**
+  - salud: Droguería Agromanía, Farmacia Gran Once
+  - armas: Armería El Cazador, Cuchillería La Colonial
+  - ropa: Galería Avellanedita, Ropería Palermo Soja
+- **Terminal de Ómnibus de Salida:** viajes al interior, próximamente.
+- **Subte:** cada línea tiene un tema para los nombres de sus estaciones (ver `tools/geo/subte_nombres.py`):
+  - A: provincias
+  - B: animales autóctonos
+  - C: ríos
+  - D: mares
+  - E: fechas patrias
+  - H: comidas
+- **Temporales:** una misión «Urgente» por tablón (2 horas, paga más) y encuentros raros que aparecen un rato y se van.
+- **Noticias locales:** abajo del mapa pasa lo que hace la gente (golpes, niveles, mudanzas, negocios). Si pasó poco, se completa con noticias de ambiente.
+- **Modo historia:** propuesta en `docs/HISTORIA.md`.
