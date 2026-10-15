@@ -10,7 +10,7 @@ export const PROPS: Prop[] = [
   { id: "taxi",     name: "Licencia de taxi",    lvl: 8,  price: 6000,  perHour: 50,  place: "San Telmón", who: "el taxi",
     help: "Un chofer trabaja el auto por vos. A veces aparece un pasajero raro." },
   { id: "terraza",  name: "Plantación en una terraza", lvl: 12, price: 12000, perHour: 110, place: "Palermo Soja", heat: 2, who: "la terraza",
-    help: "Cien macetas bajo media sombra. Cada cobro suma calor." },
+    help: "Cien macetas bajo media sombra. Cada cobro sube tu nivel de búsqueda." },
   { id: "lavadero", name: "Lavadero de autos",   lvl: 16, price: 22000, perHour: 180, place: "Barrancas", who: "el lavadero",
     help: "Se lavan autos. Y plata." },
   { id: "taller",   name: "Taller mecánico",     lvl: 20, price: 35000, perHour: 260, place: "Mataderos", who: "el taller",

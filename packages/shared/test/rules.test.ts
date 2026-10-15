@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
+  ambushPlayer, canAmbush, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
   BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
@@ -250,7 +250,7 @@ describe("misiones con tiempo", () => {
   it("el tablón trae cuatro misiones de pandilla a tu nivel, de fácil a jodida, más vecinos y policía", () => {
     const s = veteran("Ana");
     newBoard(s, seeded(3), T0);
-    const gangs = s.board.filter(m => m.gang);
+    const gangs = s.board.filter(m => m.gang && !m.hours);
     expect(gangs.map(m => m.difficulty)).toEqual([0, 1, 2, 3]);
     expect(new Set(gangs.map(m => m.title)).size).toBe(4);
     expect(gangs[3].reward!.gold).toBeGreaterThan(gangs[0].reward!.gold);
@@ -418,5 +418,32 @@ describe("historias de la ciudad", () => {
     expect(s.done[c1.id]).toBe(true);
     expect(canStart(s, c1b)).toBe(false);   // ese capítulo ya lo hiciste con La Barra
     expect(canStart(s, c2)).toBe(true);     // y se abrió el siguiente, desde cualquier bando
+  });
+});
+
+describe("asaltos en el mapa y trabajos largos", () => {
+  it("se puede asaltar a alguien en misión, pero no a uno de tu pandilla ni a uno mucho más chico", () => {
+    const att = veteran("Ana", "barra"), def = veteran("Beto", "familia");
+    expect(canAmbush(att, def, T0)).toMatch(/volvió/);                // no está en ninguna misión
+    applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "colectivo" }, ctx());
+    expect(canAmbush(att, def, T0 + 1000)).toBeNull();
+    const r = ambushPlayer(att, def, ctx(T0 + 1000));
+    expect(r.fight).toBeTruthy();
+    expect(def.log.some(l => l.msg.includes("asaltar") || l.msg.includes("asaltaron"))).toBe(true);
+    const friend = veteran("Caro", "familia");
+    expect(canAmbush(friend, def, T0 + 2000)).toMatch(/tu pandilla/);
+    const big = veteran("Dani", "barra"); big.lvl = 20;
+    expect(canAmbush(big, def, T0 + 2000)).toMatch(/chico/);
+  });
+  it("el tablón trae trabajos largos de 2 a 12 horas en el conurbano", () => {
+    const s = veteran("Ana");
+    newBoard(s, seeded(4), T0);
+    const long = s.board.filter(m => m.hours);
+    expect(long.map(m => m.hours)).toEqual([2, 4, 8, 12]);
+    const m12 = long[3];
+    expect(missionMins(m12)).toBe(720);
+    expect(m12.reward!.gold).toBeGreaterThan(long[0].reward!.gold * 3);
+    applyAction(s, { type: "mstart", id: m12.id, mode: "colectivo" }, ctx());
+    expect(s.busy!.until - s.busy!.since).toBeGreaterThan(12 * 3_600_000); // las 12 horas más el viaje
   });
 });

@@ -5,15 +5,37 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, VEHICLES, type ModKey, type TravelMode, type Vehicle
+  tripPhase, VEHICLES, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES
 } from "@pop/shared";
-import { api, type BarrioView, type FriendsView, type RankRow, type RingView } from "./api";
+import { api, type BarrioView, type FriendsView, type RankRow, type RingView, type Traveler } from "./api";
 import type { Ui } from "./Game";
 import { avatarImg, bossImg, GangBadge, hasPortrait, img, Portrait, portraitOf, silhouette } from "./art";
 import { ItemIcon } from "./icons";
 
 const GpsMap = lazy(() => import("./gps/GpsMap"));
 const mapFallback = <div className="gps" style={{ height: 260 }} />;
+
+/* los otros jugadores que están en una misión (se actualiza cada medio minuto) */
+function useTravelers() {
+  const [people, setPeople] = useState<Traveler[]>([]);
+  useEffect(() => {
+    let on = true;
+    const load = () => api.travelers().then(r => on && setPeople(r.people)).catch(() => {});
+    load();
+    const t = setInterval(load, 30_000);
+    return () => { on = false; clearInterval(t); };
+  }, []);
+  return people;
+}
+/* por qué no podés asaltar a alguien (o null si podés); el servidor lo vuelve a chequear */
+function ambushWhy(s: Ui["s"], t: Traveler): string | null {
+  if (s.busy) return "Estás ocupado: para asaltar tenés que estar libre.";
+  if (t.gang && t.gang === gangOf(s)) return "Es de tu pandilla.";
+  if (t.lvl < s.lvl - AMBUSH_LVL_GAP) return "Es muy chico para vos.";
+  if (s.energy < DUEL_COST) return "No te alcanza la energía.";
+  if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return "Estás muy golpeado.";
+  return null;
+}
 
 const riskTxt = ["", "bajo", "medio", "alto"];
 
@@ -39,12 +61,12 @@ function Jobs({ s, act, busy }: Ui) {
   const row = (j: Job, label: string) => (
     <div className="item" key={j.id}>
       <div><h3>{j.name}<span className={`risk r${j.risk}`}>riesgo {riskTxt[j.risk]}</span></h3>
-        <div className="meta num">{money(j.gold[0])}–{money(j.gold[1])} · {j.xp[0]}–{j.xp[1]} XP{j.resp ? ` · +${j.resp} respeto` : ""}{j.heat ? ` · +${j.heat} calor` : ""} · {j.cost} energía{s.lvl < j.lvl ? ` · desde nivel ${j.lvl}` : ""}</div></div>
+        <div className="meta num">{money(j.gold[0])}–{money(j.gold[1])} · {j.xp[0]}–{j.xp[1]} XP{j.resp ? ` · +${j.resp} respeto` : ""}{j.heat ? ` · +${j.heat} de búsqueda` : ""} · {j.cost} energía{s.lvl < j.lvl ? ` · desde nivel ${j.lvl}` : ""}</div></div>
       <div className="act"><button disabled={busy || s.energy < j.cost || s.lvl < j.lvl} onClick={() => act({ type: "job", id: j.id })}>{label}</button></div>
     </div>);
   return <>
     <h2>Trabajos</h2>
-    <p>{s.tutDone ? "Encargos de las pandillas (cada uno suma afinidad con la que te lo da), golpes que pagan bien pero suman calor, y laburos honestos." : "Trabajos de todo tipo. Más riesgo, más plata. La labia te ayuda a cobrar mejor."}</p>
+    <p>{s.tutDone ? "Encargos de las pandillas (cada uno suma afinidad con la que te lo da), golpes que pagan bien pero suben tu nivel de búsqueda, y laburos honestos." : "Trabajos de todo tipo. Más riesgo, más plata. La labia te ayuda a cobrar mejor."}</p>
     {s.tutDone && <>
       <h3>Encargos de las pandillas</h3>
       <div className="list">{GANG_KEYS.map(g => {
@@ -169,6 +191,7 @@ const minTxt = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))} min`;
 
 /* La misión en curso: el GPS con tu personaje y las etapas. Lo que todavía no pasó no se cuenta. */
 function MissionProgress({ s, now }: Ui) {
+  const others = useTravelers();
   const b = s.busy;
   if (b?.kind !== "mision") return null;
   const m = findMission(s, b.id);
@@ -181,7 +204,8 @@ function MissionProgress({ s, now }: Ui) {
     <h3>En curso: {m.title}</h3>
     {t && ph && <>
       <Suspense fallback={mapFallback}>
-        <GpsMap place={t.place} mode={t.mode} at={{ back: ph.phase === "vuelta", f: ph.frac }} avatar={avatarImg(s.avatar)} />
+        <GpsMap place={t.place} mode={t.mode} at={{ back: ph.phase === "vuelta", f: ph.frac }} avatar={avatarImg(s.avatar)}
+          others={others} now={now} avatarOf={avatarImg} />
       </Suspense>
       <p className="gps-status num">{
         ph.phase === "ida" ? <>{TRAVEL[t.mode].name} a <b>{t.place}</b> · faltan {kmTxt(km * (1 - ph.frac))} · llegás en {minTxt(ph.left)}</> :
@@ -213,14 +237,15 @@ function MissionCard({ m, s, act, busy, note, chip }: Ui & { m: Mission; note?: 
   const c = chip ?? (m.street ? clientOf(m) : undefined);
   const start = (mode?: TravelMode) => { setChoosing(false); act({ type: "mstart", id: m.id, mode }); };
   return <div className="item mission-card">
-    <div><h3>{m.title}{m.street && <span className={`risk ${DIFF_CLASS[m.difficulty ?? 0]}`}>{STREET_DIFF[m.difficulty ?? 0].name}</span>}
+    <div><h3>{m.title}{m.hours ? <span className="risk r3">{m.hours} horas</span>
+          : m.street && <span className={`risk ${DIFF_CLASS[m.difficulty ?? 0]}`}>{STREET_DIFF[m.difficulty ?? 0].name}</span>}
         {c && <span className="client" style={{ color: c.color, borderColor: c.color }}>{c.name}</span>}</h3>
       <div className="meta">{done ? "Hecha." : m.street ? m.intro || null : m.intro}</div>
       {!done && <div className="meta num">
-        {place && <>{place} · </>}{missionMins(m)} min{trip ? " + viaje" : ""} · {energy} energía
+        {place && <>{place} · </>}{m.hours ? `${m.hours} h` : `${missionMins(m)} min`}{trip ? " + viaje" : ""} · {energy} energía
         {req.length > 0 && <> · pide {req.map(([k, v], i) => <span key={k} style={{ color: s.stats[k] < v ? "#eba09e" : undefined }}>{i ? ", " : ""}{STAT_SHORT[k]} {v}</span>)}</>}
         {m.reward && <> · {money(m.reward.gold)}, {m.reward.xp} XP, +{m.reward.resp} respeto</>}
-        {m.reward?.heat && m.reward.heat < 0 ? <> · <b>−{-m.reward.heat} de calor</b></> : null}
+        {m.reward?.heat && m.reward.heat < 0 ? <> · <b>−{-m.reward.heat} de búsqueda</b></> : null}
         {m.street && m.gang && <> · +{m.aff} afinidad con <span style={{ color: GANGS[m.gang].color }}>{GANGS[m.gang].name}</span></>}
         {m.target && <> · <span style={{ color: GANGS[m.target].color }}>{GANGS[m.target].name}</span> pierde terreno y te quiere menos</>}
       </div>}
@@ -258,7 +283,10 @@ function Missions(ui: Ui) {
       <h3>Tablón de la calle</h3>
       <button disabled={busy || !!s.busy || s.energy < BOARD_REROLL_COST} onClick={() => act({ type: "reroll" })}>Buscar otras · {BOARD_REROLL_COST} energía</button>
     </div>
-    <div className="list">{s.board.filter(m => !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    <div className="list">{s.board.filter(m => !m.hours && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
+    <h3>Trabajos largos en el conurbano</h3>
+    <p className="tag">Turnos de horas en {Object.values(ZONE_NAMES).join(", ")}: para cuando no vas a estar. Pagan mucho por la energía que gastan; mientras tanto la energía se sigue cargando (hasta el tope).</p>
+    <div className="list">{s.board.filter(m => m.hours && !(s.busy?.kind === "mision" && s.busy.id === m.id)).map(m => <MissionCard key={m.id} m={m} {...ui} />)}</div>
     {s.lvl < POLICE_LVL && <p className="tag">Desde el nivel {POLICE_LVL}, el comisario Funes también deja trabajos sucios en el tablón.</p>}
     <Stories {...ui} />
     <h3>Las pandillas</h3>
@@ -325,7 +353,8 @@ function Street({ s, act, busy }: Ui) {
   </>;
 }
 
-function Ranking({ s }: Ui) {
+function Ranking({ s, now, act }: Ui) {
+  const others = useTravelers();
   const [rows, setRows] = useState<RankRow[] | null>(null);
   const [map, setMap] = useState<{ map: BarrioView[]; owned: Record<Gang, number> } | null>(null);
   useEffect(() => {
@@ -338,7 +367,12 @@ function Ranking({ s }: Ui) {
     <h2>Maires</h2>
     <p>Cada barrio es de la pandilla con más influencia. La influencia la ganás trabajando para una pandilla (misiones, encargos, golpes y peleas) y se va gastando: pierde la mitad por semana. Cada barrio de tu pandilla te da +{Math.round(TURF_BONUS * 100)}% de plata.</p>
     {mine && map && <p className="result good">{GANGS[mine].name} controla {map.owned[mine]} {map.owned[mine] === 1 ? "barrio" : "barrios"}: +{map.owned[mine] * Math.round(TURF_BONUS * 100)}% de plata para vos.</p>}
-    {owners && <Suspense fallback={mapFallback}><GpsMap owners={owners} height={300} /></Suspense>}
+    {owners && <Suspense fallback={mapFallback}>
+      <GpsMap owners={owners} height={320} others={others} now={now} avatarOf={avatarImg}
+        attack={{ why: t => ambushWhy(s, t), go: t => act({ type: "ambush", id: t.id }) }} />
+    </Suspense>}
+    <p className="tag">{others.length ? `Ahora hay ${others.length} ${others.length === 1 ? "jugador" : "jugadores"} en una misión. Tocalos en el mapa para ver a dónde van; si no son de tu pandilla, los podés asaltar en el camino (${DUEL_COST} de energía).`
+      : "Ahora no hay nadie más en una misión. Cuando haya, los vas a ver moverse por el mapa y los vas a poder asaltar en el camino."}</p>
     {!map ? <p className="tag">Cargando el mapa…</p> :
       <div className="barrios">{map.map.map(b => {
         const total = GANG_KEYS.reduce((a, g) => a + b.points[g], 0) || 1;
@@ -425,7 +459,7 @@ function Business({ s, act, busy, now }: Ui) {
       return <div className="item" key={p.id}>
         <div><h3>{p.name}{mine && <span className="kind">tuyo</span>}</h3>
           <div className="meta">{p.help} {p.place}.</div>
-          <div className="meta num">{money(p.perHour)} por hora{p.heat ? ` · +${p.heat} de calor por cobro` : ""}
+          <div className="meta num">{money(p.perHour)} por hora{p.heat ? ` · +${p.heat} de búsqueda por cobro` : ""}
             {mine ? <> · juntó {money(propIncome(p, s.props![p.id], now))}</> : <> · {money(p.price)}</>}</div>
           {!mine && locked && <div className="lock">Pide nivel {p.lvl}</div>}</div>
         <div className="act">{!mine && <button disabled={busy || locked || s.gold < p.price} onClick={() => act({ type: "prop", id: p.id })}>Comprar</button>}</div>

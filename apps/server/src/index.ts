@@ -154,6 +154,12 @@ app.post("/api/coop/cancel", async (req, reply) => {
   return game.coopCancel(uid, num((req.body as { id?: unknown })?.id));
 });
 
+/* quién está en una misión ahora, para el mapa */
+app.get("/api/travelers", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  return game.travelers(uid);
+});
+
 app.get("/api/ranking", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;
   const { id } = await game.me(uid);

@@ -15,7 +15,7 @@ export const GANGS: Record<Gang, GangInfo> = {
   barra:     { name: "La Barra", boss: "El Tano Lucero", color: "#6cc070", hood: "la cancha",
                perk: "+10% de fuerza en las peleas", say: "El barrio se banca con el cuerpo, pibe." },
   amarillos: { name: "Los Amarillos", boss: "Rita \"Taxi\" Quiroga", color: "#f2c94c", hood: "las remiserías",
-               perk: "Juntás 30% menos de calor", say: "Conozco cada calle de Maires. Y cada salida." }
+               perk: "Tu nivel de búsqueda sube 30% menos", say: "Conozco cada calle de Maires. Y cada salida." }
 };
 
 /* Rango por respeto (igual para todas las pandillas) */

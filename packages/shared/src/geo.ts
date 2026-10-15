@@ -5,7 +5,9 @@ import { GEO_HOME, GEO_PLACES, GEO_ROUTES } from "./geo-data.js";
 import { addHeat, gangOf, log, money, pick } from "./rules.js";
 import type { PlayerState, Rng } from "./types.js";
 
-export interface GeoPlace { lat: number; lng: number; real: string; interior?: boolean }
+export type Zone = "norte" | "sur" | "oeste";
+export const ZONE_NAMES: Record<Zone, string> = { norte: "Zona Norte", sur: "Zona Sur", oeste: "Zona Oeste" };
+export interface GeoPlace { lat: number; lng: number; real: string; interior?: boolean; zone?: Zone }
 export interface GeoLeg { kind: "pie" | "subte" | "tren"; line?: string; from?: string; to?: string; km: number }
 export interface GeoRoute { calle: number; pie?: number; riel?: GeoLeg[] }
 export { GEO_HOME, GEO_PLACES, GEO_ROUTES };
@@ -118,12 +120,12 @@ export function tripEvent(s: PlayerState, mode: TravelMode, place: string, back:
     case "taxi":
       if (gangOf(s) === "amarillos" || rng() >= 0.08) return false;
       addHeat(s, 4);
-      log(s, at, `El taxista que te llevó a ${where} era buchón: la policía ya sabe dónde anduviste. +4 de calor.`, "bad");
+      log(s, at, `El taxista que te llevó a ${where} era buchón: la policía ya sabe dónde anduviste. +4 de búsqueda.`, "bad");
       return true;
     case "micro":
       if (s.heat < 30 || rng() >= 0.1) return false;
       addHeat(s, 5);
-      log(s, at, "Gendarmería paró el micro en la ruta y te miraron demasiado. +5 de calor.", "bad");
+      log(s, at, "Gendarmería paró el micro en la ruta y te miraron demasiado. +5 de búsqueda.", "bad");
       return true;
     case "moto": case "auto": {
       const tint = mode === "auto" && hasMod(s, "auto", "polarizado");
@@ -135,7 +137,7 @@ export function tripEvent(s: PlayerState, mode: TravelMode, place: string, back:
         const fine = Math.min(s.gold, (15 + s.lvl * 5) * (known ? 2 : 1));
         s.gold -= fine;
         if (known) addHeat(s, 6);
-        log(s, at, known ? `Control policial camino a ${where}: te reconocieron. Multa de ${money(fine)} y +6 de calor.`
+        log(s, at, known ? `Control policial camino a ${where}: te reconocieron. Multa de ${money(fine)} y +6 de búsqueda.`
                          : `Control policial camino a ${where}: multa de ${money(fine)}.`, "bad");
         happened = true;
       }

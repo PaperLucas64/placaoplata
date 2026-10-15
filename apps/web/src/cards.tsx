@@ -26,7 +26,7 @@ export function Boss({ s, act, busy }: Ui) {
 
 export function Situation({ s, act, busy }: Ui) {
   const g = gangOf(s), rk = rankOf(s), nextAt = RANK_AT[rk + 1];
-  const lawyer = s.heat > 0 && <button disabled={busy || s.gold < lawyerCost(s)} onClick={() => act({ type: "lawyer" })}>Abogado · −40 calor · {money(lawyerCost(s))}</button>;
+  const lawyer = s.heat > 0 && <button disabled={busy || s.gold < lawyerCost(s)} onClick={() => act({ type: "lawyer" })}>Abogado · −40 de búsqueda · {money(lawyerCost(s))}</button>;
   const respect = <span className="num">{RANK_NAMES[rk]} · respeto {s.respect}{nextAt !== undefined ? ` · ${RANK_NAMES[rk + 1]} a los ${nextAt}` : " · rango máximo"}</span>;
 
   if (g) {

@@ -128,7 +128,7 @@ Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los enca
 - **Laburos** honestos (5): sin calor ni respeto (bici, lavado, boliche, chofer, depósito), niveles 1 a 9.
 
 ### 5.4 Policía (amenaza para todos)
-Calor de 0 a 100. Lo suben los golpes, los encargos, las peleas en la calle y las misiones. Con calor alto, te detienen en
+**Nivel de búsqueda** (antes «calor») de 0 a 100. Lo suben los golpes, los encargos, las peleas en la calle y las misiones. Con calor alto, te detienen en
 los golpes y las emboscadas pasan a ser de la policía. El **abogado** baja 40 de calor por `20 + nivel × 8`.
 
 ### 5.5 Feria y mercado negro
@@ -189,6 +189,11 @@ Paga por energía: `(10 + 2,4 × nivel) × multiplicador` de plata y `(3 + 0,55 
 - **Tus negocios** (§5.9b): 4 pedidos por negocio, algunos con **viaje al interior**. Pagan ×1,1 (×1,6 de plata y ×1,3 de XP
   si son en el interior). No suman afinidad.
 
+**Trabajos largos en el conurbano:** 4 en el tablón, de **2, 4, 8 y 12 horas** (más el viaje), para cuando no vas a estar.
+6 etapas repartidas en el turno (pruebas fáciles, una pelea de madrugada), salen bien con 4 de 6. Energía 6 / 8 / 10 / 12.
+Pagan `(10 + 2,4 × nivel) × (6 + 3 × horas)` de plata (12 h: 42 energías de misión por 12 de energía), +2 de respeto y
++1 de afinidad por hora. La energía se sigue cargando mientras tanto, hasta el tope.
+
 ### 5.7c Historias de la ciudad (el mismo hecho, desde cada bando)
 - Cada historia tiene **3 capítulos en orden**. Cada capítulo tiene **5 versiones**: una por pandilla y una para la policía
   corrupta (Funes). Es el mismo hecho contado desde cada lado.
@@ -212,6 +217,9 @@ Premios: clásico $200 / $600 / $1.500; Río Bravo $400 / $1.100 / $2.600 (con X
 - **GPS:** mapa real (OpenStreetMap, estilo oscuro de CARTO) con el recorrido y tu personaje moviéndose. Dice cuántos km
   faltan y en cuántos minutos llegás. Los recorridos son reales: calles para autos y colectivos, veredas a pie, y las vías
   de verdad del subte (líneas A, B, C, D) y los trenes (Mitre, Sarmiento, Roca), calculados una vez con `tools/geo/build.py`.
+- **Conurbano:** Zona Norte (Tigre Mojado, San Isidrón, Pilar de Oro), Zona Sur (Avellanada, Lomas de Zafarrancho,
+  Quilmates) y Zona Oeste (Moronga, La Matancera, Moreno del Fondo), con trenes reales (Mitre, San Martín, Roca, Sarmiento).
+  Ahí pasan los trabajos largos. A pie solo se puede ir a lo que está a menos de 20 km.
 - **Los barrios son lugares reales con nombre de parodia** (La Bocota = La Boca, Puerto Mareo = Puerto Madero,
   San Telmón = San Telmo, etc.). **Interior:** La Plata Dulce, Rosarito, Mar del Plato y Cordobita.
 - El viaje se comprime: en la ciudad, 1 minuto de verdad son 4 de viaje; en la ruta (más de 50 km), 8.
@@ -246,6 +254,11 @@ Rivales: pandilleros de **las otras pandillas** (si andás suelto, de todas). Ha
 el resto, personajes. A los de tu pandilla no los podés atacar. 3 de energía por pelea; mismo jugador real 1 vez por hora;
 nadie con menos de 25% de vida ni internado en la guardia. Ganar: 35% de lo que lleva encima (jugadores: hasta 25% de su
 plata encima), XP, respeto, +4 calor. **Lo guardado en la caja fuerte no se puede robar.**
+
+**Asaltos en el mapa (pestaña Ciudad):** el mapa muestra en vivo a los jugadores que están en una misión (dónde van, en
+qué, y si están en el lugar o volviendo; no qué misión es). Al tocarlos, los podés **asaltar en el camino** por 3 de energía:
+es una pelea entre jugadores (como en La calle). No a los de tu pandilla, no a alguien con más de 3 niveles menos que vos,
+no si estás ocupado, y a la misma persona una vez por hora. Su misión sigue, pero golpeado y con menos plata.
 
 ### 5.8b Territorio (pestaña Ciudad)
 - **12 barrios:** La Bocota, Puerto Mareo, San Telmón, Palermo Soja, Villa Crespa, Barrancas, Florida Vieja, Once y Medio,

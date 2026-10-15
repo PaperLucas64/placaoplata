@@ -34,7 +34,7 @@ export function Sheet({ s, now, onCancel, disabled }: { s: PlayerState; now: num
       <Bar cls="hp" label="Vida" v={Math.round(s.hp)} max={mh} />
       <Bar cls="en" label="Energía" v={s.energy} max={em} note={nextE ? `+1 en ${nextE}s` : ""} />
       <Bar cls="xp" label="Experiencia" v={s.xp} max={xpNeed(s)} />
-      {s.tutDone && <Bar cls="heat" label="Calor policial" v={s.heat} max={100} note={s.heat >= 60 ? "cuidado" : ""} />}
+      {s.tutDone && <Bar cls="heat" label="Nivel de búsqueda" v={s.heat} max={100} note={s.heat >= 60 ? "cuidado" : ""} />}
       {s.tutDone && <div className="stat"><span>{RANK_NAMES[rankOf(s)]}</span><span className="num">{s.respect} de respeto</span></div>}
       <div className="money"><span>Plata encima</span><span className="num">{money(s.gold)}</span></div>
       {s.home.safe > 0 && <div className="stat"><span>En la caja fuerte</span><span className="num">{money(s.home.safe)}</span></div>}

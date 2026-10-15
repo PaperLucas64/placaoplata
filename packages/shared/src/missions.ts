@@ -4,7 +4,7 @@
 import { ARC_INFLUENCE, ARC_MISSIONS, arcChapterKey, COMISARIO } from "./arcs.js";
 import { VALIJA } from "./data.js";
 import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } from "./gangs.js";
-import { routeTo, TRAVEL, tripCost, tripEvent, tripMins, tripText, type TravelMode } from "./geo.js";
+import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
 import { addAff, addHeat, addRespect, battle, clamp, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
@@ -28,7 +28,7 @@ export const missionPlace = (m: Mission): string | undefined =>
 export const needsTrip = (m: Mission) => !!routeTo(missionPlace(m));
 /* minutos de trabajo en el lugar (sin contar el viaje) */
 export const missionMins = (m: Mission) => m.mins ?? (m.id === VALIJA.id ? VALIJA_MINS : STORY_MINS[m.tier ?? 0]);
-export const missionEnergy = (m: Mission) => m.steps.reduce((a, st) => a + st.energy, 0);
+export const missionEnergy = (m: Mission) => Math.round(m.steps.reduce((a, st) => a + st.energy, 0));
 /* cuántas etapas tienen que salir bien (La valija perdona más: es el tutorial) */
 export const missionNeed = (m: Mission) => m.id === VALIJA.id ? 2 : Math.ceil(m.steps.length * 0.6);
 
@@ -140,7 +140,7 @@ function finishMission(s: PlayerState, m: Mission, ok: number, at: number) {
   if (m.street) s.board = s.board.filter(x => x.id !== m.id);
   else s.done[m.id] = true;
   if (m.arc) s.done[arcChapterKey(m.arc, m.chapter ?? 0)] = true;
-  log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto${r.heat && r.heat < 0 ? `, ${r.heat} de calor` : ""}.`, "gold");
+  log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto${r.heat && r.heat < 0 ? `, ${r.heat} de búsqueda` : ""}.`, "gold");
   if (m.gang) addAff(s, at, m.gang, m.aff ?? MISSION_AFF[m.tier ?? 0]);
   /* trabajo sucio: la pandilla perjudicada pierde terreno y te tiene menos simpatía */
   if (m.target) {
@@ -297,8 +297,58 @@ export function streetMission(rng: Rng, lvl: number, d: number, client: StreetCl
   };
 }
 
+/* ---------- trabajos largos en el conurbano ---------- */
+/* Turnos de horas (para cuando no vas a estar): pagan menos por hora que jugar activo, pero mucho por energía.
+   Mientras tanto la energía se sigue cargando hasta el tope. */
+export const LONG_HOURS = [2, 4, 8, 12];
+export const LONG_ENERGY: Record<number, number> = { 2: 6, 4: 8, 8: 10, 12: 12 };
+const LONG: Objective[] = [
+  { text: "Custodiar una lancha con carga en el Delta de Tigre Mojado", stat: "dur", place: "Tigre Mojado" },
+  { text: "Vigilar una mansión de San Isidrón toda la noche", stat: "ref", place: "San Isidrón" },
+  { text: "Llevar autos robados a un country de Pilar de Oro", stat: "ref", place: "Pilar de Oro" },
+  { text: "Trabajar de patovica en una fiesta privada de San Isidrón", stat: "fue", place: "San Isidrón" },
+  { text: "Cuidar un depósito de mercadería robada en Avellanada", stat: "dur", place: "Avellanada" },
+  { text: "Hacer el turno noche en un desarmadero de Lomas de Zafarrancho", stat: "fue", place: "Lomas de Zafarrancho" },
+  { text: "Cobrar en todas las ferias de Quilmates", stat: "lab", place: "Quilmates" },
+  { text: "Seguir a un concejal por todo Lomas de Zafarrancho", stat: "ref", place: "Lomas de Zafarrancho" },
+  { text: "Descargar camiones sin papeles en el Mercado Central de La Matancera", stat: "fue", place: "La Matancera" },
+  { text: "Custodiar una fiesta clandestina en Moronga", stat: "dur", place: "Moronga" },
+  { text: "Esconder un cargamento en una quinta de Moreno del Fondo", stat: "lab", place: "Moreno del Fondo" },
+  { text: "Recorrer los talleres de Moronga cobrando deudas", stat: "lab", place: "Moronga" }
+];
+export function longMission(rng: Rng, lvl: number, hours: number, id: string): Mission {
+  const gang = pick(rng, GANG_KEYS);
+  const obj = pick(rng, LONG);
+  const zone = GEO_PLACES[obj.place!]?.zone;
+  const typ = Math.max(5, 0.5 + lvl * 1.4), diff = Math.round(typ * 0.85);
+  const stats = (["lab", "fue", "ref", "dur"] as const);
+  const order = [obj.stat as keyof typeof STEPS, pick(rng, stats.filter(k => k !== obj.stat)), obj.stat as keyof typeof STEPS, pick(rng, [...stats])];
+  const used = new Set<string>();
+  const check = (k: keyof typeof STEPS): MissionStep => {
+    const opts = STEPS[k].filter(x => !used.has(x.text));
+    const st = pick(rng, opts.length ? opts : STEPS[k]); used.add(st.text);
+    return { text: st.text, stat: k, diff, energy: 0, dmg: 0.06, ok: st.ok, ko: st.ko };
+  };
+  const foe = pick(rng, GANG_MEMBERS[pick(rng, GANG_KEYS.filter(g => g !== gang))]);
+  const steps: MissionStep[] = [check(order[0]), check(order[1]),
+    { text: `${foe} y los suyos aparecen de madrugada`, fight: { name: foe, mult: 0.9 }, energy: 0, win: `${foe} se fue por donde vino.`, lose: `${foe} te dio una paliza y se llevó algo.` },
+    check(order[2]), check(order[3]),
+    { text: `Volver con ${GANGS[gang].boss}`, energy: 0, auto: true, ok: `${GANGS[gang].boss} te paga el turno completo.` }];
+  const energy = LONG_ENERGY[hours] ?? 10;
+  steps.forEach(st => { st.energy = energy / steps.length; });
+  const units = 6 + 3 * hours; // lo que paga, medido en "energía de misión"
+  return {
+    id, street: true, gang, hours, rank: 0, mins: hours * 60, place: obj.place, difficulty: 1,
+    title: obj.text, intro: `${GANGS[gang].name} te manda a ${zone ? ZONE_NAMES[zone] : "el conurbano"}. Turno de ${hours} horas.`,
+    steps, outro: "",
+    req: { [obj.stat]: Math.max(5, Math.round(typ * 0.7)) },
+    aff: hours,
+    reward: { gold: Math.round((10 + 2.4 * lvl) * units), xp: Math.round((3 + 0.55 * lvl) * units), resp: 2 * hours, heat: Math.min(14, hours + 2) }
+  };
+}
+
 /* El tablón: una misión de cada dificultad de pandillas al azar, una de algún vecino, una de la policía
-   (desde nivel 5) y hasta dos de tus negocios */
+   (desde nivel 5), hasta dos de tus negocios y cuatro trabajos largos en el conurbano (2, 4, 8 y 12 horas) */
 export function newBoard(s: PlayerState, rng: Rng, now: number) {
   const id = (k: string | number) => `calle-${now.toString(36)}-${k}-${rnd(rng, 0, 9999)}`;
   const mine = gangOf(s);
@@ -310,6 +360,7 @@ export function newBoard(s: PlayerState, rng: Rng, now: number) {
     const p = owned.splice(rnd(rng, 0, owned.length - 1), 1)[0];
     s.board.push(streetMission(rng, s.lvl, rnd(rng, 1, 3), p, id(p), mine));
   }
+  for (const h of LONG_HOURS) s.board.push(longMission(rng, s.lvl, h, id(`l${h}`)));
   s.tBoard = now;
 }
 /* Se renueva cada 6 horas (o cuando se vacía), solo después del tutorial y si no estás en una de sus misiones */

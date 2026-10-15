@@ -34,6 +34,16 @@ PLACES = {
     "Recoleta Bien":  (-34.5880, -58.3930, "Recoleta"),
     "Liniers Sur":    (-34.6430, -58.5200, "Liniers"),
     "Pompeya Chica":  (-34.6500, -58.4150, "Nueva Pompeya"),
+    # el conurbano: zona norte, sur y oeste
+    "Tigre Mojado":        (-34.4255, -58.5797, "Tigre"),
+    "San Isidrón":         (-34.4720, -58.5130, "San Isidro"),
+    "Pilar de Oro":        (-34.4586, -58.9142, "Pilar"),
+    "Avellanada":          (-34.6620, -58.3650, "Avellaneda"),
+    "Lomas de Zafarrancho":(-34.7610, -58.4060, "Lomas de Zamora"),
+    "Quilmates":           (-34.7206, -58.2546, "Quilmes"),
+    "Moronga":             (-34.6534, -58.6198, "Morón"),
+    "La Matancera":        (-34.6826, -58.5604, "San Justo, La Matanza"),
+    "Moreno del Fondo":    (-34.6500, -58.7900, "Moreno"),
     # el interior
     "La Plata Dulce": (-34.9210, -57.9550, "La Plata"),
     "Rosarito":       (-32.9440, -60.6500, "Rosario"),
@@ -41,6 +51,9 @@ PLACES = {
     "Cordobita":      (-31.4170, -64.1830, "Córdoba"),
 }
 INTERIOR = {"La Plata Dulce", "Rosarito", "Mar del Plato", "Cordobita"}
+ZONE = {"Tigre Mojado": "norte", "San Isidrón": "norte", "Pilar de Oro": "norte",
+        "Avellanada": "sur", "Lomas de Zafarrancho": "sur", "Quilmates": "sur",
+        "Moronga": "oeste", "La Matancera": "oeste", "Moreno del Fondo": "oeste"}
 
 # estaciones reales (aproximadas a la boca de la estación)
 ST = {
@@ -63,6 +76,14 @@ ST = {
     "Mar del Plata":        (-37.9966, -57.5598),
     "Rosario Norte":        (-32.9294, -60.6569),
     "Córdoba (Mitre)":      (-31.4128, -64.1747),
+    "Tigre (Mitre)":        (-34.4229, -58.5797),
+    "San Isidro (Mitre)":   (-34.4716, -58.5097),
+    "Pilar (San Martín)":   (-34.4590, -58.9140),
+    "Avellaneda (Roca)":    (-34.6626, -58.3670),
+    "Lomas de Zamora (Roca)": (-34.7608, -58.4039),
+    "Quilmes (Roca)":       (-34.7240, -58.2590),
+    "Morón (Sarmiento)":    (-34.6510, -58.6220),
+    "Moreno (Sarmiento)":   (-34.6497, -58.7896),
 }
 # combinaciones de subte y tren desde la pensión: (tipo, línea, desde, hasta)
 RAIL = {
@@ -74,6 +95,16 @@ RAIL = {
     "Liniers Sur":    [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
                        ("tren", "Sarmiento", "Once", "Liniers")],
     "La Plata Dulce": [("tren", "Roca", "Constitución", "La Plata")],
+    "Tigre Mojado":   [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Tigre (Mitre)")],
+    "San Isidrón":    [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "San Isidro (Mitre)")],
+    "Pilar de Oro":   [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "San Martín", "Retiro", "Pilar (San Martín)")],
+    "Avellanada":     [("tren", "Roca", "Constitución", "Avellaneda (Roca)")],
+    "Lomas de Zafarrancho": [("tren", "Roca", "Constitución", "Lomas de Zamora (Roca)")],
+    "Quilmates":      [("tren", "Roca", "Constitución", "Quilmes (Roca)")],
+    "Moronga":        [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
+                       ("tren", "Sarmiento", "Once", "Morón (Sarmiento)")],
+    "Moreno del Fondo": [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
+                       ("tren", "Sarmiento", "Once", "Moreno (Sarmiento)")],
     "Mar del Plato":  [("tren", "Roca", "Constitución", "Mar del Plata")],
     "Rosarito":       [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Rosario Norte")],
     "Cordobita":      [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Córdoba (Mitre)")],
@@ -204,7 +235,7 @@ def main():
         car = osrm("car", home, (lat, lng))
         entry = {"calle": round(length(car), 2)}
         geo = {"calle": rnd(simplify(car, tol))}
-        if not far:
+        if not far and hav(home, (lat, lng)) < 20:
             foot = osrm("foot", home, (lat, lng))
             entry["pie"] = round(length(foot), 2); geo["pie"] = rnd(simplify(foot, tol))
         if name in RAIL:
@@ -225,7 +256,8 @@ def main():
             entry["riel"] = legs; geo["riel"] = glegs
         shared[name] = entry; web[name] = geo
 
-    places = {k: {"lat": v[0], "lng": v[1], "real": v[2], **({"interior": True} if k in INTERIOR else {})} for k, v in PLACES.items()}
+    places = {k: {"lat": v[0], "lng": v[1], "real": v[2], **({"interior": True} if k in INTERIOR else {}), **({"zone": ZONE[k]} if k in ZONE else {})}
+              for k, v in PLACES.items()}
     ts = ("/* Generado por tools/geo/build.py con datos de OpenStreetMap (© colaboradores de OSM, ODbL). No editar a mano. */\n"
           "import type { GeoPlace, GeoRoute } from \"./geo.js\";\n\n"
           f"export const GEO_HOME = {json.dumps(HOME, ensure_ascii=False)};\n"

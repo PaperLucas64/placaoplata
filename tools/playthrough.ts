@@ -137,7 +137,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
       else { now += ENERGY_EVERY; continue; } // junta energía para la misión
     }
     if (s.tutDone && rng() < 0.35) {
-      const street = s.board.filter(m => m.gang).reverse().find(m => meetsReq(s, m) && s.energy >= missionEnergy(m)); // busca respeto: las de pandilla
+      const street = s.board.filter(m => m.gang && !m.hours).reverse().find(m => meetsReq(s, m) && s.energy >= missionEnergy(m)); // busca respeto: las de pandilla
       if (street && s.hp > maxHp(s) * 0.6 && act({ type: "mstart", id: street.id })) continue;
     }
 

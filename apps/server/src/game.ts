@@ -2,7 +2,7 @@
    Todo pasa adentro de una transacción y con un candado por jugador, así no hay acciones pisadas.
    Si el jugador tiene una misión de a dos, se bloquea también a su compañero (los dos cambian juntos). */
 import {
-  ambushCatchUp, applyAction, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
+  ambushCatchUp, ambushPlayer, applyAction, canAmbush, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
   type Rng, type Target
@@ -109,7 +109,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const peek = await peekState(id);
     /* pelear contra otro jugador bloquea a los dos */
     const t = a.type === "duel" ? peek?.targets[a.i] : undefined;
-    const otherId = t?.kind === "player" ? t.id : null;
+    const otherId = t?.kind === "player" ? t.id : a.type === "ambush" && Number.isInteger(a.id) && a.id !== id ? a.id : null;
     const ids = [id, ...(otherId ? [otherId] : []), ...(partnerOf(peek) ? [partnerOf(peek)!] : [])];
 
     return session(ids, async (q, rows, now) => {
@@ -117,6 +117,8 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
       let result: ActionResult;
       if (a.type === "duel" && otherId) {
         result = await duelPlayer(q, id, s, a.i, rows.get(otherId), now);
+      } else if (a.type === "ambush") {
+        result = otherId ? await ambush(q, id, s, rows.get(otherId), now) : { error: "Ese jugador ya no está." };
       } else {
         result = applyAction(s, a, { now, rng });
         if (!result.error && (a.type === "scout" || a.type === "claimTut" || (a.type === "duel" && !s.targets.length))) await fillTargets(q, id, s);
@@ -144,6 +146,42 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     if (!s.targets.length) await fillTargets(q, id, s);
     notify(other.id, { type: "attacked", by: s.name, won: !result.fight!.won });
     return result;
+  }
+
+  /* Asalto desde el mapa: a alguien que está en una misión */
+  async function ambush(q: Queryable, id: number, s: PlayerState, other: Row | undefined, now: number): Promise<ActionResult> {
+    if (!other) return { error: "Ese jugador ya no está." };
+    const def = other.state;
+    const err = canAmbush(s, def, now);
+    if (err) return { error: err };
+    const recent = await q.query(`SELECT 1 FROM pvp_log WHERE attacker_id = $1 AND defender_id = $2 AND at > now() - $3 * interval '1 millisecond'`,
+      [id, other.id, PVP_SAME_TARGET_EVERY]);
+    if (recent.rows.length) return { error: `Ya te cruzaste con ${def.name} hace poco. Dejalo tranquilo una hora.` };
+    const goldBefore = def.gold;
+    const result = ambushPlayer(s, def, { now, rng });
+    await q.query(`INSERT INTO pvp_log (attacker_id, defender_id, attacker_won, gold) VALUES ($1, $2, $3, $4)`,
+      [id, other.id, result.fight!.won, goldBefore - def.gold]);
+    notify(other.id, { type: "attacked", by: s.name, won: !result.fight!.won });
+    return result;
+  }
+
+  /* Quién está en una misión ahora (para verlos en el mapa). No dice qué misión es: solo a dónde va y cómo. */
+  async function travelers(userId: number) {
+    const id = await idOf(userId);
+    const now = Date.now();
+    const r = await db.query<{ id: number; name: string; lvl: number; side: Gang | null; avatar: number | null; busy: NonNullable<PlayerState["busy"]> }>(
+      `SELECT id, name, lvl, side, (state->>'avatar')::int AS avatar, state->'busy' AS busy FROM players
+        WHERE id <> $1 AND state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object'
+          AND (state->'busy'->>'until')::bigint > $2
+        ORDER BY (state->'busy'->>'since')::bigint DESC LIMIT 40`, [id, now]);
+    return {
+      now,
+      people: r.rows.flatMap(p => p.busy.kind === "mision" && p.busy.trip ? [{
+        id: p.id, name: p.name, lvl: p.lvl, gang: p.side, avatar: p.avatar ?? 1,
+        since: Number(p.busy.since), until: Number(p.busy.until),
+        trip: { mode: p.busy.trip.mode, place: p.busy.trip.place, go: p.busy.trip.go, back: p.busy.trip.back }
+      }] : [])
+    };
   }
 
   /* ---------- misiones de a dos ---------- */
@@ -332,5 +370,5 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   const touch = (playerId: number, fn: (s: PlayerState, now: number) => void) =>
     session([playerId], async (_q, rows, now) => { const r = rows.get(playerId); if (r) fn(r.state, now); });
 
-  return { me, act, ranking, idOf, touch, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
+  return { me, act, ranking, travelers, idOf, touch, territory: () => territory.snapshot(), friends, addFriend, acceptFriend, removeFriend, coopInvite, coopRespond, coopCancel };
 }

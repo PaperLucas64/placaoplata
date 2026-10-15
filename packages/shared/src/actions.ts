@@ -280,7 +280,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (!s.heat) return fail("No necesitás abogado.");
       if (s.gold < c) return fail("No te alcanza la plata.");
       s.gold -= c; s.heat = Math.max(0, s.heat - 40);
-      log(s, now, `Un abogado hizo unas llamadas (−${money(c)}). Bajó el calor.`);
+      log(s, now, `Un abogado hizo unas llamadas (−${money(c)}). Bajó tu nivel de búsqueda.`);
       return {};
     }
 
@@ -340,7 +340,7 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       if (!total) return fail("Tus negocios todavía no juntaron nada.");
       s.gold += total;
       if (heat) addHeat(s, heat);
-      log(s, now, `Pasaste a cobrar por tus negocios: +${money(total)}${heat ? `, +${heat} de calor` : ""}.`, "good");
+      log(s, now, `Pasaste a cobrar por tus negocios: +${money(total)}${heat ? `, +${heat} de búsqueda` : ""}.`, "good");
       return {};
     }
 
@@ -375,6 +375,8 @@ export function applyAction(s: PlayerState, a: Action, { now, rng }: Ctx): Actio
       return {};
     }
 
+    case "ambush": return fail("Los asaltos los resuelve el servidor.");
+
     case "duel": {
       const err = checkDuel(s, a.i);
       if (err) return fail(err);
@@ -406,6 +408,32 @@ export function checkDuel(s: PlayerState, i: number): string | null {
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
   if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
   return null;
+}
+
+/* Asaltar en el mapa a alguien que está en una misión (viajando o en el lugar).
+   No a los de tu pandilla ni a alguien mucho más chico que vos. */
+export const AMBUSH_LVL_GAP = 3;
+export function canAmbush(att: PlayerState, def: PlayerState, now: number): string | null {
+  if (att.busy) return `${busyText(att)} Para asaltar a alguien tenés que estar libre.`;
+  if (!att.tutDone) return "Todavía no conocés la calle.";
+  if (att.energy < DUEL_COST) return "No te alcanza la energía.";
+  if (att.hp < maxHp(att) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
+  const b = def.busy;
+  if (b?.kind !== "mision" || !b.trip || now >= b.until) return `${def.name} ya volvió a su casa.`;
+  const g = gangOf(def);
+  if (g && g === gangOf(att)) return `${def.name} es de tu pandilla.`;
+  if (def.lvl < att.lvl - AMBUSH_LVL_GAP) return `${def.name} es muy chico para vos: nadie te respetaría por eso.`;
+  if (def.hp < maxHp(def) * MIN_HP_TO_FIGHT) return `${def.name} ya está muy golpeado.`;
+  return null;
+}
+/* el asalto: una pelea entre jugadores, y quien lo sufre se entera de dónde fue */
+export function ambushPlayer(att: PlayerState, def: PlayerState, ctx: Ctx): ActionResult {
+  const b = def.busy;
+  const where = b?.kind === "mision" && b.trip ? b.trip.place : "la calle";
+  log(att, ctx.now, `Saliste a buscar a ${def.name} por ${where}.`);
+  const r = pvp(att, def, ctx);
+  log(def, ctx.now, r.fight!.won ? `Te asaltaron en el camino a ${where}.` : `Te quisieron asaltar en el camino a ${where}.`, r.fight!.won ? "bad" : "good");
+  return r;
 }
 
 /* Premio o castigo de una pelea en la calle. `loot` es lo que lleva encima el rival. */

@@ -1,4 +1,4 @@
-import type { Action, ActionResult, Gang, Mission, PlayerState } from "@pop/shared";
+import type { Action, ActionResult, Gang, Mission, PlayerState, TravelMode } from "@pop/shared";
 
 export class ApiError extends Error { constructor(msg: string, public status: number) { super(msg); } }
 
@@ -28,6 +28,11 @@ export interface FriendsView {
   friends: Person[]; incoming: Person[]; outgoing: Person[];
   invites: { id: number; from: string; mission: Mission }[]; sent: { id: number; to: string; mission: Mission }[];
 }
+/* alguien que está en una misión ahora (para el mapa) */
+export interface Traveler {
+  id: number; name: string; lvl: number; gang: Gang | null; avatar: number; since: number; until: number;
+  trip: { mode: TravelMode; place: string; go: number; back: number };
+}
 export interface RankRow { name: string; gang: Gang | null; resp: number; lvl: number; me: boolean; npc: boolean }
 
 export const api = {
@@ -37,6 +42,7 @@ export const api = {
   me: () => call<Snapshot & { id: number }>("/api/me"),
   act: (a: Action) => call<Snapshot & { result: ActionResult }>("/api/action", a),
   ranking: () => call<RankRow[]>("/api/ranking"),
+  travelers: () => call<{ now: number; people: Traveler[] }>("/api/travelers"),
   territory: () => call<{ map: BarrioView[]; owned: Record<Gang, number> }>("/api/territory"),
   friends: () => call<FriendsView>("/api/friends"),
   ring: () => call<RingView>("/api/ring"),

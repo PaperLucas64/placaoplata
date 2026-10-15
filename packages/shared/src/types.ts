@@ -32,6 +32,7 @@ export interface Mission {
   client?: string;             // quién la encarga si no es una pandilla: "vecinos", "policia" o un negocio tuyo
   target?: Gang;               // trabajo sucio para la policía: la pandilla a la que perjudica
   arc?: string; chapter?: number; pov?: Gang | "policia"; // historias de la ciudad: capítulo y bando
+  hours?: number;              // trabajos largos en el conurbano: cuántas horas de trabajo
   reward?: { gold: number; xp: number; resp: number; heat?: number };
 }
 
@@ -111,4 +112,5 @@ export type Action =
   | { type: "deposit"; amount: number }
   | { type: "withdraw"; amount: number }
   | { type: "scout" }
-  | { type: "duel"; i: number };
+  | { type: "duel"; i: number }
+  | { type: "ambush"; id: number };     // asaltar en el mapa a un jugador que está en una misión

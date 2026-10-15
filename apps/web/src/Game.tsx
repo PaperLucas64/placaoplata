@@ -71,6 +71,11 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       apply(r);
       if (r.result.error) setToast({ text: r.result.error });
       if (a.type !== "seen") { setFight(r.result.fight ?? null); if (r.result.mission || a.type === "mstart") setMission(r.result.mission ?? null); }
+      /* el asalto se hace desde el mapa: se avisa el resultado y se baja hasta la pelea */
+      if (a.type === "ambush" && r.result.fight) {
+        setToast(r.result.fight.won ? { text: `Le ganaste a ${r.result.fight.e.name} en el camino.`, good: true } : { text: `${r.result.fight.e.name} te ganó.` });
+        setTimeout(() => document.querySelector(".fight")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      }
       if (a.type === "claimTut" && r.state.tabs.length > s.tabs.length) setTab(r.state.tabs[r.state.tabs.length - 1]);
     } catch (e: any) { setToast({ text: e.message }); }
     finally { setBusy(false); }
@@ -82,7 +87,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const ui: Ui = { s, now, act, busy, mission, ping, refresh, toast: (text, good) => setToast({ text, good }) };
   /* pestañas nuevas que aparecen después del tutorial (también en partidas viejas) */
   const tabs: TabKey[] = s.tutDone ? withNewTabs(s.tabs) : s.tabs;
-  const showFight = fight && (tab === "ring" || tab === "misiones" || tab === "calle");
+  const showFight = fight && (tab === "ring" || tab === "misiones" || tab === "calle" || tab === "ranking");
 
   return (
     <>

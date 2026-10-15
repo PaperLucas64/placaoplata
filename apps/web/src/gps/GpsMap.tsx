@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { GEO_HOME, GEO_PLACES, type TravelMode } from "@pop/shared";
+import { DUEL_COST, GANGS, GEO_HOME, GEO_PLACES, TRAVEL, tripPhase, type TravelMode } from "@pop/shared";
+import type { Traveler } from "../api";
 
 type Pt = [number, number]; // [lat, lng]
 type Leg = { kind: "pie" | "subte" | "tren"; line?: string; pts: Pt[] };
@@ -71,6 +72,15 @@ export function positionAt(legs: { pts: Pt[]; w: number }[], f: number): Pt {
 }
 
 const ll = (p: Pt): [number, number] => [p[1], p[0]];
+
+/* dónde está ahora otro jugador en misión */
+function travelerPos(rutas: Rutas, o: Traveler, now: number): Pt | null {
+  const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, now);
+  const r = rutas[o.trip.place], dest = GEO_PLACES[o.trip.place];
+  if (!ph || !dest) return null;
+  if (ph.phase === "alla" || !r) return [dest.lat, dest.lng];
+  return positionAt(legsFor(r, o.trip.mode), ph.phase === "vuelta" ? 1 - ph.frac : ph.frac);
+}
 function labelEl(text: string, cls = "") {
   const el = document.createElement("div");
   el.className = `gps-label ${cls}`;
@@ -85,11 +95,19 @@ interface Props {
   at?: { back: boolean; f: number } | null; // dónde va el personaje: ida o vuelta y fracción del tramo
   avatar?: string;           // retrato del personaje
   owners?: Record<string, string | null>;   // color de la pandilla dueña de cada barrio (mapa de la ciudad)
+  others?: Traveler[];       // otros jugadores en una misión
+  now?: number;
+  avatarOf?: (n: number) => string;
+  attack?: { why: (t: Traveler) => string | null; go: (t: Traveler) => void }; // por qué no se puede asaltar (o null) y cómo
   height?: number;
 }
-export function GpsMap({ place, mode, at, avatar, owners, height = 260 }: Props) {
+export function GpsMap({ place, mode, at, avatar, owners, others, now = Date.now(), avatarOf, attack, height = 260 }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const me = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markers = useRef(new Map<number, maplibregl.Marker>());
+  const latest = useRef({ others, now, attack });
+  latest.current = { others, now, attack };
   const [data, setData] = useState<{ rutas: Rutas; style: StyleSpecification } | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -105,8 +123,9 @@ export function GpsMap({ place, mode, at, avatar, owners, height = 260 }: Props)
       attributionControl: { compact: true }, scrollZoom: false, dragRotate: false, pitchWithRotate: false
     });
     map.touchZoomRotate.disableRotation();
+    mapRef.current = map;
     const bounds = new maplibregl.LngLatBounds([home.lng, home.lat], [home.lng, home.lat]);
-    /* barrios de la ciudad (con el color de su dueño, si hay) */
+    /* barrios de la ciudad (con el color de su dueño, si hay) y el conurbano; el interior solo si vas para allá */
     for (const [name, p] of Object.entries(GEO_PLACES)) {
       if (p.interior && name !== place) continue;
       const dot = document.createElement("div");
@@ -116,7 +135,7 @@ export function GpsMap({ place, mode, at, avatar, owners, height = 260 }: Props)
       new maplibregl.Marker({ element: dot }).setLngLat([p.lng, p.lat]).addTo(map);
       new maplibregl.Marker({ element: labelEl(name, name === place ? "dest" : name === GEO_HOME ? "home" : ""), anchor: "bottom", offset: [0, -6] })
         .setLngLat([p.lng, p.lat]).addTo(map);
-      if (!place) bounds.extend([p.lng, p.lat]);
+      if (!place && !p.zone) bounds.extend([p.lng, p.lat]);
     }
     const r = place ? data.rutas[place] : undefined;
     const legs = r && mode ? legsFor(r, mode) : [];
@@ -138,8 +157,59 @@ export function GpsMap({ place, mode, at, avatar, owners, height = 260 }: Props)
       (el.firstElementChild as HTMLImageElement).src = avatar;
       me.current = new maplibregl.Marker({ element: el }).setLngLat([home.lng, home.lat]).addTo(map);
     }
-    return () => { map.remove(); me.current = null; };
+    return () => { map.remove(); me.current = null; mapRef.current = null; markers.current.clear(); };
   }, [data, place, mode, avatar, owners]);
+
+  /* los otros jugadores en misión: dónde van ahora; al tocarlos, quién es y si lo podés asaltar */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !data) return;
+    const seen = new Set<number>();
+    for (const o of others ?? []) {
+      const pos = travelerPos(data.rutas, o, now);
+      if (!pos) continue;
+      seen.add(o.id);
+      let mk = markers.current.get(o.id);
+      if (!mk) {
+        const el = document.createElement("div");
+        el.className = "gps-other";
+        el.style.borderColor = o.gang ? GANGS[o.gang].color : "#8a8070";
+        el.innerHTML = `<img alt="" />`;
+        (el.firstElementChild as HTMLImageElement).src = avatarOf?.(o.avatar) ?? "";
+        el.title = o.name;
+        el.addEventListener("click", e => { e.stopPropagation(); openCard(map, o.id); });
+        mk = new maplibregl.Marker({ element: el }).setLngLat(ll(pos)).addTo(map);
+        markers.current.set(o.id, mk);
+      } else mk.setLngLat(ll(pos));
+    }
+    for (const [id, mk] of markers.current) if (!seen.has(id)) { mk.remove(); markers.current.delete(id); }
+  }, [data, others, now]);
+
+  function openCard(map: maplibregl.Map, id: number) {
+    const { others: list, now: t, attack: atk } = latest.current;
+    const o = list?.find(x => x.id === id);
+    const mk = markers.current.get(id);
+    if (!o || !mk) return;
+    const ph = tripPhase({ since: o.since, until: o.until, trip: { ...o.trip, ev: 0 } }, t);
+    const el = document.createElement("div");
+    el.className = "gps-card";
+    const line = (cls: string, text: string) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; el.appendChild(d); };
+    line("name", o.name);
+    line("tag", `nivel ${o.lvl} · ${o.gang ? GANGS[o.gang].name : "suelto"}`);
+    line("where", ph?.phase === "ida" ? `Va a ${o.trip.place} ${TRAVEL[o.trip.mode].verb}` : ph?.phase === "alla" ? `Está en ${o.trip.place}` : `Vuelve de ${o.trip.place} ${TRAVEL[o.trip.mode].verb}`);
+    if (atk) {
+      const why = atk.why(o);
+      const btn = document.createElement("button");
+      btn.className = why ? "" : "primary";
+      btn.disabled = !!why;
+      btn.textContent = `Asaltar · ${DUEL_COST} energía`;
+      btn.addEventListener("click", () => { popup.remove(); atk.go(o); });
+      el.appendChild(btn);
+      if (why) line("tag why", why);
+    }
+    const popup = new maplibregl.Popup({ offset: 18, closeButton: true, className: "gps-popup", maxWidth: "240px" })
+      .setLngLat(mk.getLngLat()).setDOMContent(el).addTo(map);
+  }
 
   /* mover al personaje */
   useEffect(() => {
