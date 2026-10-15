@@ -16,7 +16,7 @@ import { EVENT_MISSIONS } from "./eventos.js";
 import { activeEvents, lugarOf } from "./lugares.js";
 import { routeTo, TRAVEL, tripEvent } from "./geo.js";
 import {
-  addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
+  news, addAff, addHeat, addRespect, bagSize, battle, eff, itemPower, clamp, finishBusy, itemOf, forSale, gainXp, SUPPLEMENT_MAX, supplementCost, supplementsTaken, gangOf, guardiaTime, healCost, isGolpe,
   itemLocked, jobList, lawyerCost, log, maxHp, money, nextLevel, pick, playerFighter, rankOf, rnd, safeCap, scaledEnemy,
   trainCost, trainTime
 } from "./rules.js";
@@ -348,6 +348,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.gold < h.price) return fail("No te alcanza la plata.");
       s.gold -= h.price; s.home.house = h.id;
       log(s, now, `Te mudaste: ${h.name.toLowerCase()} en ${h.place} (−${money(h.price)}). Desde ahora tus viajes salen de ahí.`, "gold");
+      news(s, `${s.name} se compró ${h.name.toLowerCase()} en ${h.place}.`);
       return {};
     }
 
@@ -378,6 +379,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.gold < p.price) return fail("No te alcanza la plata.");
       s.gold -= p.price; (s.props ??= {})[p.id] = now;
       log(s, now, `Compraste ${p.name.toLowerCase()} (−${money(p.price)}). Deja ${money(p.perHour)} por hora: pasá a cobrar.`, "gold");
+      news(s, `${s.name} compró ${p.name.toLowerCase()}.`);
       return {};
     }
 
@@ -512,6 +514,7 @@ function resolveJob(s: PlayerState, j: Job, now: number, rng: Rng, place?: strin
     if (j.resp) addRespect(s, now, j.resp);
     if (j.heat) addHeat(s, j.heat);
     log(s, now, `${j.name}${place ? ` en ${place}` : ""}: +${money(gold)}, +${xp} XP${j.resp ? `, +${j.resp} de respeto` : ""}.`, "good");
+    if (golpe) news(s, `${place ? `${place}: ` : ""}${j.name.replace(/^Robar/, "robaron").replace(/^Asalto/, "asalto").replace(/^Arrebato/, "arrebato")}. Dicen que fue ${s.name}.`);
   }
 }
 function resolveEncargo(s: PlayerState, gang: Gang, now: number, rng: Rng) {

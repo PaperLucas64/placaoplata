@@ -8,7 +8,7 @@ import { GANG_KEYS, GANG_MEMBERS, GANGS, MISSION_AFF, MISSIONS, POLICE_NAMES } f
 import { GEO_PLACES, routeTo, TRAVEL, ZONE_NAMES, tripCost, tripEvent, tripMins, tripText, type FromPoint, type TravelMode } from "./geo.js";
 import { PROP_OBJECTIVES, propOf, type PropId } from "./negocios.js";
 import { homePlace } from "./casas.js";
-import { addAff, addHeat, addRespect, battle, clamp, eff, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
+import { addAff, addHeat, addRespect, news, battle, clamp, eff, gainXp, gangOf, log, maxHp, money, pick, playerFighter, rnd, scaledEnemy } from "./rules.js";
 import { addInfluence, BARRIOS, HOME_BARRIO, turfMult } from "./territory.js";
 import type { Gang, Mission, MissionStep, PlayerState, Rng, StatKey } from "./types.js";
 
@@ -211,6 +211,7 @@ function finishMission(s: PlayerState, m: Mission, ok: number, at: number, rng: 
   if (m.street) s.board = s.board.filter(x => x.id !== m.id);
   else s.done[m.id] = true;
   if (m.arc) s.done[arcChapterKey(m.arc, m.chapter ?? 0)] = true;
+  news(s, m.client === "raro" ? `${s.name} ayudó a ${m.who} en ${place}.` : m.street ? `${s.name} cumplió un trabajo en ${place}.` : `${s.name} completó «${m.title}».`);
   log(s, at, `${m.street ? "" : `${m.outro} `}«${m.title}» salió bien: ${money(gold)}, +${r.xp} XP, +${r.resp} de respeto${r.heat && r.heat < 0 ? `, ${r.heat} de búsqueda` : ""}.`, "gold");
   if (m.gang) addAff(s, at, m.gang, m.aff ?? MISSION_AFF[m.tier ?? 0]);
   statReward(s, m, at, rng);

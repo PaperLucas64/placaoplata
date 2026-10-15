@@ -39,6 +39,7 @@ export const api = {
   me: () => call<Snapshot & { id: number }>("/api/me"),
   act: (a: Action) => call<Snapshot & { result: ActionResult }>("/api/action", a),
   ranking: () => call<RankRow[]>("/api/ranking"),
+  news: () => call<{ t: number; msg: string }[]>("/api/news"),
   travelers: () => call<{ now: number; people: Traveler[]; online?: number }>("/api/travelers"),
   territory: () => call<{ map: BarrioView[]; owned: Record<Gang, number> }>("/api/territory"),
   friends: () => call<FriendsView>("/api/friends"),

@@ -115,6 +115,13 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
 
   /* Abre una sesión sobre varios jugadores: candados, transacción, el tiempo que pasó y la misión de a dos.
      Al final guarda a todos. */
+  /* las noticias que dejó cada uno pasan al diario de la ciudad */
+  async function drainNews(q: Queryable, s: PlayerState, now: number) {
+    const items = s.news;
+    if (!items?.length) return;
+    delete s.news;
+    for (const msg of items.slice(-5)) await q.query(`INSERT INTO news (t, msg) VALUES ($1, $2)`, [now, msg]);
+  }
   async function session<T>(ids: number[], fn: (q: Queryable, rows: Map<number, Row>, now: number) => Promise<T>): Promise<T> {
     const map = await territory.snapshot();
     return withLocks(ids, () => db.tx(async q => {
@@ -127,7 +134,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
       for (const r of rows.values()) if (r.state.coop) await coopProgress(q, r.state.coop.id, rows, now);
       for (const r of rows.values()) await returnPath(r.state);
       const out = await fn(q, rows, now);
-      for (const r of rows.values()) { await territory.drain(q, r.state, now); await saveRow(q, r.id, r.state); }
+      for (const r of rows.values()) { await territory.drain(q, r.state, now); await drainNews(q, r.state, now); await saveRow(q, r.id, r.state); }
       return out;
     }));
   }

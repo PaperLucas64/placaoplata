@@ -179,6 +179,12 @@ app.get("/api/travelers", async (req, reply) => {
   return { ...(await game.travelers(uid)), online: online + botsAwake() };
 });
 
+app.get("/api/news", async (req, reply) => {
+  const uid = await requireUser(req, reply); if (!uid) return;
+  const r = await db.query<{ t: string; msg: string }>(`SELECT t, msg FROM news ORDER BY id DESC LIMIT 25`);
+  return r.rows.map(x => ({ t: Number(x.t), msg: x.msg }));
+});
+
 app.get("/api/ranking", async (req, reply) => {
   const uid = await requireUser(req, reply); if (!uid) return;
   const { id } = await game.me(uid);

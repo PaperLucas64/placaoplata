@@ -143,8 +143,9 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
     <div className="gm">
       <CityMap {...ui} filter={filter} />
 
+      <News />
       <nav className="rail" aria-label="Menú">
-        <div className="rail-logo">Mai<span className="o">res</span></div>
+        <div className="rail-logo">Malan<span className="o">dro</span></div>
         <button className={shown === "me" ? "on" : ""} onClick={() => openPanel("me")}><span className="ri" aria-hidden="true">🧍</span><span>Vos</span></button>
         <button className={shown === "inv" ? "on" : ""} onClick={() => { setLugar(null); setPanel(panel === "inv" ? null : "inv"); open("equipo"); }}>
           <span className="ri" aria-hidden="true">🎒</span><span>Inventario</span></button>
@@ -250,4 +251,36 @@ function withNewTabs(tabs: TabKey[]): TabKey[] {
   if (!out.includes("negocios")) out.splice(out.includes("casa") ? out.indexOf("casa") + 1 : out.length, 0, "negocios");
   if (!out.includes("amigos")) out.splice(out.includes("ranking") ? out.indexOf("ranking") : out.length, 0, "amigos");
   return out;
+}
+
+/* Noticias locales: lo último que pasó en la ciudad, pasando abajo del mapa (como el diario del SimCity) */
+const AMBIENT = [
+  "Corte de luz en media Floreros: los vecinos sacaron las sillas a la vereda.",
+  "La Municipalidad de Maires promete arreglar los baches «antes del Mundial».",
+  "Paro sorpresa de colectivos: el Sindicato dice que no sabe nada.",
+  "Se vendió un PH en Villa Crespa a precio de mansión de Reloquita.",
+  "Vieron a La Señora cenando en Puerto Mareo. Nadie se animó a pedirle una foto.",
+  "Rita «Taxi» Quiroga baja la bajada de bandera. Los remiseros, furiosos.",
+  "El Tano Lucero prometió un trapo nuevo para el clásico.",
+  "Un perro ocupó la línea Mar del Plata del subte y no se quiere bajar.",
+  "Ola de robos de estéreos en Palermo Soja: los dueños ya no compran estéreos.",
+  "El kiosquero de Mosecraft cumple 40 años detrás del mostrador."
+];
+function News() {
+  const [items, setItems] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = () => api.news().then(n => { if (alive) setItems(n.map(x => x.msg)); }).catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+  /* si pasó poco, se completa con noticias del barrio */
+  const list = items.length >= 6 ? items.slice(0, 15) : [...items, ...AMBIENT.slice(0, 8 - items.length)];
+  return <div className="news" aria-label="Noticias locales">
+    <b className="news-tag">Noticias locales</b>
+    <div className="news-roll"><div className="news-track" style={{ animationDuration: `${list.length * 9}s` }}>
+      {[...list, ...list].map((m, i) => <span key={i}>{m}</span>)}
+    </div></div>
+  </div>;
 }

@@ -499,3 +499,20 @@ body{background:transparent}
 
 /* misiones temporales: cuánto les queda */
 .client.until{color:#ff8cc6;border-color:#ff8cc6}
+
+/* Noticias locales: el diario que pasa abajo del mapa */
+.news{position:absolute;left:76px;right:0;bottom:0;height:28px;z-index:4;display:flex;align-items:center;gap:10px;background:rgba(13,14,17,.92);border-top:1px solid var(--line);font-size:.78rem;overflow:hidden}
+.news-tag{flex:none;padding:0 10px;color:#121317;background:var(--sodium);height:100%;display:flex;align-items:center;font:700 .68rem/1 var(--mono);text-transform:uppercase}
+.news-roll{flex:1;overflow:hidden;white-space:nowrap}
+.news-track{display:inline-flex;gap:48px;animation:news-roll linear infinite;padding-left:20px}
+.news-track span{color:#e8e1d2}
+.news-track span::before{content:"◆ ";color:var(--sodium)}
+.news:hover .news-track{animation-play-state:paused}
+@keyframes news-roll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.gm .gps-status{bottom:40px}
+@media (max-width:820px){
+  .news{left:0;bottom:58px;height:24px}
+  .news-tag{display:none}
+  .gm .gps-status{bottom:90px}
+}
+@media (prefers-reduced-motion:reduce){.news-track{animation:none}}

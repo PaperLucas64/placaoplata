@@ -138,8 +138,10 @@ export function log(s: PlayerState, now: number, msg: string, cls?: LogEntry["cl
 }
 export function gainXp(s: PlayerState, now: number, n: number) {
   s.xp += n;
-  while (s.xp >= xpNeed(s)) { s.xp -= xpNeed(s); s.lvl++; s.hp = maxHp(s); log(s, now, `Subiste al nivel ${s.lvl}. Vida al máximo.`, "gold"); }
+  while (s.xp >= xpNeed(s)) { s.xp -= xpNeed(s); s.lvl++; s.hp = maxHp(s); log(s, now, `Subiste al nivel ${s.lvl}. Vida al máximo.`, "gold"); news(s, `${s.name} subió a nivel ${s.lvl}.`); }
 }
+/* Noticias locales: lo que hace cada uno, para el resto de la ciudad (como el diario del SimCity) */
+export const news = (s: PlayerState, msg: string) => { (s.news ??= []).push(msg); };
 /* Los Amarillos juntan 30% menos de calor */
 export const addHeat = (s: PlayerState, n: number) => {
   if (n > 0 && gangOf(s) === "amarillos") n = Math.round(n * 0.7);
@@ -149,7 +151,7 @@ export function addRespect(s: PlayerState, now: number, n: number) {
   const before = rankOf(s);
   s.respect = Math.max(0, s.respect + n);
   const after = rankOf(s);
-  if (s.tutDone && after > before) log(s, now, `Subiste de rango: ahora sos ${RANK_NAMES[after]}.`, "gold");
+  if (s.tutDone && after > before) { log(s, now, `Subiste de rango: ahora sos ${RANK_NAMES[after]}.`, "gold"); news(s, `${s.name} ahora es ${RANK_NAMES[after]}.`); }
 }
 
 /* Suma afinidad con una pandilla y avisa si eso te hace entrar o salir de alguna */

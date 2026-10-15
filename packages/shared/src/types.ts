@@ -76,6 +76,7 @@ export interface PlayerState {
   home: Home;
   board: Mission[]; tBoard: number; // tablón de misiones de calle y cuándo se armó
   tOdd?: number;                     // cuándo apareció el último encuentro raro
+  news?: string[];                   // noticias para el resto de la ciudad (el servidor las publica y las borra)
   /* misión de a dos aceptada: esperando a que los dos estén libres, o en curso */
   coop?: { id: number; partner: string; partnerId: number; mission: Mission; status: "waiting" | "running" } | null;
   influence?: { gang: Gang; barrio: string; pts: number }[]; // influencia generada, que el servidor suma al mapa
