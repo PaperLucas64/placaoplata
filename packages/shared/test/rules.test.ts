@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   activeEvents, lugarOf, lugarOpen, canAmbush, onStreet, attackVal, defenseVal, eff, gearBonus, playerFighter, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, walkEnergy, SIDE_QUESTS, type Gang, type PlayerState, type Rng
+  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, walkEnergy, SIDE_QUESTS, jobOdds, stepChance, unlocksAt, nextUnlock, respectToNext, GOLPES, JOBS, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -568,5 +568,36 @@ describe("lugares del mapa y eventos", () => {
     expect(lugarOpen(s, lugarOf("bar-esquina")!, T0)).toBe(true);
     expect(lugarOpen(s, lugarOf("senora")!, T0)).toBe(false);     // después del tutorial
     expect(lugarOpen(veteran("Beto"), lugarOf("senora")!, T0)).toBe(true);
+  });
+});
+
+describe("propuestas de Tomi", () => {
+  it("las chances de un golpe suman 100 % y suben con la búsqueda", () => {
+    const s = veteran("Ana"), g = GOLPES[0];
+    const calm = jobOdds({ heat: 0 }, g), hot = jobOdds({ heat: 80 }, g);
+    expect(calm.ok + calm.hurt + calm.police).toBeCloseTo(1);
+    expect(hot.police).toBeGreaterThan(calm.police);
+    expect(jobOdds(s, JOBS[0]).police).toBe(0); // los laburos honestos no tienen policía
+  });
+  it("una etapa con más atributo sale bien más seguido; las peleas no tienen número", () => {
+    const s = veteran("Ana"), m = MISSIONS.familia[0];
+    const st = m.steps.find(x => x.stat)!;
+    const lo = stepChance(s, st)!; s.stats[st.stat!] += 5;
+    expect(stepChance(s, st)!).toBeGreaterThan(lo);
+    expect(stepChance(s, { text: "", energy: 1, fight: { name: "x", mult: 1 } })).toBeNull();
+  });
+  it("hasta el nivel 5 nadie te puede atacar ni atacás a otros jugadores", () => {
+    const a = veteran("Ana", "familia"), d = veteran("Beto", "barra");
+    applyAction(d, { type: "mstart", id: MISSIONS.barra[0].id, mode: "colectivo" }, ctx());
+    expect(canAmbush(a, d, T0 + 1000) ?? "").not.toMatch(/recién llega|nivel 5/);
+    d.lvl = 3;
+    expect(canAmbush(a, d, T0 + 1000)).toMatch(/recién llega/);
+    d.lvl = 6; a.lvl = 4;
+    expect(canAmbush(a, d, T0 + 1000)).toMatch(/nivel 5/);
+  });
+  it("cada nivel dice qué destraba y cuál es el próximo con algo nuevo", () => {
+    expect(unlocksAt(10).some(u => u.kind === "casa")).toBe(true);    // el PH
+    expect(nextUnlock(13)?.lvl).toBe(14);                            // del 13 se salta al 14
+    expect(respectToNext(0)).toBe(50);
   });
 });

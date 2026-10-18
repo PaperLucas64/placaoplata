@@ -5,7 +5,7 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, walkEnergy, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
+  tripPhase, walkEnergy, jobOdds, missionOdds, NEWBIE_LVL, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
   EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, durTxt, type ShopKind, spotIn, missionPt
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
@@ -186,6 +186,7 @@ export function PlacePanel(ui: Ui) {
     {job && <div className="list"><div className="item">
       <div><h3>{job.name}<span className={`risk r${job.risk}`}>riesgo {riskTxt[job.risk]}</span></h3>
         <div className="meta num">{money(job.gold[0])}–{money(job.gold[1])} · {job.xp[0]}–{job.xp[1]} XP{job.resp ? ` · +${job.resp} respeto` : ""}{job.heat ? ` · +${job.heat} de búsqueda` : ""} · {job.cost} energía{s.lvl < job.lvl ? ` · desde nivel ${job.lvl}` : ""}</div>
+        <JobOdds s={s} j={job} />
         {golpe && <div className="meta">Salís hasta acá, lo hacés y volvés a casa.</div>}</div>
       <div className="act"><button className="primary" disabled={pane.busy || s.energy < job.cost || s.lvl < job.lvl}
         onClick={() => act(golpe ? { type: "job", id: job.id, at: l.id } : { type: "job", id: job.id })}>{golpe ? "Ir a robar" : "Trabajar"}</button></div>
@@ -292,6 +293,8 @@ function GangContact({ g, ...ui }: Ui & { g: Gang }) {
 /* por qué no podés asaltar a alguien (o null si podés); el servidor lo vuelve a chequear */
 function ambushWhy(s: Ui["s"], t: Traveler): string | null {
   if (s.busy) return "Estás ocupado: para salir a buscar a alguien tenés que estar libre.";
+  if (s.lvl < NEWBIE_LVL) return `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores.`;
+  if (t.lvl < NEWBIE_LVL) return "Recién llega a Maires: no se lo toca.";
   if (t.gang && t.gang === gangOf(s)) return "Es de tu pandilla.";
   if (t.lvl < s.lvl - AMBUSH_LVL_GAP) return "Es muy chico para vos.";
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
@@ -320,11 +323,23 @@ export function Pane({ tab, ...rest }: Ui & { tab: TabKey }) {
   }
 }
 
+/* las chances a la vista, con la misma cuenta que usa el servidor */
+const pct = (p: number) => `${Math.round(p * 100)} %`;
+function JobOdds({ s, j }: { s: Ui["s"]; j: Job }) {
+  const o = jobOdds(s, j);
+  return <div className="odds num">
+    <span className="ok">Sale bien {pct(o.ok)}</span>
+    {o.police > 0 && <span className="police" title="Sube con la búsqueda">Policía {pct(o.police)}</span>}
+    {o.hurt > 0 && <span className="hurt">Golpearte {pct(o.hurt)}</span>}
+  </div>;
+}
+
 function Jobs({ s, act, busy }: Ui) {
   const row = (j: Job, label: string) => (
     <div className="item" key={j.id}>
       <div><h3>{j.name}<span className={`risk r${j.risk}`}>riesgo {riskTxt[j.risk]}</span></h3>
-        <div className="meta num">{money(j.gold[0])}–{money(j.gold[1])} · {j.xp[0]}–{j.xp[1]} XP{j.resp ? ` · +${j.resp} respeto` : ""}{j.heat ? ` · +${j.heat} de búsqueda` : ""} · {j.cost} energía{s.lvl < j.lvl ? ` · desde nivel ${j.lvl}` : ""}</div></div>
+        <div className="meta num">{money(j.gold[0])}–{money(j.gold[1])} · {j.xp[0]}–{j.xp[1]} XP{j.resp ? ` · +${j.resp} respeto` : ""}{j.heat ? ` · +${j.heat} de búsqueda` : ""} · {j.cost} energía{s.lvl < j.lvl ? ` · desde nivel ${j.lvl}` : ""}</div>
+        <JobOdds s={s} j={j} /></div>
       <div className="act"><button disabled={busy || s.energy < j.cost || s.lvl < j.lvl} onClick={() => act({ type: "job", id: j.id })}>{label}</button></div>
     </div>);
   return <>
@@ -624,6 +639,10 @@ function MissionCard({ m, s, act, busy, note, chip, now }: Ui & { m: Mission; no
         {m.street && m.gang && <> · +{m.aff} afinidad con <span style={{ color: GANGS[m.gang].color }}>{GANGS[m.gang].name}</span></>}
         {m.target && <> · <span style={{ color: GANGS[m.target].color }}>{GANGS[m.target].name}</span> pierde terreno y te quiere menos</>}
       </div>}
+      {!done && (() => { const o = missionOdds(s, m); return o.avg !== null || o.fights ? <div className="odds num">
+        {o.avg !== null && <span className={o.avg >= 0.65 ? "ok" : o.avg >= 0.45 ? "police" : "hurt"}>Cada etapa sale bien ~{pct(o.avg)}</span>}
+        {o.fights > 0 && <span>{o.fights === 1 ? "1 pelea" : `${o.fights} peleas`}</span>}
+        <span>necesitás {missionNeed(m)} de {m.steps.length}</span></div> : null; })()}
       {!done && note && <div className="lock">{note}</div>}
       {choosing && trip && <div className="travel">
         <div className="tag">¿Cómo vas hasta {place}? {from ? `(~${kmTxt(from.km)} desde donde estás)` : `(${kmTxt(tripKm(homePlace(s), place, "colectivo"))} desde tu casa en ${homePlace(s)})`}</div>

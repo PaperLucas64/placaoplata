@@ -426,6 +426,24 @@ body{background:transparent}
 .rail .dot{position:absolute;top:6px;right:14px}
 .rail-badge{position:absolute;top:4px;right:12px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--sodium);color:#1b1206;font-size:.66rem;line-height:17px;font-weight:700}
 
+/* tarjetas de los momentos: subir de nivel o de rango, entrar a una pandilla, volver al juego */
+.moment{position:fixed;inset:0;background:#000c;display:grid;place-items:center;z-index:30;padding:16px}
+.moment > div{background:var(--panel);border:2px solid var(--sodium);border-radius:14px;padding:22px 22px 18px;width:min(460px,100%);max-height:85vh;overflow:auto;
+  display:grid;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.7);animation:moment-in .35s ease-out}
+.moment h2{margin:0;font-size:clamp(2rem,8vw,2.8rem);color:var(--sodium)}
+.moment h3{margin:6px 0 0;font-size:.9rem}
+.moment ul{margin:0;padding-left:18px;display:grid;gap:6px}
+.moment ul.next{color:var(--muted)}
+.moment li.good{color:#a9d8b9}.moment li.bad{color:#eba09e}
+.moment .boss-say{display:flex;gap:12px;align-items:center}
+.moment .boss-say p{margin:0;font-style:italic}
+.moment.away h2{font-size:1.8rem;color:var(--fg)}
+@keyframes moment-in{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+
+/* las chances a la vista (golpes, laburos, misiones) */
+.odds{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:.8rem;color:var(--muted)}
+.odds .ok{color:#7fc8a9}.odds .police{color:var(--sodium)}.odds .hurt{color:#eba09e}
+
 /* el perfil de otro jugador */
 .profile{display:grid;gap:10px}
 .profile header{display:flex;gap:14px;align-items:center}

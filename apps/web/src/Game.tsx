@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { money, xpNeed, energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
+import { rankOf, money, xpNeed, energyMax, allStory, canStart, GOLPES, JOBS, maxHp, meetsReq, missionEnergy, gangOf, nextMissionEvent, regen, TAB_NAMES, type Action, type FightView, type PlayerState, type TabKey } from "@pop/shared";
 import { api, connectLive, type ChatMsg, type Snapshot } from "./api";
 import { Chat } from "./chat";
 import { ProfilePanel } from "./profile";
+import { Away, AWAY_MIN_MS, Celebration, lastSeen, markSeen, type Moment } from "./celebrate";
 import { Boss, Situation } from "./cards";
 import { Chronicle, Fight, Hud, Sheet } from "./parts";
 import { CityMap, Pane, PlacePanel, SearchPanel, Street } from "./panes";
@@ -45,6 +46,41 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const addChat = useCallback((m: ChatMsg) => setChat(c => (c.some(x => x.id === m.id) ? c : [...c, m].slice(-200))), []);
   useEffect(() => { api.chat().then(setChat).catch(() => {}); }, []);
 
+  /* subir de nivel, de rango o entrar a una pandilla: su tarjeta (se encolan si pasan varias juntas) */
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const prevUp = useRef({ lvl: initial.state.lvl, rank: rankOf(initial.state), gang: gangOf(initial.state) });
+  useEffect(() => {
+    const p = prevUp.current, lvl = server.lvl, rank = rankOf(server), gang = gangOf(server);
+    const add: Moment[] = [];
+    if (gang && gang !== p.gang) add.push({ kind: "gang", gang });
+    if (rank > p.rank) add.push({ kind: "rank", rank, gang });
+    if (lvl > p.lvl) add.push({ kind: "lvl", lvl });
+    prevUp.current = { lvl, rank, gang };
+    if (add.length) setMoments(m => [...m, ...add]);
+  }, [server]);
+
+  /* «Mientras no estabas»: si hace un rato que no entrabas, lo que pasó (la marca vive en este navegador) */
+  const [away, setAway] = useState<number | null>(() => {
+    const since = lastSeen(initial.state.name);
+    return initial.state.tutDone && since && initial.now - since > AWAY_MIN_MS ? since : null;
+  });
+  useEffect(() => {
+    const mark = () => markSeen(initial.state.name, Date.now());
+    const t = setInterval(mark, 60_000);
+    const hide = () => { if (document.visibilityState === "hidden") mark(); };
+    window.addEventListener("beforeunload", mark); document.addEventListener("visibilitychange", hide);
+    return () => { clearInterval(t); window.removeEventListener("beforeunload", mark); document.removeEventListener("visibilitychange", hide); mark(); };
+  }, [initial.state.name]);
+
+  /* el título de la pestaña con lo pendiente: «(2) Malandro» */
+  const [alerts, setAlerts] = useState(0);
+  const alertHidden = useCallback(() => { if (document.hidden) setAlerts(a => a + 1); }, []);
+  useEffect(() => {
+    const seen = () => { if (!document.hidden) setAlerts(0); };
+    document.addEventListener("visibilitychange", seen);
+    return () => document.removeEventListener("visibilitychange", seen);
+  }, []);
+
   /* el reloj corre en la pantalla; la energía y la vida se recalculan con las mismas reglas del servidor */
   useEffect(() => { const t = setInterval(() => setClock(Date.now()), 1000); return () => clearInterval(t); }, []);
   const now = clock + offset;
@@ -56,6 +92,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4500); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => connectLive(m => {
     if (m.type === "chat" && m.m) { addChat(m.m); if (!chatOpen.current) setUnread(u => u + 1); return; }
+    if (m.type === "attacked" || m.type === "fight" || m.type === "coop" || m.type === "friend") alertHidden();
     if (m.type === "ring") { setPing(p => p + 1); refresh(); }
     if (m.type === "friend" || m.type === "coop") {
       const msgs: Record<string, string> = {
@@ -77,7 +114,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       setToast(m.won ? { text: `${m.by} te atacó y lo rechazaste.`, good: true } : { text: `${m.by} te atacó y te ganó. Mirá la crónica.` });
       refresh();
     }
-  }, up => { setLive(up); if (up) api.chat().then(c => setChat(c)).catch(() => {}); }), [refresh, addChat]); // al reconectar, lo que se perdió
+  }, up => { setLive(up); if (up) api.chat().then(c => setChat(c)).catch(() => {}); }), [refresh, addChat, alertHidden]); // al reconectar, lo que se perdió
   /* cuando termina el entrenamiento o la guardia, traer el estado del servidor */
   useEffect(() => {
     const ends = [server.busy?.until, server.home?.obra?.until, nextMissionEvent(server) ?? undefined].filter((x): x is number => !!x);
@@ -151,6 +188,7 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
   const shown = lugar ? "lugar" : panel;
   chatOpen.current = shown === "chat";
   useEffect(() => { if (shown === "chat") setUnread(0); }, [shown, chat.length]);
+  useEffect(() => { const n = alerts + unread; document.title = n ? `(${n > 9 ? "9+" : n}) Malandro` : "Malandro"; }, [alerts, unread]);
 
   /* Como Google Maps: el mapa ocupa todo; a la izquierda los menús, arriba buscar y los filtros, arriba a la derecha vos */
   return (
@@ -239,6 +277,8 @@ export function Game({ initial, onOut }: { initial: Snapshot; onOut: () => void 
       </aside>}
 
       {toast && <div className={`toast ${toast.good ? "good" : ""}`} role="status">{toast.text}</div>}
+      {away !== null ? <Away s={s} since={away} now={now} onClose={() => setAway(null)} />
+        : moments[0] && <Celebration m={moments[0]} s={s} onClose={() => setMoments(m => m.slice(1))} />}
     </div>
   );
 }

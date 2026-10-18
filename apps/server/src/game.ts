@@ -6,7 +6,7 @@ import {
   startChase, stillOnTrip, golpePlace, isGolpe, lugarOf, salidaCatchUp, HOME_BARRIO, tripPos, returnTrip, wherePlayer, placePt, missionPt, spotIn, LUGARES, findMission, missionPlace, nearestCare, type FromPoint, homePt, kmOf, kmBetween, CHASE_SPEED, TRAVEL_SCALE, type ChaseMode, type Pt, type FightView, type TravelerView, type OnTrip, type Rutas, boardCatchUp, checkDuel, COOP_ENERGY, coopMission, coopStepAt, coopUntil, energyMax, finishCoop,
   GANG_KEYS, gangOf, log, maxHp, MIN_HP_TO_FIGHT, missionCatchUp, npcTarget, pick, PVP_SAME_TARGET_EVERY, pvp, regen,
   resolveCoopStep, RIVALS, TARGETS, upgradeState, type Action, type ActionResult, type Gang, type Mission, type PlayerState,
-  type Rng, type Target, MISSIONS, rankOf, eff, type StatKey
+  type Rng, type Target, MISSIONS, rankOf, eff, type StatKey, NEWBIE_LVL
 } from "@pop/shared";
 import { readFileSync } from "node:fs";
 import type { Db, Queryable } from "./db.js";
@@ -89,9 +89,10 @@ function catchUp(s: PlayerState, now: number) {
 async function fillTargets(q: Queryable, id: number, s: PlayerState) {
   if (!s.tutDone) return;
   const mine = gangOf(s);
-  const real = await q.query<{ id: number; name: string; lvl: number; gold: number; avatar: number | null; side: Gang | null; bot: boolean }>(
+  /* hasta el nivel NEWBIE_LVL solo te tocan personajes del juego, y a los que recién llegan no los ve nadie */
+  const real = s.lvl < NEWBIE_LVL ? { rows: [] } : await q.query<{ id: number; name: string; lvl: number; gold: number; avatar: number | null; side: Gang | null; bot: boolean }>(
     `SELECT p.id, p.name, p.lvl, p.gold, (p.state->>'avatar')::int AS avatar, p.side, p.bot FROM players p
-      WHERE p.side IS DISTINCT FROM $1 AND (p.state->>'tutDone')::boolean AND p.id <> $2 AND p.lvl BETWEEN $3 AND $4
+      WHERE p.side IS DISTINCT FROM $1 AND (p.state->>'tutDone')::boolean AND p.id <> $2 AND p.lvl BETWEEN GREATEST($3, ${NEWBIE_LVL}) AND $4
         AND NOT EXISTS (SELECT 1 FROM pvp_log l WHERE l.attacker_id = $2 AND l.defender_id = p.id AND l.at > now() - $5 * interval '1 millisecond')
       ORDER BY random() LIMIT 3`,
     [mine, id, s.lvl - 3, s.lvl + (s.lvl < 8 ? 1 : 3), PVP_SAME_TARGET_EVERY]);
@@ -257,10 +258,10 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
   /* Al salir a una misión: si el recorrido se cruza con el de un rival, se agenda la pelea (la primera, nomás) */
   async function findCrossing(q: Queryable, id: number, s: PlayerState, now: number) {
     const mine = onTrip(s.busy);
-    if (!mine) return;
+    if (!mine || s.lvl < NEWBIE_LVL) return; // el que recién llega no se cruza con nadie
     const r = await q.query<{ id: number; state: PlayerState }>(
       `SELECT id, state FROM players WHERE id <> $1 AND state->'busy'->>'kind' = 'mision' AND jsonb_typeof(state->'busy'->'trip') = 'object'
-          AND (state->'busy'->>'until')::bigint > $2 AND lvl BETWEEN $3 AND $4 LIMIT 60`, [id, now, s.lvl - CROSS_LVL_GAP, s.lvl + CROSS_LVL_GAP]);
+          AND (state->'busy'->>'until')::bigint > $2 AND lvl BETWEEN GREATEST($3, ${NEWBIE_LVL}) AND $4 LIMIT 60`, [id, now, s.lvl - CROSS_LVL_GAP, s.lvl + CROSS_LVL_GAP]);
     let best: { at: number; other: number; since: number; until: number } | null = null;
     for (const o of r.rows) {
       const theirs = onTrip(o.state.busy);

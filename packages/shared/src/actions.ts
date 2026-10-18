@@ -532,14 +532,25 @@ export function salidaCatchUp(s: PlayerState, { now, rng }: { now: number; rng: 
   }
   return changed;
 }
+/* Las chances de un laburo o golpe, para mostrarlas antes de hacerlo (la misma cuenta que usa el servidor).
+   police: que te agarre la policía (solo en los golpes; con 50 de calor, ~1 de cada 7).
+   hurt: que te lastimes (sin paga). ok: que salga bien. */
+const HURT_CHANCE = [0, 0.06, 0.18, 0.3];
+export function jobOdds(s: Pick<PlayerState, "heat">, j: Job) {
+  const police = isGolpe(j.id) ? Math.min(1, s.heat / 400 + j.risk * 0.01) : 0;
+  const hurtRoll = HURT_CHANCE[j.risk];
+  return { police, hurtRoll, hurt: (1 - police) * hurtRoll, ok: (1 - police) * (1 - hurtRoll) };
+}
 function resolveJob(s: PlayerState, j: Job, now: number, rng: Rng, place?: string) {
   const golpe = isGolpe(j.id);
-  /* en los golpes, con calor alto es más fácil que te agarre la policía (con 50 de calor, ~1 de cada 7) */
-  if (golpe && rng() < s.heat / 400 + j.risk * 0.01) {
+  const odds = jobOdds(s, j);
+  if (golpe && rng() < odds.police) {
     const fine = Math.min(s.gold, Math.round(s.gold * 0.1) + s.lvl * 5);
     s.gold -= fine; addHeat(s, -35);
-    log(s, now, `${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.`, "bad");
-  } else if (rng() < [0, 0.06, 0.18, 0.3][j.risk]) {
+    /* perder sabiendo por qué: cuánto pesó la búsqueda */
+    const why = s.heat >= 20 ? ` Con ${Math.round(s.heat)} de búsqueda, 1 de cada ${Math.max(2, Math.round(1 / odds.police))} golpes termina así: el abogado te la baja.` : "";
+    log(s, now, `${j.name}: te agarró la policía. Pagaste ${money(fine)} de fianza y pasaste la noche en un calabozo.${why}`, "bad");
+  } else if (rng() < odds.hurtRoll) {
     const dmg = Math.round(maxHp(s) * 0.14 * j.risk);
     s.hp = Math.max(1, s.hp - dmg);
     log(s, now, `${j.name}: ${j.fail} Perdiste ${dmg} de vida.`, "bad");
@@ -583,15 +594,24 @@ export function checkDuel(s: PlayerState, i: number): string | null {
   if (!s.tutDone || !s.targets[i]) return "Ese rival ya no está.";
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
   if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
+  const t = s.targets[i];
+  /* la lista pudo armarse antes de la protección: se vuelve a mirar al pelear */
+  if (t.kind === "player" && (s.lvl < NEWBIE_LVL || t.lvl < NEWBIE_LVL))
+    return s.lvl < NEWBIE_LVL ? `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores.` : `${t.name} recién llega a Maires: no se lo toca.`;
   return null;
 }
 
 /* Salir a cruzar en el mapa a alguien que está en una misión (viajando o en el lugar).
    No a los de tu pandilla ni a alguien mucho más chico que vos. Si no lo alcanzás a tiempo, no salís. */
 export const AMBUSH_LVL_GAP = 3;
+/* protección para el que llega: hasta este nivel no te pueden atacar otros jugadores (ni vos a ellos).
+   Los personajes del juego sí: así se aprende a pelear sin que un veterano te espante. */
+export const NEWBIE_LVL = 5;
 export function canAmbush(att: PlayerState, def: PlayerState, now: number): string | null {
   if (att.busy) return `${busyText(att)} Para salir a buscar a alguien tenés que estar libre.`;
   if (!att.tutDone) return "Todavía no conocés la calle.";
+  if (att.lvl < NEWBIE_LVL) return `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores: primero aprendé con los de la calle.`;
+  if (def.lvl < NEWBIE_LVL) return `${def.name} recién llega a Maires: hasta el nivel ${NEWBIE_LVL} no se lo toca.`;
   if (att.energy < DUEL_COST) return "No te alcanza la energía.";
   if (att.hp < maxHp(att) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
   const b = def.busy;

@@ -164,6 +164,18 @@ function careCatchUp(s: PlayerState, b: Extract<PlayerState["busy"], { kind: "gu
   return changed;
 }
 
+/* Chance de que una etapa salga bien, para mostrarla antes de salir (la misma cuenta que usa el servidor).
+   Las peleas dependen del rival y del azar de cada golpe: no tienen un número fijo (null). */
+export function stepChance(s: Pick<PlayerState, "gear" | "stats">, st: MissionStep): number | null {
+  if (st.auto) return 1;
+  if (st.fight) return null;
+  return clamp(50 + (eff(s, st.stat!) - st.diff!) * 7, 15, 95) / 100;
+}
+/* el promedio de las etapas con número y cuántas peleas tiene */
+export function missionOdds(s: Pick<PlayerState, "gear" | "stats">, m: Mission) {
+  const probs = m.steps.filter(st => !st.auto && !st.fight).map(st => stepChance(s, st)!);
+  return { avg: probs.length ? probs.reduce((a, b) => a + b, 0) / probs.length : null, fights: m.steps.filter(st => st.fight).length };
+}
 function resolveStep(s: PlayerState, st: MissionStep, rng: Rng): boolean {
   if (st.auto) return true;
   if (st.fight) {
@@ -171,7 +183,7 @@ function resolveStep(s: PlayerState, st: MissionStep, rng: Rng): boolean {
     s.hp = Math.max(1, f.p.hp);
     return f.won;
   }
-  const ok = rng() * 100 < clamp(50 + (eff(s, st.stat!) - st.diff!) * 7, 15, 95);
+  const ok = rng() < stepChance(s, st)!;
   if (!ok && st.dmg) s.hp = Math.max(1, s.hp - Math.round(maxHp(s) * st.dmg));
   return ok;
 }
