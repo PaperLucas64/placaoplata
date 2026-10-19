@@ -98,6 +98,9 @@ Para el detalle, ver el GDD.
 
 ## Qué sigue
 
+0. **El mundo abierto** (en diseño, sin código todavía): de Capital al país entero, en tiempo real, con misiones por cercanía.
+   Ver `docs/MUNDO.md`, con sus tres etapas y lo que falta decidir.
+
 1. Los 8 contactos de 4 misiones cada uno. Ya están aprobados en `docs/HISTORIA.md` §5 (Jorge de la Reserva, la Turca Nélida, Sor Mónica, Sasaki…).
 2. Las decisiones pendientes de `docs/AUDITORIA.md`:
    - construir fuera de casa;
