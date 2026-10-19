@@ -50,7 +50,9 @@ docs/             GDD, HISTORIA (modo historia), BALANCE, AUDITORIA, CREDITOS, N
 - **Regla de oro (la puso Lucas): NINGÚN NOMBRE REAL, NINGUNA MARCA REAL. PERO TODAS LAS PROVINCIAS, PAÍSES Y CIUDADES CON SU NOMBRE ORIGINAL.**
   - Nada de personas reales (políticos, famosos, escritores, deportistas), ni vivas ni muertas.
   - Nada de marcas, modelos de auto, empresas, clubes, medios ni personajes con dueño (superhéroes, dibujos): siempre una versión genérica o inventada.
-  - Provincias, países y ciudades van con su nombre de verdad (Córdoba, Mendoza, Rosario, Uruguay…).
+  - Provincias, países, ciudades **y barrios** van con su nombre de verdad (Córdoba, Mendoza, Rosario, Uruguay, Recoleta…).
+    Decidido el 19/10: Maires pasa a llamarse Buenos Aires y los barrios paródicos a su nombre real. Se hace en la etapa 1 de `docs/MUNDO.md`;
+    hasta entonces el código sigue con los nombres viejos.
   - **Chat:** los insultos discriminatorios se frenan con la lista de `apps/server/src/moderation.ts` (también en los nombres de personaje).
 
 - **Secretos:** nunca escribir contraseñas, tokens ni la `DATABASE_URL` en el repo ni en el chat. Van en GitHub Secrets o en Render. Si alguien pega uno en el chat, no usarlo y recomendar cambiarlo.
