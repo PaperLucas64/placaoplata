@@ -34,7 +34,7 @@ export function ProfilePanel({ id, toast }: { id: number; toast: (text: string, 
         <h2>{p.name}</h2>
         <div className="row"><GangBadge gang={p.gang} /><span className="tag">{RANK_NAMES[p.rank] ?? ""}</span></div>
         <div className="tag num">Nivel {p.lvl} · {p.respect} de respeto · <span className={`live ${p.online ? "on" : ""}`}>{p.online ? "en línea" : "desconectado"}</span></div>
-        <div className="tag">En Maires desde el {fecha(p.since)}</div>
+        <div className="tag">En Buenos Aires desde el {fecha(p.since)}</div>
       </div>
     </header>
 

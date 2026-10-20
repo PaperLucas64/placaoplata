@@ -95,7 +95,7 @@ export function newPlayer(name: string, now: number, avatar = 1): PlayerState {
   /* naciste en una de las pensiones, al azar: ahí está tu pieza (después te podés mudar) */
   const barrios = Object.keys(PENSIONES).filter(b => GEO_PLACES[b]);
   s.home.spawn = barrios[Math.floor(Math.random() * barrios.length)];
-  log(s, now, `${name} se baja del micro en Salida con ${money(10)} en el bolsillo. Marga le consigue una pieza en ${s.home.spawn}.`, "gold");
+  log(s, now, `${name} se baja del micro en Retiro con ${money(10)} en el bolsillo. Marga le consigue una pieza en ${s.home.spawn}.`, "gold");
   return s;
 }
 
@@ -118,7 +118,7 @@ export function upgradeState(s: PlayerState & { side?: string | null; tSalary?: 
   if (s.tutDone && !s.tabs.includes("casa")) s.tabs.splice(s.tabs.indexOf("ranking"), 0, "casa");
   for (const k of ["calle", "ranking"] as const) if (s.tutDone && !s.tabs.includes(k)) s.tabs.push(k);
   toSlots(s);
-  log(s, now, old ? "Maires cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Maires cambió: ahora mandan las cuatro pandillas.", "gold");
+  log(s, now, old ? "Buenos Aires cambió: la policía ya no recluta. Ahora mandan las cuatro pandillas." : "Buenos Aires cambió: ahora mandan las cuatro pandillas.", "gold");
   return s;
 }
 

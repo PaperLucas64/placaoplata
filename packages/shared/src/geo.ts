@@ -1,6 +1,6 @@
 /* GPS y transporte. Cada misión pasa en un lugar: tu personaje sale de su casa, viaja, hace el trabajo y vuelve.
    Los recorridos son reales (OpenStreetMap, ver tools/geo/build.py) y el tiempo de viaje sale de la distancia y del medio:
-   a pie es gratis pero lento; con auto o moto vas rápido pero te pueden parar. El viaje pasa más rápido que en la vida real. */
+   a pie es gratis pero lento; con auto o moto vas rápido pero te pueden parar. El viaje dura lo mismo que en la vida real. */
 import { GEO_HOME, GEO_PLACES, GEO_ROUTES } from "./geo-data.js";
 import { tierOf } from "./barrios.js";
 import { homePlace } from "./casas.js";
@@ -18,9 +18,10 @@ export type TravelMode = "pie" | "colectivo" | "riel" | "taxi" | "micro" | "moto
 export type Vehicle = "moto" | "auto";
 export const TRAVEL_MODES: TravelMode[] = ["pie", "colectivo", "riel", "taxi", "micro", "moto", "auto"]; // la ambulancia es solo para curarte
 
-/* el viaje se comprime: en la ciudad 1 minuto de verdad son 4 de viaje; en la ruta, 8 */
+/* El viaje dura lo que dura en la vida real (docs/MUNDO.md, etapa 1). Antes se comprimía (×4 en la ciudad, ×8 en la ruta);
+   quedan las constantes en 1 por si alguna vez hace falta una prueba acelerada. */
 const MIN = 60_000;
-export const TRAVEL_SCALE = 4, TRAVEL_SCALE_FAR = 8, FAR_KM = 50;
+export const TRAVEL_SCALE = 1, TRAVEL_SCALE_FAR = 1, FAR_KM = 50;
 
 export const VEHICLES: Record<Vehicle, { name: string; lvl: number; price: number; city: number; road: number; help: string }> = {
   moto: { name: "Moto 150 usada", lvl: 15, price: 6000, city: 32, road: 100, help: "Rápida en la ciudad. Te paran seguido." },
@@ -142,15 +143,15 @@ export const TRAVEL_RISK: Record<TravelMode, string> = {
 /* ---------- dónde te curan ---------- */
 /* guardias de hospitales públicos (gratis, vas caminando) y clínicas privadas (pagás y te busca una ambulancia) */
 const NAMED_HOSPITALS: { place: string; name: string }[] = [
-  { place: "Once y Medio", name: "Hospital Ramos Mejido" }, { place: "Palermo Soja", name: "Hospital Fernandito" },
-  { place: "Liniers Sur", name: "Hospital Santojanito" }, { place: "Reloquita", name: "Hospital Rivadavio" },
-  { place: "Coglán", name: "Hospital Pirovanito" }, { place: "Caballote", name: "Hospital Durandito" },
-  { place: "Villa Devota", name: "Hospital Zubizarretita" }, { place: "Floreros", name: "Hospital Álvarez Chico" },
-  { place: "Villa Ortuzán", name: "Hospital Tornucito" }
+  { place: "Balvanera", name: "Hospital Ramos Mejido" }, { place: "Palermo", name: "Hospital Fernandito" },
+  { place: "Liniers", name: "Hospital Santojanito" }, { place: "Recoleta", name: "Hospital Rivadavio" },
+  { place: "Coghlan", name: "Hospital Pirovanito" }, { place: "Caballito", name: "Hospital Durandito" },
+  { place: "Villa Devoto", name: "Hospital Zubizarretita" }, { place: "Flores", name: "Hospital Álvarez Chico" },
+  { place: "Villa Ortúzar", name: "Hospital Tornucito" }
 ];
 const NAMED_CLINICS: { place: string; name: string }[] = [
-  { place: "Reloquita", name: "Sanatorio Reloquita" }, { place: "Palermo Soja", name: "Clínica Palermo Soja" },
-  { place: "Puerto Mareo", name: "Clínica del Puerto" }, { place: "Belgranito", name: "Sanatorio Belgranito" }
+  { place: "Recoleta", name: "Sanatorio Recoleta" }, { place: "Palermo", name: "Clínica Palermo" },
+  { place: "Puerto Madero", name: "Clínica del Puerto" }, { place: "Belgrano", name: "Sanatorio Belgrano" }
 ];
 /* cada barrio tiene dónde curarse: los que no tienen hospital, una salita; los barrios caros, además, una clínica */
 export const HOSPITALS = [...NAMED_HOSPITALS, ...Object.keys(GEO_PLACES).filter(b => !NAMED_HOSPITALS.some(h => h.place === b))

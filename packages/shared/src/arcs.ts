@@ -30,7 +30,7 @@ export const ARCS: Arc[] = [
   { id: "clasico", title: "La semana del clásico",
     blurb: "Bocota Juniors contra Ríver Plateado. Toda la ciudad apuesta, viaja, cuelga trapos o cobra por mirar para otro lado.",
     chapters: [
-      { name: "Trapos y apuestas", place: "Ñuñez", rank: 0, diff: 6, mins: 15, reward: { gold: 200, xp: 80, resp: 35, heat: 10 }, povs: {
+      { name: "Trapos y apuestas", place: "Núñez", rank: 0, diff: 6, mins: 15, reward: { gold: 200, xp: 80, resp: 35, heat: 10 }, povs: {
         familia: { title: "El libro de apuestas",
           intro: "La Señora toma las apuestas del clásico en el bar de la esquina de la cancha. «Hay un apostador grande que se hace el distraído. Cobrale.»",
           a: ["lab", "Anotar las apuestas sin que el mozo nuevo se avive.", "El mozo cree que anotás pedidos.", "El mozo te mira la libreta. Tuviste que cambiar de mesa."],
@@ -62,7 +62,7 @@ export const ARCS: Arc[] = [
           foe: ["Un barra que te descubre", "Un barra te ve con el teléfono en la mano.", "El barra se queda sin dientes y sin ganas de hablar.", "El barra te saca de la tribuna rodando."],
           back: "Funes mira las fotos y guarda una en el bolsillo de adentro.", outro: "«Esto vale mucho. Para mí. Vos cobrás lo tuyo y desaparecés.»" }
       } },
-      { name: "El árbitro", place: "Villa Crespa", rank: 1, diff: 10, mins: 30, reward: { gold: 600, xp: 220, resp: 100, heat: 20 }, povs: {
+      { name: "El árbitro", place: "Villa Crespo", rank: 1, diff: 10, mins: 30, reward: { gold: 600, xp: 220, resp: 100, heat: 20 }, povs: {
         familia: { title: "Un sobre para el árbitro",
           intro: "«El árbitro del clásico tiene deudas. Nosotros tenemos plata. Que se encuentren.»",
           a: ["lab", "Darle el sobre al árbitro sin que lo vea su mujer.", "El árbitro guarda el sobre en el diario.", "La mujer abre la puerta antes que él."],
@@ -84,7 +84,7 @@ export const ARCS: Arc[] = [
         amarillos: { title: "Un paseo largo",
           intro: "Rita tiene una idea: «El día del partido lo pasamos a buscar en un remís. Y lo paseamos. Mucho.»",
           a: ["lab", "Hacerte pasar por el remisero de la liga.", "El árbitro sube al auto sin dudar.", "El árbitro llama a la liga para confirmar. Cortaste justo."],
-          b: ["ref", "Perder al auto de la custodia en el tránsito.", "La custodia se queda en un semáforo de Villa Crespa.", "La custodia te sigue tres avenidas."],
+          b: ["ref", "Perder al auto de la custodia en el tránsito.", "La custodia se queda en un semáforo de Villa Crespo.", "La custodia te sigue tres avenidas."],
           foe: ["El juez de línea", "El juez de línea sospechó y se subió al auto en un semáforo.", "El juez de línea se baja en la próxima esquina, sin bandera.", "El juez de línea abre la puerta y se lleva al árbitro."],
           back: "Rita pone la radio: el partido se suspendió por falta de árbitro.", outro: "«Llegar tarde también es un arte.»" },
         policia: { title: "Custodia paga",
@@ -94,13 +94,13 @@ export const ARCS: Arc[] = [
           foe: ["Un matón de la barra", "Un matón de la barra viene a dejar un mensaje.", "El mensaje no llegó. El matón tampoco.", "El matón te pasa por arriba."],
           back: "Funes cobra el segundo sobre y te da una parte.", outro: "«Mientras todos se odien, nosotros cobramos.»" }
       } },
-      { name: "La revancha en Rosarito", place: "Salida", rank: 2, diff: 15, mins: 45, reward: { gold: 1500, xp: 550, resp: 250, heat: 30 }, povs: {
-        familia: { title: "El casino de Rosarito",
-          intro: "La revancha se juega en Rosarito. La Señora quiere aprovechar: «Lo que juntamos en apuestas, lo lavamos en el casino. Viajá.»",
+      { name: "La revancha en Rosario", place: "Retiro", rank: 2, diff: 15, mins: 45, reward: { gold: 1500, xp: 550, resp: 250, heat: 30 }, povs: {
+        familia: { title: "El casino de Rosario",
+          intro: "La revancha se juega en Rosario. La Señora quiere aprovechar: «Lo que juntamos en apuestas, lo lavamos en el casino. Viajá.»",
           a: ["lab", "Entrar a la sala VIP del casino.", "El de la puerta te confunde con un empresario.", "Te piden la tarjeta de socio. No tenés."],
           b: ["ref", "Cambiar las fichas antes de que cierre la caja.", "Las fichas vuelven convertidas en cheques limpios.", "La caja cerró en tu cara."],
           foe: ["El jefe de seguridad del casino", "El jefe de seguridad te invita a una oficina sin ventanas.", "Salís de la oficina. Él no.", "Te sacan por la puerta de atrás."],
-          back: "Volvés a Maires con un sobre lleno de cheques.", outro: "«En Rosarito saben contar plata. Nosotros, también.»" },
+          back: "Volvés a Buenos Aires con un sobre lleno de cheques.", outro: "«En Rosario saben contar plata. Nosotros, también.»" },
         sindicato: { title: "Los camiones de la hinchada",
           intro: "«Llevamos a la hinchada en camiones del gremio. Y abajo de los asientos va otra cosa. Que lleguen todos.»",
           a: ["dur", "Manejar toda la noche por la ruta 9.", "Llegaste con el sol.", "Te dormiste un segundo y te comiste la banquina."],
@@ -108,13 +108,13 @@ export const ARCS: Arc[] = [
           foe: ["Un gendarme que quiere revisar", "Un gendarme se sube al camión con una linterna.", "El gendarme se baja con la linterna rota.", "El gendarme te hace bajar a todos."],
           back: "Don Ramón cuenta los camiones en el galpón. Están todos.", outro: "«La ruta es nuestra. Siempre lo fue.»" },
         barra: { title: "El trapo vuelve",
-          intro: "El Tano quiere el golpe final: «El trapo de ellos lo colgamos en su propia cancha, en Rosarito, frente a todos.»",
+          intro: "El Tano quiere el golpe final: «El trapo de ellos lo colgamos en su propia cancha, en Rosario, frente a todos.»",
           a: ["fue", "Meter el trapo en la tribuna enrollado en el cuerpo.", "Pasaste el cacheo con cuarenta metros de tela encima.", "En el cacheo te hicieron sacar la campera."],
           b: ["dur", "Aguantar la avalancha cuando lo desplegás.", "El trapo queda colgado al revés. La tribuna rival enmudece.", "La avalancha te aplasta contra el alambrado."],
           foe: ["El jefe de la barra rival", "El jefe de la barra de Ríver Plateado baja a buscarte.", "El jefe de ellos vuelve a su tribuna sin voz.", "El jefe de ellos te saca a trompadas."],
           back: "El Tano llora en la ruta de vuelta. De alegría.", outro: "«Esto lo van a cantar nuestros nietos.»" },
         amarillos: { title: "Los únicos remises",
-          intro: "«Cuando termine el partido, en Rosarito no va a haber un solo taxi. Solo los nuestros. Y van a cobrar lo que quieran.»",
+          intro: "«Cuando termine el partido, en Rosario no va a haber un solo taxi. Solo los nuestros. Y van a cobrar lo que quieran.»",
           a: ["ref", "Sacar los autos del estacionamiento antes que la policía lo cierre.", "Los remises salen en fila.", "Quedaron la mitad adentro."],
           b: ["lab", "Cobrar el viaje en efectivo y por adelantado.", "Todos pagan triple sin chistar.", "Medio pasaje se bajó sin pagar."],
           foe: ["Un patovica que se quiere colar", "Un patovica quiere viajar gratis.", "El patovica viaja en el baúl, y paga.", "El patovica se queda con el auto."],
@@ -128,9 +128,9 @@ export const ARCS: Arc[] = [
       } }
     ] },
   { id: "riobravo", title: "El Río Bravo",
-    blurb: "Un carguero de Montevideo llega a Puerto Mareo con un contenedor que nadie declaró. Todos lo quieren. Nadie sabe qué tiene adentro.",
+    blurb: "Un carguero de Montevideo llega a Puerto Madero con un contenedor que nadie declaró. Todos lo quieren. Nadie sabe qué tiene adentro.",
     chapters: [
-      { name: "Llega el barco", place: "Puerto Mareo", rank: 1, diff: 8, mins: 15, reward: { gold: 400, xp: 150, resp: 70, heat: 15 }, povs: {
+      { name: "Llega el barco", place: "Puerto Madero", rank: 1, diff: 8, mins: 15, reward: { gold: 400, xp: 150, resp: 70, heat: 15 }, povs: {
         familia: { title: "Recibir la carga",
           intro: "«El contenedor es nuestro. Que pase la aduana y llegue al depósito. No me importa qué tiene adentro.»",
           a: ["lab", "Arreglar con el aduanero.", "El aduanero sella todo sin abrir nada.", "El aduanero quiere ver los papeles."],
@@ -162,7 +162,7 @@ export const ARCS: Arc[] = [
           foe: ["El capitán del Río Bravo", "El capitán se da cuenta de lo que hiciste.", "El capitán vuelve a su camarote.", "El capitán te tira por la escalerilla."],
           back: "Funes lee el manifiesto y se pone pálido.", outro: "«Esto no son electrodomésticos. Esto es dinamita política.»" }
       } },
-      { name: "Lo que había adentro", place: "La Paterna", rank: 2, diff: 13, mins: 30, reward: { gold: 1100, xp: 380, resp: 170, heat: 25 }, povs: {
+      { name: "Lo que había adentro", place: "La Paternal", rank: 2, diff: 13, mins: 30, reward: { gold: 1100, xp: 380, resp: 170, heat: 25 }, povs: {
         familia: { title: "La caja del intendente",
           intro: "Adentro del contenedor había una caja fuerte con los libros del intendente Ramírez. «Eso vale más que el puerto. Guardala donde nadie la encuentre.»",
           a: ["fue", "Cargar una caja fuerte de doscientos kilos.", "La subiste a la camioneta con la espalda sana.", "Se te cayó en el pie."],
@@ -170,7 +170,7 @@ export const ARCS: Arc[] = [
           foe: ["Un ladrón de El Sindicato", "Uno del Sindicato entra al depósito de noche.", "El del Sindicato sale sin la caja.", "El del Sindicato se lleva la mitad de los papeles."],
           back: "La Señora guarda la llave colgada del cuello.", outro: "«Con esto, el intendente trabaja para nosotros.»" },
         sindicato: { title: "El robo del depósito",
-          intro: "«La Familia tiene la caja en un depósito de La Paterna. A dos cuadras de nuestros galpones. Es nuestra.»",
+          intro: "«La Familia tiene la caja en un depósito de La Paternal. A dos cuadras de nuestros galpones. Es nuestra.»",
           a: ["ref", "Entrar por los techos del depósito.", "Bajaste por la claraboya sin ruido.", "La chapa crujió y despertó a medio barrio."],
           b: ["fue", "Romper el candado de la jaula.", "El candado cede.", "El candado aguanta más que vos."],
           foe: ["El sereno del depósito", "El sereno tiene una escopeta y poco sueño.", "El sereno se queda dormido de golpe.", "El sereno te saca a escopetazos al aire."],
@@ -194,16 +194,16 @@ export const ARCS: Arc[] = [
           foe: ["Un pandillero armado", "Un pandillero cuida la caja.", "El pandillero queda esposado a un caño.", "El pandillero se escapa con la caja."],
           back: "Funes guarda la caja en su casa, no en la comisaría.", outro: "«Ahora el intendente me debe a mí.»" }
       } },
-      { name: "El intendente", place: "Reloquita", rank: 3, diff: 19, mins: 45, reward: { gold: 2600, xp: 900, resp: 380, heat: 40 }, povs: {
+      { name: "El intendente", place: "Recoleta", rank: 3, diff: 19, mins: 45, reward: { gold: 2600, xp: 900, resp: 380, heat: 40 }, povs: {
         familia: { title: "La firma",
-          intro: "«El intendente Ramírez da una fiesta en Reloquita. Vas a llevarle una copia de sus libros y una lapicera.»",
+          intro: "«El intendente Ramírez da una fiesta en Recoleta. Vas a llevarle una copia de sus libros y una lapicera.»",
           a: ["lab", "Entrar a la fiesta de la embajada.", "Entraste con un saco prestado y mucha cara.", "El de la puerta no te encontró en la lista."],
           b: ["dur", "Aguantar la mirada del intendente mientras lee.", "El intendente firma. Le tiembla la mano.", "Pestañeaste primero."],
           foe: ["El guardaespaldas del intendente", "El guardaespaldas te quiere sacar de la fiesta.", "El guardaespaldas termina en la fuente.", "El guardaespaldas te saca a la calle."],
           back: "La Señora enmarca el decreto firmado.", outro: "«Desde hoy, el municipio es una sucursal de la Familia.»" },
         sindicato: { title: "El convenio",
           intro: "«Mil afiliados en la puerta de la casa del intendente, hasta que firme el convenio. Vos los dirigís.»",
-          a: ["lab", "Llevar a mil afiliados a Reloquita.", "Mil personas, bombos y choripán en la vereda más cara de Maires.", "Vinieron cuarenta."],
+          a: ["lab", "Llevar a mil afiliados a Recoleta.", "Mil personas, bombos y choripán en la vereda más cara de Buenos Aires.", "Vinieron cuarenta."],
           b: ["fue", "Bancar la puerta contra la Guardia de Infantería.", "La puerta queda de tu lado.", "La Guardia te pasa por encima."],
           foe: ["El jefe de la Guardia de Infantería", "El jefe de la Guardia te busca a vos, el que dirige.", "El jefe de la Guardia se retira con su gente.", "El jefe de la Guardia te sube a un camión."],
           back: "Don Ramón sale al balcón con el convenio firmado.", outro: "«Esto es historia del movimiento obrero. Más o menos.»" },
@@ -218,7 +218,7 @@ export const ARCS: Arc[] = [
           a: ["ref", "Recogerlo en la puerta trasera sin que lo vean.", "El intendente sube con una valija y lentes negros.", "Los vecinos lo reconocen y empiezan a gritar."],
           b: ["lab", "Pasar los controles con el intendente en el baúl.", "Pasaste tres controles saludando.", "En un control te piden abrir el baúl."],
           foe: ["Los custodios de la oposición", "La oposición también lo busca.", "Los de la oposición quedan mirando las luces del taxi.", "La oposición te bloquea la calle."],
-          back: "Rita guarda la valija del intendente. Él ya no la necesita.", outro: "«En Maires todos viajan. Algunos más lejos que otros.»" },
+          back: "Rita guarda la valija del intendente. Él ya no la necesita.", outro: "«En Buenos Aires todos viajan. Algunos más lejos que otros.»" },
         policia: { title: "La detención",
           intro: "«Con los libros, Ramírez cae. Yo me llevo la medalla y vos la recompensa. Hoy se termina.»",
           a: ["lab", "Convencer al fiscal de firmar la detención.", "El fiscal firma con una sonrisa.", "El fiscal quiere esperar a mañana."],

@@ -29,7 +29,7 @@ export function makeChat(db: Db, broadcast: (msg: unknown) => void) {
     const msg = raw.replace(/\s+/g, " ").trim();
     if (!msg) throw new ChatError("Escribí algo.");
     if (msg.length > CHAT_MAX) throw new ChatError(`Como mucho ${CHAT_MAX} letras.`);
-    if (isBlocked(msg)) throw new ChatError("Ese mensaje no va: en Maires no se discrimina a nadie.");
+    if (isBlocked(msg)) throw new ChatError("Ese mensaje no va: en Buenos Aires no se discrimina a nadie.");
     const now = Date.now();
     const times = (recent.get(playerId) ?? []).filter(t => now - t < BURST_MS);
     if (times.length && now - times[times.length - 1] < GAP_MS) throw new ChatError("Más despacio: esperá un segundo.");

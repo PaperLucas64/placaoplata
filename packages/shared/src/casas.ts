@@ -12,7 +12,7 @@ export const HOUSE_TYPES: Record<string, HouseType> = {
   ph:      { name: "PH con terraza",              lvl: 10, price: 10000,  cap: 3, help: "Un pasillo largo, una terraza y vecinos que no preguntan." },
   casa:    { name: "Casa con patio",              lvl: 15, price: 25000,  cap: 4, help: "Portón para el auto y un sótano que nadie conoce." },
   chalet:  { name: "Chalet con pileta",           lvl: 22, price: 60000,  cap: 5, help: "Árboles, silencio y vecinos con alarma." },
-  mansion: { name: "Mansión",                     lvl: 28, price: 120000, cap: 5, help: "Para que todo Maires sepa quién manda." }
+  mansion: { name: "Mansión",                     lvl: 28, price: 120000, cap: 5, help: "Para que todo Buenos Aires sepa quién manda." }
 };
 /* qué casas vende cada clase de barrio, y cuánto más caras o más baratas */
 const OFFER: Record<Tier, string[]> = { humilde: ["depto", "ph", "casa"], medio: ["depto", "ph", "casa"], rico: ["depto", "chalet", "mansion"] };
@@ -28,10 +28,10 @@ export function spotIn(barrio: string, key: string): [number, number] {
 
 /* Las pensiones donde podés arrancar: naciste en una de estas, al azar */
 export const PENSIONES: Record<string, string> = {
-  "Once y Medio": "Pensión La Estrella", "Mosecraft": "Hotel Familiar Los Andes", "Floreros": "Pensión Doña Rosa",
-  "Villa Crespa": "Residencial El Ombú", "Liniers Sur": "Pensión San Cayetano", "San Nicolasito": "Hotel Familiar Paraná",
-  "La Paterna": "Pensión El Tablón", "Villa Mitrecito": "Residencial Mitrecito", "Almagrito": "Pensión Medrano",
-  "Villa Lurio": "Hotel Familiar El Trébol"
+  "Balvanera": "Pensión La Estrella", "Monserrat": "Hotel Familiar Los Andes", "Flores": "Pensión Doña Rosa",
+  "Villa Crespo": "Residencial El Ombú", "Liniers": "Pensión San Cayetano", "San Nicolás": "Hotel Familiar Paraná",
+  "La Paternal": "Pensión El Tablón", "Villa General Mitre": "Residencial Mitrecito", "Almagro": "Pensión Medrano",
+  "Villa Luro": "Hotel Familiar El Trébol"
 };
 
 export interface House extends HouseType { id: string; type: string; place: string; lat: number; lng: number }
@@ -46,7 +46,7 @@ const make = (type: string, barrio: string): House => {
 export const housesIn = (barrio: string): House[] => OFFER[tierOf(barrio)].map(t => make(t, barrio));
 
 /* casas de versiones anteriores (cuando había una de cada tipo, en un barrio fijo) */
-const LEGACY: Record<string, string> = { depto: "depto@Once y Medio", ph: "ph@Villa Crespa", casa: "casa@Villa Devota", chalet: "chalet@Belgranito", mansion: "mansion@Reloquita" };
+const LEGACY: Record<string, string> = { depto: "depto@Balvanera", ph: "ph@Villa Crespo", casa: "casa@Villa Devoto", chalet: "chalet@Belgrano", mansion: "mansion@Recoleta" };
 export function houseById(id?: string): House | undefined {
   if (!id || id === "pension") return undefined;
   const [type, barrio] = (LEGACY[id] ?? id).split("@");

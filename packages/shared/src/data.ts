@@ -50,7 +50,7 @@ export const VALIJA: Mission = {
     { text:"Entregar la valija en el bar de Marga.", energy:1, auto:true,
       ok:"Llegaste. Marga deja la valija sobre la barra y la abre delante tuyo." }
   ],
-  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Ahora las cuatro pandillas de Maires saben quién sos. Cada una te va a ofrecer trabajo: la que más te banque te va a reclamar.»"
+  outro:"La valija está vacía. Marga se ríe. «Era una prueba. Y la pasaste. Ahora las cuatro pandillas de Buenos Aires saben quién sos. Cada una te va a ofrecer trabajo: la que más te banque te va a reclamar.»"
 };
 
 /* Mercado negro: arma y protección por rango, iguales para todas las pandillas.
@@ -88,7 +88,7 @@ export interface TutStep {
 }
 export const TUT: TutStep[] = [
   { id:"t1", tab:"laburos",  title:"Recién llegado",
-    say:"Si te vas a quedar en Maires, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
+    say:"Si te vas a quedar en Buenos Aires, necesitás plata. Agarrá un par de laburos. Cada uno gasta energía, que se recarga sola.",
     goal:s=>s.c.jobs>=2, prog:s=>`Laburos hechos: ${Math.min(s.c.jobs,2)} de 2`, reward:{gold:15,xp:6} },
   { id:"t2", tab:"gimnasio", title:"Ponerse en forma",
     say:"Así como estás no durás una semana. En el gimnasio de Don Tito pagás y entrenás; lleva unos minutos, pero vale la pena. Subí cualquier atributo.",

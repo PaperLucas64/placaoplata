@@ -77,10 +77,10 @@ app.get("/api/health", async () => ({ ok: true }));
 app.post("/api/auth/register", authLimit, async (req, reply) => {
   const { username, password, avatar } = (req.body ?? {}) as Record<string, unknown>;
   if (!validUsername(username)) return reply.code(400).send({ error: "El nombre va de 3 a 20 letras, números o espacios." });
-  if (isBlocked(username as string)) return reply.code(400).send({ error: "Ese nombre no va: en Maires no se discrimina a nadie." });
+  if (isBlocked(username as string)) return reply.code(400).send({ error: "Ese nombre no va: en Buenos Aires no se discrimina a nadie." });
   if (!validPassword(password)) return reply.code(400).send({ error: "La contraseña necesita al menos 6 caracteres." });
   const taken = await db.query(`SELECT 1 FROM users WHERE lower(username) = lower($1)`, [username]);
-  if (taken.rows.length) return reply.code(409).send({ error: "Ese nombre ya está en uso en Maires." });
+  if (taken.rows.length) return reply.code(409).send({ error: "Ese nombre ya está en uso en Buenos Aires." });
   const hash = await hashPassword(password);
   const token = await db.tx(async q => {
     const u = await q.query<{ id: number }>(`INSERT INTO users (username, pass_hash) VALUES ($1, $2) RETURNING id`, [username, hash]);

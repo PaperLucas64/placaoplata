@@ -16,7 +16,7 @@ const ctx = (now = T0, seed = 1) => ({ now, rng: seeded(seed) });
 function veteran(name: string): PlayerState {
   const s = newPlayer(name, T0);
   Object.assign(s, { lvl: 6, gold: 500, tut: 6, tutDone: true, stats: { fue: 9, dur: 9, ref: 9, agu: 9, lab: 9 } });
-  s.c.valija = 1; s.hp = maxHp(s); s.home.spawn = "Almagrito";
+  s.c.valija = 1; s.hp = maxHp(s); s.home.spawn = "Almagro";
   return s;
 }
 const raw = (x: unknown) => x as Action;
@@ -40,7 +40,7 @@ describe("auditoría", () => {
   });
   it("3 · salir a buscar a alguien cobra la energía una sola vez", () => {
     const a = veteran("Ana"), d = veteran("Beto");
-    d.busy = { kind: "mision", id: "x", since: T0, until: T0 + 3_600_000, done: 0, ok: 0, res: [], trip: { mode: "pie", place: "Floreros", go: 600_000, back: 0, ev: 0 } };
+    d.busy = { kind: "mision", id: "x", since: T0, until: T0 + 3_600_000, done: 0, ok: 0, res: [], trip: { mode: "pie", place: "Flores", go: 600_000, back: 0, ev: 0 } };
     const e0 = a.energy;
     startChase(a, d, 2, { at: [-34.6, -58.4], meet: T0 + 60_000, mode: "pie", cost: 0 }, T0);
     a.busy = null;
@@ -54,7 +54,7 @@ describe("auditoría", () => {
   });
   it("4 · al que vuelve a su casa desde la misión se lo alcanza", () => {
     const d = veteran("Beto");
-    d.busy = { kind: "vuelta", since: T0 + 3_600_000, until: T0 + 4_000_000, mode: "pie", place: "Floreros", home: "Almagrito" };
+    d.busy = { kind: "vuelta", since: T0 + 3_600_000, until: T0 + 4_000_000, mode: "pie", place: "Flores", home: "Almagro" };
     expect(stillOnTrip(d, T0, T0 + 3_600_000, T0 + 3_700_000)).toBe(true);
     d.busy = { ...d.busy, safe: true };
     expect(stillOnTrip(d, T0, T0 + 3_600_000, T0 + 3_700_000)).toBe(false); // en ambulancia, no
@@ -63,7 +63,7 @@ describe("auditoría", () => {
     let hits = 0;
     for (let seed = 1; seed < 40; seed++) {
       const s = veteran("Ana"); s.tAttack = T0;
-      s.busy = { kind: "vuelta", since: T0, until: T0 + ATTACK_EVERY * 1.5, mode: "pie", place: "Floreros", home: "Almagrito" };
+      s.busy = { kind: "vuelta", since: T0, until: T0 + ATTACK_EVERY * 1.5, mode: "pie", place: "Flores", home: "Almagro" };
       const h = ambushCatchUp(s, ctx(T0 + ATTACK_EVERY * 3, seed)); // abrís el juego cuando ya llegaste
       if (h) expect(s.log[0].t).toBeLessThan(T0 + ATTACK_EVERY * 1.5); // te pasó en el camino, no en tu casa
       hits += h;
@@ -72,7 +72,7 @@ describe("auditoría", () => {
   });
   it("9 · no hay mansiones en barrios humildes ni mudanzas a casas que no se venden", () => {
     const s = veteran("Ana"); s.lvl = 40; s.gold = 1_000_000;
-    expect(applyAction(s, { type: "move", id: "mansion@Liniers Sur" }, ctx()).error).toMatch(/venta/);
+    expect(applyAction(s, { type: "move", id: "mansion@Liniers" }, ctx()).error).toMatch(/venta/);
     expect(applyAction(s, { type: "move", id: "pension" }, ctx()).error).toBeTruthy();
     expect(s.gold).toBe(1_000_000);
   });

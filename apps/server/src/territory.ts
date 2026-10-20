@@ -1,4 +1,4 @@
-/* El mapa de Maires: suma la influencia que generan los jugadores y calcula de quién es cada barrio.
+/* El mapa de Buenos Aires: suma la influencia que generan los jugadores y calcula de quién es cada barrio.
    Se guarda en la base; la foto del mapa se cachea un minuto porque la piden todos los jugadores. */
 import { BARRIOS, decayed, GANG_KEYS, ownerOf, TURF_BASE, type Gang, type PlayerState } from "@pop/shared";
 import type { Db, Queryable } from "./db.js";

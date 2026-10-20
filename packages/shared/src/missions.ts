@@ -294,7 +294,7 @@ const VECINOS: Objective[] = [
   { who: "Doña Elsa, la del almacén", text: "Recuperar la jubilación que le robaron a Doña Elsa", stat: "ref" },
   { who: "el Turco del cambio", text: "Cobrarle una deuda a un cliente del Turco", stat: "lab" },
   { who: "un diputado nervioso", text: "Encontrar al perro de un diputado", stat: "ref" },
-  { who: "una señora de Reloquita", text: "Sacarle fotos a un marido infiel", stat: "ref" },
+  { who: "una señora de Recoleta", text: "Sacarle fotos a un marido infiel", stat: "ref" },
   { who: "el cura de la parroquia", text: "Recuperar el cáliz que se llevaron de la iglesia", stat: "fue" },
   { who: "el dueño de la pizzería", text: "Sacar a los patovicas que no dejan trabajar a la pizzería", stat: "fue" },
   { who: "un periodista", text: "Conseguirle un documento a un periodista", stat: "lab" },
@@ -408,18 +408,18 @@ export function streetMission(rng: Rng, lvl: number, d: number, client: StreetCl
 export const LONG_HOURS = [2, 4, 8, 12];
 export const LONG_ENERGY: Record<number, number> = { 2: 6, 4: 8, 8: 10, 12: 12 };
 const LONG: Objective[] = [
-  { text: "Custodiar un cargamento en los diques de Puerto Mareo", stat: "dur", place: "Puerto Mareo" },
-  { text: "Vigilar una mansión de Reloquita toda la noche", stat: "ref", place: "Reloquita" },
-  { text: "Llevar autos robados a un garaje de Villa Devota", stat: "ref", place: "Villa Devota" },
-  { text: "Trabajar de patovica en una fiesta de Palermo Soja", stat: "fue", place: "Palermo Soja" },
-  { text: "Cuidar un depósito de mercadería robada en La Paterna", stat: "dur", place: "La Paterna" },
-  { text: "Hacer el turno noche en un taller de Villa Lurio", stat: "fue", place: "Villa Lurio" },
-  { text: "Cobrar en todos los puestos de la feria de Floreros", stat: "lab", place: "Floreros" },
-  { text: "Seguir a un concejal por todo Belgranito", stat: "ref", place: "Belgranito" },
-  { text: "Descargar camiones sin papeles en la terminal de Salida", stat: "fue", place: "Salida" },
-  { text: "Custodiar una fiesta clandestina en Villa Crespa", stat: "dur", place: "Villa Crespa" },
-  { text: "Esconder un cargamento en un galpón de Chacarota", stat: "lab", place: "Chacarota" },
-  { text: "Recorrer los talleres de Villa Urquisa cobrando deudas", stat: "lab", place: "Villa Urquisa" }
+  { text: "Custodiar un cargamento en los diques de Puerto Madero", stat: "dur", place: "Puerto Madero" },
+  { text: "Vigilar una mansión de Recoleta toda la noche", stat: "ref", place: "Recoleta" },
+  { text: "Llevar autos robados a un garaje de Villa Devoto", stat: "ref", place: "Villa Devoto" },
+  { text: "Trabajar de patovica en una fiesta de Palermo", stat: "fue", place: "Palermo" },
+  { text: "Cuidar un depósito de mercadería robada en La Paternal", stat: "dur", place: "La Paternal" },
+  { text: "Hacer el turno noche en un taller de Villa Luro", stat: "fue", place: "Villa Luro" },
+  { text: "Cobrar en todos los puestos de la feria de Flores", stat: "lab", place: "Flores" },
+  { text: "Seguir a un concejal por todo Belgrano", stat: "ref", place: "Belgrano" },
+  { text: "Descargar camiones sin papeles en la terminal de Retiro", stat: "fue", place: "Retiro" },
+  { text: "Custodiar una fiesta clandestina en Villa Crespo", stat: "dur", place: "Villa Crespo" },
+  { text: "Esconder un cargamento en un galpón de Chacarita", stat: "lab", place: "Chacarita" },
+  { text: "Recorrer los talleres de Villa Urquiza cobrando deudas", stat: "lab", place: "Villa Urquiza" }
 ];
 export function longMission(rng: Rng, lvl: number, hours: number, id: string): Mission {
   const gang = pick(rng, GANG_KEYS);

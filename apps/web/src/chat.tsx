@@ -22,7 +22,7 @@ export function Chat({ msgs, myName, onSent, toast, onName }: { msgs: ChatMsg[];
     finally { setSending(false); }
   };
   return <section className="chat">
-    <p className="tag">El chat de Maires: lo lee todo el que está conectado.</p>
+    <p className="tag">El chat de Buenos Aires: lo lee todo el que está conectado.</p>
     <ol ref={list} aria-live="polite">
       {msgs.length === 0 && <li className="empty">Todavía no habló nadie. Arrancá vos.</li>}
       {msgs.map(m => {

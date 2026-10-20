@@ -1,4 +1,4 @@
-# Balance de Maires
+# Balance de Buenos Aires
 
 Cómo está calibrado el juego, con qué objetivo y cómo volver a medirlo. Todos los números de este documento
 salen de herramientas que usan **las reglas reales del juego** (`packages/shared`):
@@ -54,6 +54,29 @@ siempre al round 12 y ganaba siempre el que tenía un punto más.
 
 Los rivales del juego crecen como crece un jugador que entrena parejo: **atributo ≈ 1,4 × nivel**, con equipo
 que acompaña hasta +24.
+
+### Tiempo real (etapa 1 de `docs/MUNDO.md`, 19/10/2026)
+
+Los viajes dejaron de estar comprimidos (antes, en la ciudad, 1 minuto real eran 4 de viaje). Lo que cambió con el bot:
+
+| | Antes | Ahora |
+|---|---|---|
+| Horas de reloj hasta nivel 10 (jugador muy activo) | 62–67 h | 147–164 h |
+| Energía hasta nivel 10 | 860–1.060 | 780–910 |
+| Tiempo entrenando | 39–51 % | ~10 % (el viaje ocupa ese tiempo) |
+| Plata que entra por misiones | 21–25 % | 47–49 % |
+| Gana en la calle | 68–80 % | 84–88 % |
+| Afinidad final con su pandilla | 68–73 % | 46–49 % |
+
+- Lo que pasa con el tiempo se estiró igual que los viajes, para que por viaje sea lo mismo que antes:
+  **las emboscadas** (una ventana cada 24 min en vez de 6) y **la vida que vuelve sola** (de cero a lleno en ~2 h en vez de 30 min).
+  La búsqueda que baja sola se probó estirada y no cambiaba nada: quedó igual.
+- **Por qué la calle y la afinidad se corrieron:** el bot juega sin parar, así que con los viajes reales queda limitado por el reloj y no por
+  la energía. Por cada punto de energía ve más tablones nuevos (se renuevan cada 6 h) y más veces llega curado. Un jugador casual
+  (unos 150 de energía por día) no tiene ese efecto: para él, los tablones y la vida van por día, no por energía.
+- Por eso las guardias de `tools/balance.test.ts` se aflojaron un poco (la calle hasta 88 % en vez de 80 %; la afinidad desde 45 % en vez de 50 %).
+  **Pendiente:** que el bot juegue también con un presupuesto diario de energía (propuesta 14 de Tomi, `docs/PROPUESTAS.md`) y volver
+  a ajustar las guardias con ese perfil.
 
 ### La calle (`npm run sim`)
 Probabilidad de ganar según el nivel del rival comparado con el tuyo:

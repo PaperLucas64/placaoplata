@@ -1,5 +1,5 @@
 /* El GPS: mapa real (OpenStreetMap, servido gratis y sin clave por OpenFreeMap) con un estilo oscuro propio y sin los
-   nombres reales de las calles: encima van los barrios de Maires. Muestra el recorrido de tu personaje y dónde está ahora.
+   nombres reales de las calles: encima van los barrios de Buenos Aires. Muestra el recorrido de tu personaje y dónde está ahora.
    Los recorridos vienen de tools/geo/build.py; se cargan aparte para no pesar en la primera pantalla. */
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";

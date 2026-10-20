@@ -5,7 +5,7 @@ Lo que hay que saber para trabajar en este repo. El detalle está en `README.md`
 
 ## Qué es
 
-- **Malandro**: juego de navegador estilo BiteFight, de Mauspi Lab (Lucas). Pasa en **Maires**, parodia de Buenos Aires.
+- **Malandro**: juego de navegador estilo BiteFight, de Mauspi Lab (Lucas). Pasa en **Buenos Aires**, con los barrios y lugares con su nombre real.
   - El repo se llama `placaoplata` por el nombre viejo («Placa o Plata»). No renombrar sin preguntar.
 - **Equipo:** Lucas (dueño, `PaperLucas64`) y Tomi, su amigo y colaborador.
   - Tomi hizo la auditoría de `docs/AUDITORIA.md`.
@@ -51,8 +51,7 @@ docs/             GDD, HISTORIA (modo historia), BALANCE, AUDITORIA, CREDITOS, N
   - Nada de personas reales (políticos, famosos, escritores, deportistas), ni vivas ni muertas.
   - Nada de marcas, modelos de auto, empresas, clubes, medios ni personajes con dueño (superhéroes, dibujos): siempre una versión genérica o inventada.
   - Provincias, países, ciudades **y barrios** van con su nombre de verdad (Córdoba, Mendoza, Rosario, Uruguay, Recoleta…).
-    Decidido el 19/10: Maires pasa a llamarse Buenos Aires y los barrios paródicos a su nombre real. Se hace en la etapa 1 de `docs/MUNDO.md`;
-    hasta entonces el código sigue con los nombres viejos.
+    Decidido el 19/10 y ya aplicado: Maires pasó a llamarse Buenos Aires y los barrios paródicos, a su nombre real (migración 013).
   - **Chat:** los insultos discriminatorios se frenan con la lista de `apps/server/src/moderation.ts` (también en los nombres de personaje).
 
 - **Secretos:** nunca escribir contraseñas, tokens ni la `DATABASE_URL` en el repo ni en el chat. Van en GitHub Secrets o en Render. Si alguien pega uno en el chat, no usarlo y recomendar cambiarlo.
@@ -66,9 +65,9 @@ docs/             GDD, HISTORIA (modo historia), BALANCE, AUDITORIA, CREDITOS, N
 Para el detalle, ver el GDD.
 
 - **Mapa:**
-  - Es el protagonista. Capital con 34 barrios de nombre paródico (Almagrito, Once y Medio, Puerto Mareo, Reloquita, Salida (=Retiro)…).
+  - Es el protagonista. Capital con 34 barrios con su nombre real (Almagro, Balvanera, Puerto Madero, Recoleta, Retiro…).
   - Los barrios tienen el color de la pandilla que los domina.
-  - Los viajes van por las cuadras reales (OSRM). Los pide el servidor.
+  - Los viajes van por las cuadras reales (OSRM) y duran lo mismo que en la vida real (desde la etapa 1 de `docs/MUNDO.md`).
 - **Interfaz estilo Google Maps:**
   - Menú lateral: Vos, Inventario, Amigos, Crónica, Clan (próximamente) y Chat.
   - Chat: un solo canal para toda la ciudad (`apps/server/src/chat.ts`, tabla `chat`). Llega en vivo por el WebSocket; los bots no hablan.
@@ -77,10 +76,10 @@ Para el detalle, ver el GDD.
   - Botón ⚔️ «Pelear» al costado: tres rivales como en BiteFight, atacar a uno al azar o buscar a otros.
   - El tablón de misiones está en el Bar La Esquina.
 - **Pandillas y jefes:**
-  - La Familia: Elvira «La Señora» Santoro, en Puerto Mareo.
-  - El Sindicato: Don Ramón Ferrante, el diarero, en Chacarota.
-  - La Barra: El Tano Lucero, en Ñuñez.
-  - Los Amarillos: Rita «Taxi» Quiroga, la taxista, en Once y Medio.
+  - La Familia: Elvira «La Señora» Santoro, en Puerto Madero.
+  - El Sindicato: Don Ramón Ferrante, el diarero, en Chacarita.
+  - La Barra: El Tano Lucero, en Núñez.
+  - Los Amarillos: Rita «Taxi» Quiroga, la taxista, en Balvanera.
 - **Modo historia** (`packages/shared/src/historia.ts`, `docs/HISTORIA.md`):
   - Temporada 1, Arco Capital Federal, Episodio 01 «Los inicios».
   - 15 misiones por jefe en 3 actos. Duran de 5 minutos a 18 horas; el viaje no cuenta.
@@ -112,5 +111,5 @@ Para el detalle, ver el GDD.
 
    También los costos de servidor: bots que no dejan dormir a Neon, límite de pedidos y limpieza de datos viejos.
 3. Viajar en subte entre barrios: las estaciones ya tienen nombres por línea.
-4. La terminal de Salida, para viajar al interior: «próximamente».
+4. La terminal de Retiro, para viajar al interior: «próximamente».
 5. Clanes: «Clan» está como próximamente.

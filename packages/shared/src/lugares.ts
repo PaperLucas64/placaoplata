@@ -1,4 +1,4 @@
-/* Los lugares de Maires, como los íconos del mapa de GTA: contactos que dan misiones, servicios, lugares para robar,
+/* Los lugares de Buenos Aires, como los íconos del mapa de GTA: contactos que dan misiones, servicios, lugares para robar,
    trabajos, negocios y eventos. Cada uno está en un punto real del mapa, en un barrio (de ahí sale el viaje).
    Se destraban con el progreso (tutorial, nivel, rango) o con eventos del calendario (Halloween). */
 import { houseOf, spotIn } from "./casas.js";
@@ -43,60 +43,60 @@ export const KIND_NAME: Record<LugarKind, string> = {
 
 const L = (l: Lugar) => l;
 export const LUGARES: Lugar[] = [
-  /* contactos (los «Lester» de Maires) */
-  L({ id: "bar-esquina", name: "Bar La Esquina", kind: "bar", icon: "bar", barrio: "Almagrito", lat: -34.6036, lng: -58.4206,
+  /* contactos (los «Lester» de Buenos Aires) */
+  L({ id: "bar-esquina", name: "Bar La Esquina", kind: "bar", icon: "bar", barrio: "Almagro", lat: -34.6036, lng: -58.4206,
       help: "El bar de Marga. Acá empezó todo: sus encargos y La valija." }),
-  L({ id: "senora", name: "La casona de La Señora", kind: "contacto", icon: "familia", gang: "familia", barrio: "Puerto Mareo", lat: -34.6088, lng: -58.3626,
+  L({ id: "senora", name: "La casona de La Señora", kind: "contacto", icon: "familia", gang: "familia", barrio: "Puerto Madero", lat: -34.6088, lng: -58.3626,
       help: "La Familia. Elvira Santoro, La Señora, recibe de noche y no repite las cosas.", tutDone: true }),
-  L({ id: "galpon3", name: "Galpón 3 del Sindicato", kind: "contacto", icon: "sindicato", gang: "sindicato", barrio: "Chacarota", lat: -34.5885, lng: -58.4545,
+  L({ id: "galpon3", name: "Galpón 3 del Sindicato", kind: "contacto", icon: "sindicato", gang: "sindicato", barrio: "Chacarita", lat: -34.5885, lng: -58.4545,
       help: "El Sindicato. Don Ramón Ferrante, el diarero, atiende desde su kiosco de revistas entre grúas y bombos.", tutDone: true }),
-  L({ id: "monumentito", name: "El Monumentito", kind: "contacto", icon: "barra", gang: "barra", barrio: "Ñuñez", lat: -34.5453, lng: -58.4498,
+  L({ id: "monumentito", name: "El Monumentito", kind: "contacto", icon: "barra", gang: "barra", barrio: "Núñez", lat: -34.5453, lng: -58.4498,
       help: "La Barra. El Tano Lucero vive en la tribuna, aunque no haya partido.", tutDone: true }),
-  L({ id: "remises-rita", name: "Radiotaxi Rita", kind: "contacto", icon: "amarillos", gang: "amarillos", barrio: "Once y Medio", lat: -34.6095, lng: -58.4045,
+  L({ id: "remises-rita", name: "Radiotaxi Rita", kind: "contacto", icon: "amarillos", gang: "amarillos", barrio: "Balvanera", lat: -34.6095, lng: -58.4045,
       help: "Los Amarillos. Rita «Taxi» Quiroga, taxista, maneja la ciudad desde una radio.", tutDone: true }),
-  L({ id: "comisaria", name: "Comisaría 4ª", kind: "policia", icon: "policia", barrio: "San Nicolasito", lat: -34.6045, lng: -58.38,
+  L({ id: "comisaria", name: "Comisaría 4ª", kind: "policia", icon: "policia", barrio: "San Nicolás", lat: -34.6045, lng: -58.38,
       help: "El comisario Funes ofrece trabajos sucios. La comisaria Ríos no se tiene que enterar.", lvl: POLICE_LVL }),
   /* servicios */
-  L({ id: "gimnasio", name: "Gimnasio de Don Tito", kind: "gym", icon: "gym", barrio: "Caballote", lat: -34.619, lng: -58.44,
+  L({ id: "gimnasio", name: "Gimnasio de Don Tito", kind: "gym", icon: "gym", barrio: "Caballito", lat: -34.619, lng: -58.44,
       help: "Entrenar y el ring de práctica. Don Tito vende también el suplemento.", tab: "gimnasio" }),
-  L({ id: "luna-parquecito", name: "Estadio Luna Parquecito", kind: "estadio", icon: "estadio", barrio: "San Nicolasito", lat: -34.6025, lng: -58.3685,
+  L({ id: "luna-parquecito", name: "Estadio Luna Parquecito", kind: "estadio", icon: "estadio", barrio: "San Nicolás", lat: -34.6025, lng: -58.3685,
       help: "El torneo mensual del Ring, en rondas suizas.", tab: "ring" }),
-  L({ id: "feria", name: "Feria del Parque Rivadavito", kind: "mercado", icon: "mercado", barrio: "Caballote", lat: -34.6185, lng: -58.4345,
+  L({ id: "feria", name: "Feria del Parque Rivadavito", kind: "mercado", icon: "mercado", barrio: "Caballito", lat: -34.6185, lng: -58.4345,
       help: "Libros, discos y, si preguntás bien, armas, cascos y chalecos. Al fondo, el mercado negro.", tab: "feria" }),
-  L({ id: "autos-bajo", name: "Autos de Cabildo", kind: "concesionaria", icon: "concesionaria", barrio: "Belgranito", lat: -34.562, lng: -58.456,
+  L({ id: "autos-bajo", name: "Autos de Cabildo", kind: "concesionaria", icon: "concesionaria", barrio: "Belgrano", lat: -34.562, lng: -58.456,
       help: "Motos y autos usados, y arreglos para el que tenga con qué.", tutDone: true }),
-  L({ id: "municipalidad", name: "Municipalidad de Maires", kind: "municipio", icon: "municipio", barrio: "Reloquita", lat: -34.5905, lng: -58.3915,
+  L({ id: "municipalidad", name: "Municipalidad de Buenos Aires", kind: "municipio", icon: "municipio", barrio: "Recoleta", lat: -34.5905, lng: -58.3915,
       help: "Acá se ve quién manda en cada barrio y el ranking de la ciudad.", tutDone: true }),
   /* para robar (los golpes pasan siempre en estos lugares) */
-  L({ id: "plaza-misere", name: "Plaza Misere", kind: "golpe", icon: "celulares", job: "celu", barrio: "Once y Medio", lat: -34.6098, lng: -58.4060,
+  L({ id: "plaza-misere", name: "Plaza Misere", kind: "golpe", icon: "celulares", job: "celu", barrio: "Balvanera", lat: -34.6098, lng: -58.4060,
       help: "Mucha gente mirando el teléfono. Mucha.", tutDone: true }),
-  L({ id: "estacionamiento-soja", name: "Estacionamiento de Palermo Soja", kind: "golpe", icon: "estereos", job: "estereo", barrio: "Palermo Soja", lat: -34.5876, lng: -58.4318,
+  L({ id: "estacionamiento-soja", name: "Estacionamiento de Palermo", kind: "golpe", icon: "estereos", job: "estereo", barrio: "Palermo", lat: -34.5876, lng: -58.4318,
       help: "Autos caros, estéreos más caros.", tutDone: true }),
-  L({ id: "desarmadero-tuerca", name: "Desarmadero El Tuerca", kind: "golpe", icon: "desarmadero", job: "desarme", barrio: "La Paterna", lat: -34.598, lng: -58.47,
+  L({ id: "desarmadero-tuerca", name: "Desarmadero El Tuerca", kind: "golpe", icon: "desarmadero", job: "desarme", barrio: "La Paternal", lat: -34.598, lng: -58.47,
       help: "Piezas sin número de motor, a la vista de todos.", tutDone: true }),
-  L({ id: "desarmadero-cacho", name: "Autopartes Lo de Cacho", kind: "golpe", icon: "desarmadero", job: "desarme", barrio: "Liniers Sur", lat: -34.638, lng: -58.524,
+  L({ id: "desarmadero-cacho", name: "Autopartes Lo de Cacho", kind: "golpe", icon: "desarmadero", job: "desarme", barrio: "Liniers", lat: -34.638, lng: -58.524,
       help: "Si te falta un repuesto, Cacho te lo consigue. De algún auto.", tutDone: true }),
-  L({ id: "estacion-costanera", name: "YPFita de la Costanera", kind: "golpe", icon: "estacion", job: "estacion", barrio: "Puerto Mareo", lat: -34.6050, lng: -58.3602,
+  L({ id: "estacion-costanera", name: "YPFita de la Costanera", kind: "golpe", icon: "estacion", job: "estacion", barrio: "Puerto Madero", lat: -34.6050, lng: -58.3602,
       help: "Abierta las 24 horas. El playero, también.", tutDone: true }),
-  L({ id: "estacion-avenida", name: "Shellita Avenida", kind: "golpe", icon: "estacion", job: "estacion", barrio: "Liniers Sur", lat: -34.6345, lng: -58.517,
+  L({ id: "estacion-avenida", name: "Shellita Avenida", kind: "golpe", icon: "estacion", job: "estacion", barrio: "Liniers", lat: -34.6345, lng: -58.517,
       help: "Sobre la General Paz.", tutDone: true }),
-  L({ id: "muelle4", name: "Muelle 4", kind: "golpe", icon: "puerto", job: "contra", barrio: "Puerto Mareo", lat: -34.6002, lng: -58.3642,
+  L({ id: "muelle4", name: "Muelle 4", kind: "golpe", icon: "puerto", job: "contra", barrio: "Puerto Madero", lat: -34.6002, lng: -58.3642,
       help: "Lo que entra sin papeles entra por acá.", tutDone: true }),
-  L({ id: "financiera", name: "Financiera Las Cuevas", kind: "golpe", icon: "banco", job: "financ", barrio: "Once y Medio", lat: -34.6075, lng: -58.4000,
+  L({ id: "financiera", name: "Financiera Las Cuevas", kind: "golpe", icon: "banco", job: "financ", barrio: "Balvanera", lat: -34.6075, lng: -58.4000,
       help: "Cambian dólares, prestan pesos y no preguntan nada.", tutDone: true }),
   /* trabajos honestos */
-  L({ id: "bicis-rodado", name: "Bicis Rodado 26", kind: "laburo", icon: "reparto", job: "bici", barrio: "Palermo Soja", lat: -34.5896, lng: -58.4285,
+  L({ id: "bicis-rodado", name: "Bicis Rodado 26", kind: "laburo", icon: "reparto", job: "bici", barrio: "Palermo", lat: -34.5896, lng: -58.4285,
       help: "Repartos en bici. Paga poco, se cobra en el día." }),
-  L({ id: "lavadero-costanera", name: "Lavadero de la estación", kind: "laburo", icon: "lavadero", job: "lavado", barrio: "Puerto Mareo", lat: -34.6058, lng: -58.3612,
+  L({ id: "lavadero-costanera", name: "Lavadero de la estación", kind: "laburo", icon: "lavadero", job: "lavado", barrio: "Puerto Madero", lat: -34.6058, lng: -58.3612,
       help: "Lavar autos que no son tuyos, por ahora." }),
-  L({ id: "boliche-puerta", name: "Puerta del boliche Soja", kind: "laburo", icon: "boliche", job: "puerta", barrio: "Palermo Soja", lat: -34.5866, lng: -58.4308,
+  L({ id: "boliche-puerta", name: "Puerta del boliche Soja", kind: "laburo", icon: "boliche", job: "puerta", barrio: "Palermo", lat: -34.5866, lng: -58.4308,
       help: "Decidir quién entra y quién no." }),
-  L({ id: "remiseria-noche", name: "Remisería Nocturna", kind: "laburo", icon: "taxi", job: "chofer", barrio: "Once y Medio", lat: -34.6110, lng: -58.4025,
+  L({ id: "remiseria-noche", name: "Remisería Nocturna", kind: "laburo", icon: "taxi", job: "chofer", barrio: "Balvanera", lat: -34.6110, lng: -58.4025,
       help: "Manejar de noche a gente que no quiere ser vista." }),
-  L({ id: "deposito7", name: "Depósito 7", kind: "laburo", icon: "deposito", job: "deposito", barrio: "Puerto Mareo", lat: -34.6030, lng: -58.3655,
+  L({ id: "deposito7", name: "Depósito 7", kind: "laburo", icon: "deposito", job: "deposito", barrio: "Puerto Madero", lat: -34.6030, lng: -58.3655,
       help: "Seguridad en un depósito del puerto. Mirar sin ver." }),
   /* evento: Halloween */
-  L({ id: "cementerio", name: "Cementerio de Reloquita", kind: "evento", icon: "calabaza", event: "halloween", barrio: "Reloquita", lat: -34.5876, lng: -58.3932,
+  L({ id: "cementerio", name: "Cementerio de Recoleta", kind: "evento", icon: "calabaza", event: "halloween", barrio: "Recoleta", lat: -34.5876, lng: -58.3932,
       help: "Noche de Brujas: alguien está robando de las bóvedas.", tutDone: true })
 ];
 /* tiendas de un rubro: salud, armas y ropa (la feria vende de todo) */
@@ -104,15 +104,15 @@ const tienda = (id: string, name: string, shop: ShopKind, icon: string, barrio: 
   const [lat, lng] = spotIn(barrio, id);
   return { id, name, kind: "mercado", icon, shop, barrio, lat, lng, help, tab: "feria" };
 };
-const [tLat, tLng] = spotIn("Salida", "terminal");
+const [tLat, tLng] = spotIn("Retiro", "terminal");
 LUGARES.push(
-  tienda("drogueria-agro", "Droguería Agromanía", "salud", "farmacia", "Agromanía", "Todo lo de salud: botiquines y suplementos, sin receta y sin preguntas."),
-  tienda("farmacia-once", "Farmacia Gran Once", "salud", "farmacia", "Once y Medio", "Botiquines y suplementos. Abierta las 24 horas, aunque el cartel diga que no."),
-  tienda("armeria-cazador", "Armería El Cazador", "armas", "armeria", "Floreros", "Armas blancas y de fuego. «Para caza y pesca», dice el cartel."),
-  tienda("cuchilleria-mosecraft", "Cuchillería La Colonial", "armas", "armeria", "Mosecraft", "Cuchillos, bastones y alguna cosa que no está en la vidriera."),
-  tienda("galeria-avellanedita", "Galería Avellanedita", "ropa", "ropa", "Floreros", "Ropa, cascos y chalecos a precio de fábrica."),
-  tienda("roperia-soja", "Ropería Palermo Soja", "ropa", "ropa", "Palermo Soja", "Lo mismo que en Avellanedita, pero el triple de caro y con música."),
-  { id: "terminal-salida", name: "Terminal de Ómnibus de Salida", kind: "terminal", icon: "terminal", barrio: "Salida", lat: tLat, lng: tLng,
+  tienda("drogueria-agro", "Droguería Agronomía", "salud", "farmacia", "Agronomía", "Todo lo de salud: botiquines y suplementos, sin receta y sin preguntas."),
+  tienda("farmacia-once", "Farmacia Gran Once", "salud", "farmacia", "Balvanera", "Botiquines y suplementos. Abierta las 24 horas, aunque el cartel diga que no."),
+  tienda("armeria-cazador", "Armería El Cazador", "armas", "armeria", "Flores", "Armas blancas y de fuego. «Para caza y pesca», dice el cartel."),
+  tienda("cuchilleria-mosecraft", "Cuchillería La Colonial", "armas", "armeria", "Monserrat", "Cuchillos, bastones y alguna cosa que no está en la vidriera."),
+  tienda("galeria-avellanedita", "Galería Avellaneda", "ropa", "ropa", "Flores", "Ropa, cascos y chalecos a precio de fábrica."),
+  tienda("roperia-soja", "Ropería Palermo", "ropa", "ropa", "Palermo", "Lo mismo que en Avellaneda, pero el triple de caro y con música."),
+  { id: "terminal-salida", name: "Terminal de Ómnibus de Retiro", kind: "terminal", icon: "terminal", barrio: "Retiro", lat: tLat, lng: tLng,
     help: "Micros a todo el país. Próximamente vas a poder viajar a otras provincias." }
 );
 

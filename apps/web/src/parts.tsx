@@ -148,7 +148,7 @@ function Diary({ s }: { s: PlayerState }) {
             <h5><span className="num">{m.story}</span> {m.title}</h5>
             <div className="tag">{fecha(d.t)} · {m.place} · {d.got} de {d.of} etapas salieron bien</div>
             <p>{m.lore}</p>
-            {d.city?.length ? <div className="city-news"><span className="tag">Mientras tanto, en Maires:</span>{d.city.map((c, k) => <span key={k}>{c}</span>)}</div> : null}
+            {d.city?.length ? <div className="city-news"><span className="tag">Mientras tanto, en Buenos Aires:</span>{d.city.map((c, k) => <span key={k}>{c}</span>)}</div> : null}
           </article></div>;
         })}
       </details>;
@@ -177,7 +177,7 @@ function SideDiary({ s }: { s: PlayerState }) {
   const [open, setOpen] = useState<string | null>("raro");
   return <div className="diary">
     <header><span className="tag">Misiones secundarias</span>
-      <h3>Lo que te cruzaste en Maires</h3>
+      <h3>Lo que te cruzaste en Buenos Aires</h3>
       <span className="num tag">{got} de {SIDE_QUESTS.length} descubiertas</span></header>
     {groups.map(g => {
       const list = SIDE_QUESTS.filter(q => q.kind === g.kind), n = list.filter(q => s.secundarias?.[q.key]).length;

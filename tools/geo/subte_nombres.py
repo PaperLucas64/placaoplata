@@ -1,10 +1,10 @@
-"""Nombres de Maires para las estaciones de subte: python tools/geo/subte_nombres.py (después de subte.py)
+"""Nombres de Buenos Aires para las estaciones de subte: python tools/geo/subte_nombres.py (después de subte.py)
 Cada línea tiene su tema: A provincias, B animales autóctonos, C ríos famosos, D mares de Argentina,
 E fechas patrias y H comidas. Guarda el nombre real en "real" y la línea en "line"."""
 import json, os
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-# en orden de punta a punta: estación real -> nombre de Maires
+# en orden de punta a punta: estación real -> nombre de Buenos Aires
 LINEAS = {
   "A": [("Plaza de Mayo", "Jujuy"), ("Perú", "Salta"), ("Piedras", "Formosa"), ("Lima", "Chaco"), ("Sáenz Peña", "Tucumán"),
         ("Congreso - Raúl Alfonsín", "Misiones"), ("Pasco", "Corrientes"), ("Alberti", "Catamarca"), ("Plaza Miserere", "Santiago del Estero"),

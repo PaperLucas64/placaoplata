@@ -1,6 +1,6 @@
 # Malandro — Game Design Document
 
-> El juego se llama **Malandro**; la ciudad donde pasa todo es **Maires** (parodia de Buenos Aires).
+> El juego se llama **Malandro**; la ciudad donde pasa todo es **Buenos Aires** (parodia de Buenos Aires).
 
 **Estudio:** Mauspi Lab · **Versión del documento:** 2.0 (15/10/2026) · **Estado:** jugable online, en prueba entre amigos
 **Dónde se juega:** https://cinectomia.com/juego/ · **Repo:** github.com/PaperLucas64/placaoplata
@@ -9,7 +9,7 @@ Relacionados: [BALANCE.md](BALANCE.md) (números y cómo medirlos) · [CREDITOS.
 > Los números salen del código (`packages/shared/src`: `config.ts`, `data.ts`, `gangs.ts`, `rules.ts`, `actions.ts`).
 > Si se cambia un número allá, actualizar acá.
 
-**Nombre:** Maires, parodia de Buenos Aires (como Los Santos con Los Ángeles). Antes se llamó "Placa o Plata", "Bahía Gris" y "Malos Aires".
+**Nombre:** Buenos Aires, parodia de Buenos Aires (como Los Santos con Los Ángeles). Antes se llamó "Placa o Plata", "Bahía Gris" y "Malos Aires".
 
 **Cambio de la versión 2:** ya no se elige entre policía y delincuente. Hay **cuatro pandillas** y pertenecés a la que
 más trabajaste (afinidad dinámica). La policía pasó a ser una **amenaza para todos**. Se agregó **la casa** (base del jugador).
@@ -18,7 +18,7 @@ más trabajaste (afinidad dinámica). La policía pasó a ser una **amenaza para
 
 ## 1. Visión
 
-Juego de navegador por energía, al estilo **BiteFight**, en **Maires**, una ciudad portuaria rioplatense de noche.
+Juego de navegador por energía, al estilo **BiteFight**, en **Buenos Aires**, una ciudad portuaria rioplatense de noche.
 Llegás solo con tu nombre, hacés trabajos para las **cuatro pandillas** que se pelean la ciudad y terminás siendo de la que
 más te banque. Peleás contra pandilleros de las otras —personajes y **jugadores reales**—, esquivás a la policía y
 armás tu casa.
@@ -112,16 +112,16 @@ emboscadas rechazadas (+2/+3). Perder una pelea que iniciaste: −2.
 6 encargos que destraban Trabajos, Gimnasio, Feria, Ring, Clínica y Misiones, más la misión «La valija».
 Al terminarlo se abren **La calle, la Casa y el Ranking**, los golpes y los encargos de las pandillas. Dura ~32 de energía.
 
-### 5.2 Maires = Capital (por ahora)
+### 5.2 Buenos Aires = Capital (por ahora)
 El mapa es la Capital del sur de las autopistas 25 de Mayo y Perito Moreno hacia el norte, hasta la General Paz y el río
 (con la Reserva y Aeroparque): **34 barrios oficiales pegados**, cada uno con su nombre de parodia y su contorno:
-Agromanía, Almagrito, Once y Medio, Belgranito, Caballote, Chacarota, Coglán, Colegas, Floreros, Florestita, Liniers Sur,
-Mosecraft, Monte Castrito, Ñuñez, Palermo Soja, Parque Chau, La Paterna, Puerto Mareo, Reloquita, Salida (Retiro),
-Saavedrita, San Nicolasito, Vélez Sarsfeel, Versalles Chico, Villa Crespa, Villa del Charque, Villa Devota, Villa Mitrecito,
-Villa Lurio, Villa Ortuzán, Villa Puerredón, Villa Realeza, Villa Santa Rata y Villa Urquisa. El sur, el conurbano y el
+Agronomía, Almagro, Balvanera, Belgrano, Caballito, Chacarita, Coghlan, Colegiales, Flores, Floresta, Liniers,
+Monserrat, Monte Castro, Núñez, Palermo, Parque Chas, La Paternal, Puerto Madero, Recoleta, Retiro (Retiro),
+Saavedra, San Nicolás, Vélez Sarsfield, Versalles, Villa Crespo, Villa del Parque, Villa Devoto, Villa General Mitre,
+Villa Luro, Villa Ortúzar, Villa Pueyrredón, Villa Real, Villa Santa Rita y Villa Urquiza. El sur, el conurbano y el
 interior quedan para más adelante.
 - **Naciste en un barrio al azar** (ahí está tu pieza de pensión) y después te mudás.
-- **Barrio de cada pandilla:** La Familia, Puerto Mareo · El Sindicato, Chacarota · La Barra, Ñuñez · Los Amarillos, Once y Medio.
+- **Barrio de cada pandilla:** La Familia, Puerto Madero · El Sindicato, Chacarita · La Barra, Núñez · Los Amarillos, Balvanera.
 - **Los viajes van por las cuadras:** el servidor calcula el camino real (OpenStreetMap) desde donde estés, cada vez que
   salís; la vuelta a casa también. Por ahora sin subte ni tren (hay que rearmarlos para Capital).
 - **Actividad rápida** (al lado de «Ficha»): te manda a una misión o a un golpe al azar de los que podés hacer ahora.
@@ -136,28 +136,28 @@ interior quedan para más adelante.
 - **Tocar un barrio** (como el mapa de Helldivers) lo acerca y muestra quién manda, las misiones que pasan ahí, todo lo que hay
   y las casas en venta. **Cada barrio tiene** su salita (o hospital), clínica si es caro, kiosco (botiquines), inmobiliaria con
   3 casas (precios según el barrio: humilde ×0,7, medio ×1, caro ×1,5) y sus estaciones de subte (71, de OpenStreetMap).
-- Monsefrat pasa a llamarse **Mosecraft**.
+- Monsefrat pasa a llamarse **Monserrat**.
 
 ### 5.2a El mapa es el juego (lugares, como en GTA)
 El mapa muestra **lugares con íconos** (pines de colores, como los de GTA). Al tocar uno se abre lo que podés hacer ahí:
-- **Contactos** (los «Lester» de Maires): Bar La Esquina (Marga: tutorial y La valija) · la casona de La Señora (Puerto Mareo) ·
-  Galpón 3 (Don Ramón Ferrante, Barrancas) · La Bombonerita (El Tano, La Bocota) · Radiotaxi Rita (Once y Medio) · Comisaría 4ª
+- **Contactos** (los «Lester» de Buenos Aires): Bar La Esquina (Marga: tutorial y La valija) · la casona de La Señora (Puerto Madero) ·
+  Galpón 3 (Don Ramón Ferrante, Barrancas) · La Bombonerita (El Tano, La Boca) · Radiotaxi Rita (Balvanera) · Comisaría 4ª
   (Funes, desde nivel 5). Cada uno tiene su encargo, su historia, las historias de la ciudad desde su lado y sus pedidos.
   El número rojo es cuántas misiones te tiene.
-- **Servicios:** tu casa · Gimnasio de Don Tito · Estadio Luna Parquecito (torneo) · Feria de usados de Pompeya Chica ·
+- **Servicios:** tu casa · Gimnasio de Don Tito · Estadio Luna Parquecito (torneo) · Feria de usados de Nueva Pompeya ·
   Concesionaria Autos del Bajo · Municipalidad (barrios y ranking) · hospitales y clínicas.
-- **Para robar** (los golpes pasan siempre ahí): Plaza Misere (celulares), estacionamiento de Palermo Soja (estéreos),
+- **Para robar** (los golpes pasan siempre ahí): Plaza Misere (celulares), estacionamiento de Palermo (estéreos),
   Desarmadero El Tuerca y Autopartes Lo de Cacho, YPFita de la Costanera y Shellita Avenida, Muelle 4, Financiera Las Cuevas.
 - **Trabajos honestos:** Bicis Rodado 26, lavadero de la estación, puerta del boliche Soja, Remisería Nocturna, Depósito 7.
 - **Negocios** (los tuyos y los que se pueden comprar) y las **misiones del tablón** como banderitas en su barrio.
-- **Eventos:** Noche de Brujas (24/10 al 2/11): el Cementerio de Reloquita con 3 misiones encadenadas y una máscara de
+- **Eventos:** Noche de Brujas (24/10 al 2/11): el Cementerio de Recoleta con 3 misiones encadenadas y una máscara de
   calabaza de regalo (cabeza, reflejos +2, dureza +2; no se vende).
 - Los lugares aparecen a medida que avanzás (tutorial, nivel, rango) o con los eventos. De lejos se ven solo los importantes;
   acercándote, todos. Íconos de colores (Noto Emoji, provisorios).
 - **Pantalla:** el mapa ocupa todo. Arriba, una barra con tu personaje, vida, energía, experiencia, búsqueda, plata y lo que
   estás haciendo (con «Ficha» para ver todo). Al tocar un lugar se abre encima del mapa (al costado en compu, desde abajo en el
   teléfono). Las pestañas quedan debajo, como menú, mientras todo pasa al mapa.
-- **Reloquita** (antes «Recoleta Bien»).
+- **Recoleta** (antes «Recoleta Bien»).
 - **Barrios con su contorno real** (de la Ciudad y Florida), pintados del color de la pandilla que los controla; el resto de la
   ciudad con una línea tenue. El zoom es con la ruedita del mouse.
 
@@ -243,7 +243,7 @@ con placas (+15, $2.200) · rango 3 recortada / chaleco robado (+19, $3.800) · 
 Premios: $150 / $500 / $1.800 · 60 / 180 / 600 XP · 30 / 90 / 300 respeto · +10 / +20 / +35 calor · +10 / +20 / +40 afinidad.
 
 **Tablón de la calle (misiones generadas):** 4 misiones de pandilla a tu nivel (de 1 a 50 y más), una por dificultad, cada una de una
-pandilla al azar, **más una de los vecinos, una de la policía (desde nivel 5) y hasta dos de tus negocios** (ver abajo). Se arman combinando **los 34 barrios de Maires** (Capital, entre la General Paz, el Riachuelo y el río), **6 objetivos
+pandilla al azar, **más una de los vecinos, una de la policía (desde nivel 5) y hasta dos de tus negocios** (ver abajo). Se arman combinando **los 34 barrios de Buenos Aires** (Capital, entre la General Paz, el Riachuelo y el río), **6 objetivos
 por pandilla**, etapas por atributo y un rival (pandillero o policía): cientos de combinaciones. Se renueva cada 6 horas o
 pagando 2 de energía.
 
@@ -282,8 +282,8 @@ Pagan `(10 + 2,4 × nivel) × (6 + 3 × horas)` de plata (12 h: 42 energías de 
 
 | Historia | Capítulo 1 | Capítulo 2 | Capítulo 3 |
 |---|---|---|---|
-| **La semana del clásico** (Bocota Juniors vs. Ríver Plateado) | Trapos y apuestas · La Bocota · rango 0 · 15 min | El árbitro · Villa Crespa · rango 1 · 30 min | La revancha en Rosarito · **interior** · rango 2 · 45 min |
-| **El Río Bravo** (un contenedor sin declarar con los libros del intendente) | Llega el barco · Puerto Mareo · rango 1 · 15 min | Lo que había adentro · Barrancas · rango 2 · 30 min | El intendente · Reloquita · rango 3 · 45 min |
+| **La semana del clásico** (Bocota Juniors vs. Ríver Plateado) | Trapos y apuestas · La Boca · rango 0 · 15 min | El árbitro · Villa Crespo · rango 1 · 30 min | La revancha en Rosario · **interior** · rango 2 · 45 min |
+| **El Río Bravo** (un contenedor sin declarar con los libros del intendente) | Llega el barco · Puerto Madero · rango 1 · 15 min | Lo que había adentro · Barrancas · rango 2 · 30 min | El intendente · Recoleta · rango 3 · 45 min |
 
 Pruebas: dificultad 6 / 10 / 15 (clásico) y 8 / 13 / 19 (Río Bravo); piden esa dificultad +1 y esa misma en los dos atributos.
 Premios: clásico $200 / $600 / $1.500; Río Bravo $400 / $1.100 / $2.600 (con XP, respeto y calor en proporción).
@@ -300,22 +300,22 @@ pasan solo mientras viajás o volvés. En tu casa, adentro de un lugar o curánd
 
 **Curarte (pestaña Clínica):**
 - **Guardia** de un hospital público (Argerico, Ramos Mejido, Fernandito, Penita, Santojanito, Rivadavio, de Barrancas,
-  Central de San Isidrón, Fiorito Chico, Posadito): gratis, vas **caminando** (o en colectivo si es lejos) a la más cercana
+  Central de San Isidro, Fiorito Chico, Posadito): gratis, vas **caminando** (o en colectivo si es lejos) a la más cercana
   y esperás (hasta 15 min según lo que te falte). Volvés caminando.
-- **Clínica privada** (Sanatorio Reloquita, Clínica Palermo Soja, Clínica del Puerto, Sanatorio de la Costa): pagás
+- **Clínica privada** (Sanatorio Recoleta, Clínica Palermo, Clínica del Puerto, Sanatorio de la Costa): pagás
   `$0,25 × vida que falta + $15`, te busca una **ambulancia** (45 km/h), 2 min de atención, y la ambulancia te deja en casa.
 - Desde que salís hasta que te dan el alta **nadie te puede tocar**; en ambulancia, tampoco a la vuelta.
 - El **botiquín** sigue siendo al instante.
-- Cada misión pasa en un lugar. Tu personaje **sale de la pensión** (San Telmón), **viaja**, hace el trabajo y **vuelve**.
+- Cada misión pasa en un lugar. Tu personaje **sale de la pensión** (San Telmo), **viaja**, hace el trabajo y **vuelve**.
   La misión dura `ida + trabajo + vuelta`. Las etapas se resuelven mientras estás en el lugar.
 - **GPS:** mapa real (OpenStreetMap, estilo oscuro de CARTO) con el recorrido y tu personaje moviéndose. Dice cuántos km
   faltan y en cuántos minutos llegás. Los recorridos son reales: calles para autos y colectivos, veredas a pie, y las vías
   de verdad del subte (líneas A, B, C, D) y los trenes (Mitre, Sarmiento, Roca), calculados una vez con `tools/geo/build.py`.
-- **Conurbano:** Zona Norte (Tigre Mojado, San Isidrón, Pilar de Oro), Zona Sur (Avellanada, Lomas de Zafarrancho,
-  Quilmates) y Zona Oeste (Moronga, La Matancera, Moreno del Fondo), con trenes reales (Mitre, San Martín, Roca, Sarmiento).
+- **Conurbano:** Zona Norte (Tigre, San Isidro, Pilar), Zona Sur (Avellaneda, Lomas de Zamora,
+  Quilmes) y Zona Oeste (Morón, La Matanza, Moreno), con trenes reales (Mitre, San Martín, Roca, Sarmiento).
   Ahí pasan los trabajos largos. A pie solo se puede ir a lo que está a menos de 20 km.
-- **Los barrios son lugares reales con nombre de parodia** (La Bocota = La Boca, Puerto Mareo = Puerto Madero,
-  San Telmón = San Telmo, etc.). **Interior:** La Plata Dulce, Rosarito, Mar del Plato y Cordobita.
+- **Los barrios son lugares reales con nombre de parodia** (La Boca = La Boca, Puerto Madero = Puerto Madero,
+  San Telmo = San Telmo, etc.). **Interior:** La Plata, Rosario, Mar del Plata y Córdoba.
 - El viaje se comprime: en la ciudad, 1 minuto de verdad son 4 de viaje; en la ruta (más de 50 km), 8.
 
 | Medio | Velocidad | Costo (ida y vuelta) | Dónde | Riesgo en cada tramo |
@@ -377,8 +377,8 @@ siga, y cuántos hay en línea y en la calle.
 - No se puede entrar con sus cuentas. Se apagan con la variable `BOTS=0` en el servidor.
 
 ### 5.8b Territorio (pestaña Ciudad)
-- **34 barrios** de Capital (los de `packages/shared/data/barrios.json`). Barrio de cada pandilla: Familia → Puerto Mareo,
-  Sindicato → Chacarota, Barra → Ñuñez, Amarillos → Once y Medio.
+- **34 barrios** de Capital (los de `packages/shared/data/barrios.json`). Barrio de cada pandilla: Familia → Puerto Madero,
+  Sindicato → Chacarita, Barra → Núñez, Amarillos → Balvanera.
 - **Influencia:** cada barrio tiene la de las cuatro pandillas. Se gana trabajando para una:
 
 | Qué | Influencia | Para quién | Dónde |
@@ -409,27 +409,27 @@ Negocios: dejan plata por hora aunque no estés; hay que pasar a **cobrar** (jun
 
 | Negocio | Nivel | Precio | Por hora | Se paga solo en | Extra |
 |---|---|---|---|---|---|
-| Maxikiosco 24 horas (Once y Medio) | 4 | $2.500 | $25 | 100 h | |
-| Licencia de taxi (San Telmón) | 8 | $6.000 | $50 | 120 h | misión a Mar del Plato |
-| Plantación en una terraza (Palermo Soja) | 12 | $12.000 | $110 | 109 h | +2 de calor por cobro; misión a Rosarito |
-| Lavadero de autos (Barrancas) | 16 | $22.000 | $180 | 122 h | misión a La Plata Dulce |
-| Taller mecánico (Mataderos) | 20 | $35.000 | $260 | 135 h | arreglos del garaje 30% más baratos; misión a Cordobita |
-| Boliche en Palermo Soja | 25 | $60.000 | $420 | 143 h | misión a Mar del Plato |
+| Maxikiosco 24 horas (Balvanera) | 4 | $2.500 | $25 | 100 h | |
+| Licencia de taxi (San Telmo) | 8 | $6.000 | $50 | 120 h | misión a Mar del Plata |
+| Plantación en una terraza (Palermo) | 12 | $12.000 | $110 | 109 h | +2 de calor por cobro; misión a Rosario |
+| Lavadero de autos (Barrancas) | 16 | $22.000 | $180 | 122 h | misión a La Plata |
+| Taller mecánico (Mataderos) | 20 | $35.000 | $260 | 135 h | arreglos del garaje 30% más baratos; misión a Córdoba |
+| Boliche en Palermo | 25 | $60.000 | $420 | 143 h | misión a Mar del Plata |
 
 Garaje: **moto** desde nivel 15 ($6.000) y **auto** desde nivel 25 ($25.000), con los arreglos de §5.7d.
 
 ### 5.9 La casa
-**Mudarte:** arrancás en una pieza de pensión (San Telmón). Cada casa queda en un barrio (de ahí salen tus viajes) y deja
+**Mudarte:** arrancás en una pieza de pensión (San Telmo). Cada casa queda en un barrio (de ahí salen tus viajes) y deja
 mejorar la cama, la caja fuerte y el armario hasta cierto nivel:
 
 | Casa | Barrio | Nivel | Precio | Mejoras hasta |
 |---|---|---|---|---|
-| Pieza de pensión | San Telmón | 1 | gratis | nivel 1 |
-| Departamento de un ambiente | Once y Medio | 6 | $4.000 | 2 |
-| PH con terraza | Villa Crespa | 10 | $10.000 | 3 |
+| Pieza de pensión | San Telmo | 1 | gratis | nivel 1 |
+| Departamento de un ambiente | Balvanera | 6 | $4.000 | 2 |
+| PH con terraza | Villa Crespo | 10 | $10.000 | 3 |
 | Casa con patio | Barrancas | 15 | $25.000 | 4 |
-| Chalet con pileta | San Isidrón (Zona Norte) | 22 | $60.000 | 5 |
-| Mansión | Reloquita | 28 | $120.000 | 5 |
+| Chalet con pileta | San Isidro (Zona Norte) | 22 | $60.000 | 5 |
+| Mansión | Recoleta | 28 | $120.000 | 5 |
 
 Se mejora con plata y **tiempo de obra** (una obra a la vez, no te bloquea).
 
@@ -512,15 +512,15 @@ La caja fuerte resuelve "no hay banco" con tope ampliable: la plata grande sigue
 
 ## Novedades (15/10/2026)
 
-- **Nombre:** el juego se llama **Malandro**; la ciudad, Maires.
+- **Nombre:** el juego se llama **Malandro**; la ciudad, Buenos Aires.
 - **Pantalla:** vida, energía, XP y plata siempre a la vista. El menú quedó en Vos, Inventario, Amigos, Crónica y Crear clan (próximamente). Lo demás se hace tocando lugares del mapa.
 - **Arranque:** naciste en una de 10 pensiones fijas, al azar. Cada casa, hospital, contacto y misión tiene su punto exacto en el mapa.
 - **Para robar:** 1 o 2 locales por barrio (kiosco, pet shop, cyber, farmacia, electro, joyería), con golpes propios.
 - **Tiendas por rubro:**
-  - salud: Droguería Agromanía, Farmacia Gran Once
+  - salud: Droguería Agronomía, Farmacia Gran Once
   - armas: Armería El Cazador, Cuchillería La Colonial
-  - ropa: Galería Avellanedita, Ropería Palermo Soja
-- **Terminal de Ómnibus de Salida:** viajes al interior, próximamente.
+  - ropa: Galería Avellaneda, Ropería Palermo
+- **Terminal de Ómnibus de Retiro:** viajes al interior, próximamente.
 - **Subte:** cada línea tiene un tema para los nombres de sus estaciones (ver `tools/geo/subte_nombres.py`):
   - A: provincias
   - B: animales autóctonos

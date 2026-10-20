@@ -1,4 +1,4 @@
-/* Palabras que no van en Maires: insultos racistas, xenófobos, homofóbicos, transfóbicos, capacitistas y nazis.
+/* Palabras que no van en Buenos Aires: insultos racistas, xenófobos, homofóbicos, transfóbicos, capacitistas y nazis.
    Se usan en el chat y en los nombres de personaje. Los insultos de todos los días ("boludo", "forro") no se frenan:
    lo que se frena es discriminar. Para agregar una palabra, sumala a la lista que corresponda (en minúscula, sin tildes).
 

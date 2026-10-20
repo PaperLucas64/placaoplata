@@ -418,7 +418,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const r = await db.query<{ id: number; name: string; state: PlayerState; created: string }>(
       `SELECT p.id, p.name, p.state, extract(epoch from u.created_at) * 1000 AS created FROM players p JOIN users u ON u.id = p.user_id WHERE p.id = $1`, [otherId]);
     const p = r.rows[0];
-    if (!p) throw new GameError("No hay nadie así en Maires.");
+    if (!p) throw new GameError("No hay nadie así en Buenos Aires.");
     const s = p.state;
     const f = await db.query<{ a_id: number; accepted: boolean }>(
       `SELECT a_id, accepted FROM friends WHERE (a_id = $1 AND b_id = $2) OR (a_id = $2 AND b_id = $1)`, [id, otherId]);
@@ -437,7 +437,7 @@ export function makeGame(db: Db, notify: (playerId: number, msg: unknown) => voi
     const id = await idOf(userId);
     if (typeof name !== "string" || !name.trim()) throw new GameError("Escribí el nombre de tu amigo.");
     const other = (await db.query<{ id: number }>(`SELECT id FROM players WHERE lower(name) = lower($1)`, [name.trim()])).rows[0];
-    if (!other) throw new GameError("No hay nadie con ese nombre en Maires.");
+    if (!other) throw new GameError("No hay nadie con ese nombre en Buenos Aires.");
     if (other.id === id) throw new GameError("No podés ser tu propio amigo (bueno, sí, pero no acá).");
     return db.tx(async q => {
       const back = await q.query(`SELECT accepted FROM friends WHERE a_id = $1 AND b_id = $2`, [other.id, id]);

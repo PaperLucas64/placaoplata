@@ -1,5 +1,5 @@
 """Estaciones de subte de Capital (OpenStreetMap, ODbL): python tools/geo/subte.py
-Sale packages/shared/data/subte.json: [{name, lines, lat, lng, barrio}] solo las que caen adentro de los barrios de Maires."""
+Sale packages/shared/data/subte.json: [{name, lines, lat, lng, barrio}] solo las que caen adentro de los barrios de Buenos Aires."""
 import json, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from build import overpass, ROOT

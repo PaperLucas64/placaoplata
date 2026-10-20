@@ -8,7 +8,9 @@ const runs = (gang: Gang) => summarize(Array.from({ length: 10 }, (_, i) => play
 
 describe.each(["familia", "sindicato", "barra", "amarillos"] as Gang[])("balance de %s", gang => {
   const r = runs(gang);
-  it("haciendo lo suyo, el jugador termina siendo de esa pandilla", () => expect(r.share).toBeGreaterThanOrEqual(50));
+  /* con los viajes en tiempo real el bot (que juega sin parar) ve más tablones por energía y termina más repartido:
+     ver docs/BALANCE.md, «Tiempo real». Antes era 50. */
+  it("haciendo lo suyo, el jugador termina siendo de esa pandilla", () => expect(r.share).toBeGreaterThanOrEqual(45));
   it("el tutorial entra en la primera sesión", () => expect(r.events["misión valija"]).toBeLessThanOrEqual(ENERGY_MAX));
   it("los rangos llegan a buen ritmo", () => {
     expect(r.ranks[1]).toBeLessThan(150);           // primer día
@@ -22,7 +24,7 @@ describe.each(["familia", "sindicato", "barra", "amarillos"] as Gang[])("balance
   });
   it("la calle no es ni un trámite ni imposible", () => {
     expect(r.fights.calle).toBeGreaterThan(45);
-    expect(r.fights.calle).toBeLessThanOrEqual(80);
+    expect(r.fights.calle).toBeLessThanOrEqual(88); // antes 80; ver docs/BALANCE.md, «Tiempo real»
   });
   it("las peleas de misión se pueden ganar", () => {
     for (const [k, v] of Object.entries(r.fights)) if (k.startsWith("misión")) expect(v, k).toBeGreaterThan(35);

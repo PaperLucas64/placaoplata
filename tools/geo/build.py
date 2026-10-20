@@ -1,4 +1,4 @@
-"""Arma los recorridos del GPS de Maires con datos reales de OpenStreetMap.
+"""Arma los recorridos del GPS de Buenos Aires con datos reales de OpenStreetMap.
 
 Se corre a mano una vez (o cuando se agregan lugares):  python tools/geo/build.py
 - Calles y veredas: OSRM de routing.openstreetmap.de (perfiles car y foot).
@@ -6,7 +6,7 @@ Se corre a mano una vez (o cuando se agregan lugares):  python tools/geo/build.p
   entre las dos estaciones.
 Las respuestas quedan en tools/geo/cache/ para no volver a pedirlas.
 
-Salida:
+Retiro:
 - packages/shared/src/geo-data.ts  lugares, distancias y tramos (lo usan el servidor y las reglas para los tiempos)
 - packages/shared/data/rutas.json  el dibujo de cada recorrido (la pantalla para el GPS y el servidor para los cruces)
 
@@ -16,46 +16,46 @@ import hashlib, heapq, json, math, os, sys, time, urllib.parse, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CACHE = os.path.join(ROOT, "tools", "geo", "cache")
-UA = "MairesGameBuild/1.0 (juego de navegador; build offline, una vez)"
+UA = "Buenos AiresGameBuild/1.0 (juego de navegador; build offline, una vez)"
 os.makedirs(CACHE, exist_ok=True)
 
 # ---------- lugares: barrio del juego -> lugar real (lat, lng) ----------
-HOME = "San Telmón"  # la pensión de Marga, arriba del bar La Esquina
+HOME = "San Telmo"  # la pensión de Marga, arriba del bar La Esquina
 PLACES = {
-    "La Bocota":      (-34.6345, -58.3631, "La Boca"),
-    "Puerto Mareo":   (-34.6110, -58.3630, "Puerto Madero"),
-    "San Telmón":     (-34.6215, -58.3725, "San Telmo"),
-    "Palermo Soja":   (-34.5885, -58.4300, "Palermo Soho"),
-    "Villa Crespa":   (-34.5990, -58.4380, "Villa Crespo"),
+    "La Boca":      (-34.6345, -58.3631, "La Boca"),
+    "Puerto Madero":   (-34.6110, -58.3630, "Puerto Madero"),
+    "San Telmo":     (-34.6215, -58.3725, "San Telmo"),
+    "Palermo":   (-34.5885, -58.4300, "Palermo Soho"),
+    "Villa Crespo":   (-34.5990, -58.4380, "Villa Crespo"),
     "Barrancas":      (-34.6450, -58.3820, "Barracas"),
-    "Florida Vieja":  (-34.5290, -58.4900, "Florida, Vicente López"),
-    "Once y Medio":   (-34.6090, -58.4060, "Once"),
+    "Florida":  (-34.5290, -58.4900, "Florida, Vicente López"),
+    "Balvanera":   (-34.6090, -58.4060, "Once"),
     "Mataderos":      (-34.6560, -58.5020, "Mataderos"),
-    "Reloquita":  (-34.5880, -58.3930, "Recoleta"),
-    "Liniers Sur":    (-34.6430, -58.5200, "Liniers"),
-    "Pompeya Chica":  (-34.6500, -58.4150, "Nueva Pompeya"),
+    "Recoleta":  (-34.5880, -58.3930, "Recoleta"),
+    "Liniers":    (-34.6430, -58.5200, "Liniers"),
+    "Nueva Pompeya":  (-34.6500, -58.4150, "Nueva Pompeya"),
     # el conurbano: zona norte, sur y oeste
-    "Tigre Mojado":        (-34.4255, -58.5797, "Tigre"),
-    "San Isidrón":         (-34.4720, -58.5130, "San Isidro"),
-    "Pilar de Oro":        (-34.4586, -58.9142, "Pilar"),
-    "Avellanada":          (-34.6620, -58.3650, "Avellaneda"),
-    "Lomas de Zafarrancho":(-34.7610, -58.4060, "Lomas de Zamora"),
-    "Quilmates":           (-34.7206, -58.2546, "Quilmes"),
-    "Moronga":             (-34.6534, -58.6198, "Morón"),
-    "La Matancera":        (-34.6826, -58.5604, "San Justo, La Matanza"),
-    "Moreno del Fondo":    (-34.6500, -58.7900, "Moreno"),
+    "Tigre":        (-34.4255, -58.5797, "Tigre"),
+    "San Isidro":         (-34.4720, -58.5130, "San Isidro"),
+    "Pilar":        (-34.4586, -58.9142, "Pilar"),
+    "Avellaneda":          (-34.6620, -58.3650, "Avellaneda"),
+    "Lomas de Zamora":(-34.7610, -58.4060, "Lomas de Zamora"),
+    "Quilmes":           (-34.7206, -58.2546, "Quilmes"),
+    "Morón":             (-34.6534, -58.6198, "Morón"),
+    "La Matanza":        (-34.6826, -58.5604, "San Justo, La Matanza"),
+    "Moreno":    (-34.6500, -58.7900, "Moreno"),
     # el interior
-    "La Plata Dulce": (-34.9210, -57.9550, "La Plata"),
-    "Rosarito":       (-32.9440, -60.6500, "Rosario"),
-    "Mar del Plato":  (-38.0020, -57.5560, "Mar del Plata"),
-    "Cordobita":      (-31.4170, -64.1830, "Córdoba"),
+    "La Plata": (-34.9210, -57.9550, "La Plata"),
+    "Rosario":       (-32.9440, -60.6500, "Rosario"),
+    "Mar del Plata":  (-38.0020, -57.5560, "Mar del Plata"),
+    "Córdoba":      (-31.4170, -64.1830, "Córdoba"),
 }
 # casas que se pueden comprar: desde cada una salen los viajes (subte y tren, solo desde la pensión)
-ORIGINS = ["San Telmón", "Once y Medio", "Villa Crespa", "Barrancas", "San Isidrón", "Reloquita"]
-INTERIOR = {"La Plata Dulce", "Rosarito", "Mar del Plato", "Cordobita"}
-ZONE = {"Tigre Mojado": "norte", "San Isidrón": "norte", "Pilar de Oro": "norte",
-        "Avellanada": "sur", "Lomas de Zafarrancho": "sur", "Quilmates": "sur",
-        "Moronga": "oeste", "La Matancera": "oeste", "Moreno del Fondo": "oeste"}
+ORIGINS = ["San Telmo", "Balvanera", "Villa Crespo", "Barrancas", "San Isidro", "Recoleta"]
+INTERIOR = {"La Plata", "Rosario", "Mar del Plata", "Córdoba"}
+ZONE = {"Tigre": "norte", "San Isidro": "norte", "Pilar": "norte",
+        "Avellaneda": "sur", "Lomas de Zamora": "sur", "Quilmes": "sur",
+        "Morón": "oeste", "La Matanza": "oeste", "Moreno": "oeste"}
 
 # estaciones reales (aproximadas a la boca de la estación)
 ST = {
@@ -89,27 +89,27 @@ ST = {
 }
 # combinaciones de subte y tren desde la pensión: (tipo, línea, desde, hasta)
 RAIL = {
-    "Once y Medio":   [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)")],
-    "Reloquita":  [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Pueyrredón (D)")],
-    "Palermo Soja":   [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Plaza Italia (D)")],
-    "Villa Crespa":   [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "B", "Carlos Pellegrini (B)", "Malabia (B)")],
-    "Florida Vieja":  [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Florida (Mitre)")],
-    "Liniers Sur":    [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
+    "Balvanera":   [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)")],
+    "Recoleta":  [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Pueyrredón (D)")],
+    "Palermo":   [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "D", "9 de Julio (D)", "Plaza Italia (D)")],
+    "Villa Crespo":   [("subte", "C", "San Juan (C)", "Diagonal Norte (C)"), ("subte", "B", "Carlos Pellegrini (B)", "Malabia (B)")],
+    "Florida":  [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Florida (Mitre)")],
+    "Liniers":    [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
                        ("tren", "Sarmiento", "Once", "Liniers")],
-    "La Plata Dulce": [("tren", "Roca", "Constitución", "La Plata")],
-    "Tigre Mojado":   [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Tigre (Mitre)")],
-    "San Isidrón":    [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "San Isidro (Mitre)")],
-    "Pilar de Oro":   [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "San Martín", "Retiro", "Pilar (San Martín)")],
-    "Avellanada":     [("tren", "Roca", "Constitución", "Avellaneda (Roca)")],
-    "Lomas de Zafarrancho": [("tren", "Roca", "Constitución", "Lomas de Zamora (Roca)")],
-    "Quilmates":      [("tren", "Roca", "Constitución", "Quilmes (Roca)")],
-    "Moronga":        [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
+    "La Plata": [("tren", "Roca", "Constitución", "La Plata")],
+    "Tigre":   [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Tigre (Mitre)")],
+    "San Isidro":    [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "San Isidro (Mitre)")],
+    "Pilar":   [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "San Martín", "Retiro", "Pilar (San Martín)")],
+    "Avellaneda":     [("tren", "Roca", "Constitución", "Avellaneda (Roca)")],
+    "Lomas de Zamora": [("tren", "Roca", "Constitución", "Lomas de Zamora (Roca)")],
+    "Quilmes":      [("tren", "Roca", "Constitución", "Quilmes (Roca)")],
+    "Morón":        [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
                        ("tren", "Sarmiento", "Once", "Morón (Sarmiento)")],
-    "Moreno del Fondo": [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
+    "Moreno": [("subte", "C", "San Juan (C)", "Avenida de Mayo (C)"), ("subte", "A", "Lima (A)", "Plaza Miserere (A)"),
                        ("tren", "Sarmiento", "Once", "Moreno (Sarmiento)")],
-    "Mar del Plato":  [("tren", "Roca", "Constitución", "Mar del Plata")],
-    "Rosarito":       [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Rosario Norte")],
-    "Cordobita":      [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Córdoba (Mitre)")],
+    "Mar del Plata":  [("tren", "Roca", "Constitución", "Mar del Plata")],
+    "Rosario":       [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Rosario Norte")],
+    "Córdoba":      [("subte", "C", "San Juan (C)", "Retiro"), ("tren", "Mitre", "Retiro", "Córdoba (Mitre)")],
 }
 
 # ---------- utilidades ----------

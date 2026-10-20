@@ -28,7 +28,7 @@
    - La Crónica tiene dos solapas: **Diario** y **Lo último**.
    - El diario es el episodio, dividido en un capítulo por jefe, y cada capítulo en sus 15 misiones, agrupadas en tres actos.
    - Cada misión hecha destraba su **bloque de lore**, con la fecha y la hora reales en que la hiciste, cómo te fue (cuántas etapas salieron bien) y la historia.
-   - Cada página anota también **qué pasaba en la ciudad en ese momento**: tres noticias reales de otros jugadores («Mientras tanto, en Maires: Malickud robó un kiosco en Floreros…»).
+   - Cada página anota también **qué pasaba en la ciudad en ese momento**: tres noticias reales de otros jugadores («Mientras tanto, en Buenos Aires: Malickud robó un kiosco en Flores…»).
    - Las misiones que faltan aparecen como páginas en blanco. De la que sigue se ve el título.
 
 ## 2. Premios
@@ -41,81 +41,81 @@ Pagan por energía, como el resto del juego, para no romper el ritmo. El balance
 
 | # | Misión | Dónde | Dura | Energía |
 |---|---|---|---|---|
-| 1 | El sobre | Mosecraft | 5 min | 5 |
-| 2 | La cuota | Belgranito | 8 min | 6 |
-| 3 | Carga sin papeles | Puerto Mareo | 12 min | 6 |
-| 4 | El contador | San Nicolasito | 15 min | 7 |
-| 5 | La libreta | Puerto Mareo | 20 min | 8 |
-| 6 | Sangre nueva | Palermo Soja | 1 h | 10 |
-| 7 | La subasta | Reloquita | 1 h 30 | 10 |
-| 8 | Doble fondo | La Paterna | 2 h | 11 |
-| 9 | La cena | Puerto Mareo | 3 h | 12 |
-| 10 | Una página menos | Puerto Mareo | 4 h | 12 |
-| 11 | El prestamista | Once y Medio | 4 h | 14 |
-| 12 | Fuego en el dique | Puerto Mareo | 5 h | 14 |
-| 13 | La traición | Chacarota | 6 h | 15 |
-| 14 | Recuperar el nombre | Villa Crespa | 8 h | 16 |
-| 15 | **La última página** | Puerto Mareo | 18 h | 20 |
+| 1 | El sobre | Monserrat | 5 min | 5 |
+| 2 | La cuota | Belgrano | 8 min | 6 |
+| 3 | Carga sin papeles | Puerto Madero | 12 min | 6 |
+| 4 | El contador | San Nicolás | 15 min | 7 |
+| 5 | La libreta | Puerto Madero | 20 min | 8 |
+| 6 | Sangre nueva | Palermo | 1 h | 10 |
+| 7 | La subasta | Recoleta | 1 h 30 | 10 |
+| 8 | Doble fondo | La Paternal | 2 h | 11 |
+| 9 | La cena | Puerto Madero | 3 h | 12 |
+| 10 | Una página menos | Puerto Madero | 4 h | 12 |
+| 11 | El prestamista | Balvanera | 4 h | 14 |
+| 12 | Fuego en el dique | Puerto Madero | 5 h | 14 |
+| 13 | La traición | Chacarita | 6 h | 15 |
+| 14 | Recuperar el nombre | Villa Crespo | 8 h | 16 |
+| 15 | **La última página** | Puerto Madero | 18 h | 20 |
 
 ### El Sindicato — Don Ramón Ferrante · «Primera plana»
 
 | # | Misión | Dónde | Dura | Energía |
 |---|---|---|---|---|
-| 1 | El reparto | Chacarota | 5 min | 5 |
-| 2 | Paro de brazos caídos | La Paterna | 8 min | 6 |
-| 3 | El camión del Faro | Villa Crespa | 12 min | 6 |
-| 4 | Canillita | Colegas | 15 min | 7 |
-| 5 | La primera plana | Chacarota | 20 min | 8 |
-| 6 | El periodista | Villa Ortuzán | 1 h | 10 |
-| 7 | La imprenta | Villa Mitrecito | 1 h 30 | 10 |
-| 8 | Asamblea | Chacarota | 2 h | 11 |
-| 9 | El soplón | Chacarota | 3 h | 12 |
-| 10 | Fe de erratas | Villa Mitrecito | 4 h | 12 |
-| 11 | Huelga general | San Nicolasito | 4 h | 14 |
-| 12 | La lista negra | Chacarota | 5 h | 14 |
-| 13 | El dueño del Faro | Almagrito | 6 h | 15 |
-| 14 | Última edición | Villa Mitrecito | 8 h | 16 |
-| 15 | **Paren las rotativas** | Villa Mitrecito | 18 h | 20 |
+| 1 | El reparto | Chacarita | 5 min | 5 |
+| 2 | Paro de brazos caídos | La Paternal | 8 min | 6 |
+| 3 | El camión del Faro | Villa Crespo | 12 min | 6 |
+| 4 | Canillita | Colegiales | 15 min | 7 |
+| 5 | La primera plana | Chacarita | 20 min | 8 |
+| 6 | El periodista | Villa Ortúzar | 1 h | 10 |
+| 7 | La imprenta | Villa General Mitre | 1 h 30 | 10 |
+| 8 | Asamblea | Chacarita | 2 h | 11 |
+| 9 | El soplón | Chacarita | 3 h | 12 |
+| 10 | Fe de erratas | Villa General Mitre | 4 h | 12 |
+| 11 | Huelga general | San Nicolás | 4 h | 14 |
+| 12 | La lista negra | Chacarita | 5 h | 14 |
+| 13 | El dueño del Faro | Almagro | 6 h | 15 |
+| 14 | Última edición | Villa General Mitre | 8 h | 16 |
+| 15 | **Paren las rotativas** | Villa General Mitre | 18 h | 20 |
 
 ### La Barra — El Tano Lucero · «El clásico»
 
 | # | Misión | Dónde | Dura | Energía |
 |---|---|---|---|---|
-| 1 | El trapo | Floreros | 5 min | 5 |
-| 2 | Los trapitos | Ñuñez | 8 min | 6 |
-| 3 | La reventa | Ñuñez | 12 min | 6 |
-| 4 | El micro | Salida | 15 min | 7 |
-| 5 | La interna | Ñuñez | 20 min | 8 |
-| 6 | El presidente | Ñuñez | 1 h | 10 |
-| 7 | El bombo | Floreros | 1 h 30 | 10 |
-| 8 | El jugador | Belgranito | 2 h | 11 |
-| 9 | El árbitro | San Nicolasito | 3 h | 12 |
-| 10 | Partida | Ñuñez | 4 h | 12 |
-| 11 | El estadio | Reloquita | 4 h | 14 |
-| 12 | Los papeles | Reloquita | 5 h | 14 |
-| 13 | La semana del clásico | Ñuñez | 6 h | 15 |
-| 14 | El día antes | Ñuñez | 8 h | 16 |
-| 15 | **El clásico** | Ñuñez | 18 h | 20 |
+| 1 | El trapo | Flores | 5 min | 5 |
+| 2 | Los trapitos | Núñez | 8 min | 6 |
+| 3 | La reventa | Núñez | 12 min | 6 |
+| 4 | El micro | Retiro | 15 min | 7 |
+| 5 | La interna | Núñez | 20 min | 8 |
+| 6 | El presidente | Núñez | 1 h | 10 |
+| 7 | El bombo | Flores | 1 h 30 | 10 |
+| 8 | El jugador | Belgrano | 2 h | 11 |
+| 9 | El árbitro | San Nicolás | 3 h | 12 |
+| 10 | Partida | Núñez | 4 h | 12 |
+| 11 | El estadio | Recoleta | 4 h | 14 |
+| 12 | Los papeles | Recoleta | 5 h | 14 |
+| 13 | La semana del clásico | Núñez | 6 h | 15 |
+| 14 | El día antes | Núñez | 8 h | 16 |
+| 15 | **El clásico** | Núñez | 18 h | 20 |
 
 ### Los Amarillos — Rita "Taxi" Quiroga · «Bajada de bandera»
 
 | # | Misión | Dónde | Dura | Energía |
 |---|---|---|---|---|
-| 1 | Viaje sin taxímetro | Almagrito | 5 min | 5 |
-| 2 | El desarmadero | Liniers Sur | 8 min | 6 |
-| 3 | La radio | Once y Medio | 12 min | 6 |
-| 4 | La picada | Puerto Mareo | 15 min | 7 |
-| 5 | Vamo | Palermo Soja | 20 min | 8 |
-| 6 | Pasajero misterioso | Reloquita | 1 h | 10 |
-| 7 | La oficina | Palermo Soja | 1 h 30 | 10 |
-| 8 | El servidor | Villa Urquisa | 2 h | 11 |
-| 9 | Lo que ven | Almagrito | 3 h | 12 |
-| 10 | Bloqueo | San Nicolasito | 4 h | 12 |
-| 11 | El comprador | Mosecraft | 4 h | 14 |
-| 12 | La flota | Palermo Soja | 5 h | 14 |
-| 13 | Choque | Once y Medio | 6 h | 15 |
-| 14 | La grabación | Almagrito | 8 h | 16 |
-| 15 | **Última bajada** | San Nicolasito | 18 h | 20 |
+| 1 | Viaje sin taxímetro | Almagro | 5 min | 5 |
+| 2 | El desarmadero | Liniers | 8 min | 6 |
+| 3 | La radio | Balvanera | 12 min | 6 |
+| 4 | La picada | Puerto Madero | 15 min | 7 |
+| 5 | Vamo | Palermo | 20 min | 8 |
+| 6 | Pasajero misterioso | Recoleta | 1 h | 10 |
+| 7 | La oficina | Palermo | 1 h 30 | 10 |
+| 8 | El servidor | Villa Urquiza | 2 h | 11 |
+| 9 | Lo que ven | Almagro | 3 h | 12 |
+| 10 | Bloqueo | San Nicolás | 4 h | 12 |
+| 11 | El comprador | Monserrat | 4 h | 14 |
+| 12 | La flota | Palermo | 5 h | 14 |
+| 13 | Choque | Balvanera | 6 h | 15 |
+| 14 | La grabación | Almagro | 8 h | 16 |
+| 15 | **Última bajada** | San Nicolás | 18 h | 20 |
 
 
 > El texto completo de cada misión (presentación, etapas, cómo sale bien o mal, peleas y el bloque de diario) está en `packages/shared/src/historia.ts`.
@@ -138,7 +138,7 @@ Pagan por energía, como el resto del juego, para no romper el ritmo. El balance
   - el plano de la ciudad pintado de violeta;
   - el volante: «Te esperamos a tomar un café».
 - **Amarillos:**
-  - Vamo manda los datos a «PADRON_2027» en Almagrito;
+  - Vamo manda los datos a «PADRON_2027» en Almagro;
   - la voz amable que dice «querido»;
   - la grabación: «Cuando se peleen todos, yo les voy a ofrecer un café».
 
@@ -148,14 +148,14 @@ Aparecen como **contactos en el mapa** cuando cumplís su condición. Cada histo
 
 | Contacto | Dónde | Se destraba | Sus 4 misiones | Premio |
 |---|---|---|---|---|
-| **Jorge de la Reserva Ecológica** | Puerto Mareo (la Reserva) | 3 misiones en Puerto Mareo | Salvar carpinchos de una obra · Sabotear un muelle privado · Robar los planos del country flotante · Hundir la draga | Escondite en la Reserva: se cura más rápido |
-| **La Turca Nélida**, prestamista | Once y Medio | Tener menos de $50 después del nivel 5 | Cobrar una deuda vieja · Cobrársela a un cobrador · El deudor famoso · La libreta de la Turca | Préstamos (plata ya, se devuelve con intereses) |
-| **El Profe Gutiérrez**, químico jubilado | Caballote | Comprar 3 suplementos | Vinos importados de Villa Crespa · La bodega trucha · El inspector · Exportación | Suplementos más baratos |
-| **Mirta, la peluquera** | Floreros | Tener amigos en el juego (2 o más) | El chisme del día · La clienta que sabe demasiado · El casamiento · La foto | Ves en el mapa quién anda cerca |
-| **El Doctor Benítez**, cirujano sin matrícula | Reloquita | Ir 3 veces a la clínica privada | La receta · La operación de madrugada · El paciente que no se puede morir · El que sí | Clínica más barata |
-| **Pipo, el DJ** | Palermo Soja | Llegar a nivel 10 | La fiesta clandestina · El equipo de sonido · La lista VIP · El after | Un boliche como negocio |
-| **Sor Mónica** | San Nicolasito | Hacer 5 misiones para vecinos | Robarle al que roba · La colecta · El obispo · El comedor | Bajar el nivel de búsqueda a la mitad, una vez por semana |
-| **El Ingeniero Sasaki**, hacker del cyber | Villa Urquisa | Robar 2 cybers | Las cámaras · Los semáforos · La base de la comisaría · El apagón | Los golpes tienen menos riesgo de policía |
+| **Jorge de la Reserva Ecológica** | Puerto Madero (la Reserva) | 3 misiones en Puerto Madero | Salvar carpinchos de una obra · Sabotear un muelle privado · Robar los planos del country flotante · Hundir la draga | Escondite en la Reserva: se cura más rápido |
+| **La Turca Nélida**, prestamista | Balvanera | Tener menos de $50 después del nivel 5 | Cobrar una deuda vieja · Cobrársela a un cobrador · El deudor famoso · La libreta de la Turca | Préstamos (plata ya, se devuelve con intereses) |
+| **El Profe Gutiérrez**, químico jubilado | Caballito | Comprar 3 suplementos | Vinos importados de Villa Crespo · La bodega trucha · El inspector · Exportación | Suplementos más baratos |
+| **Mirta, la peluquera** | Flores | Tener amigos en el juego (2 o más) | El chisme del día · La clienta que sabe demasiado · El casamiento · La foto | Ves en el mapa quién anda cerca |
+| **El Doctor Benítez**, cirujano sin matrícula | Recoleta | Ir 3 veces a la clínica privada | La receta · La operación de madrugada · El paciente que no se puede morir · El que sí | Clínica más barata |
+| **Pipo, el DJ** | Palermo | Llegar a nivel 10 | La fiesta clandestina · El equipo de sonido · La lista VIP · El after | Un boliche como negocio |
+| **Sor Mónica** | San Nicolás | Hacer 5 misiones para vecinos | Robarle al que roba · La colecta · El obispo · El comedor | Bajar el nivel de búsqueda a la mitad, una vez por semana |
+| **El Ingeniero Sasaki**, hacker del cyber | Villa Urquiza | Robar 2 cybers | Las cámaras · Los semáforos · La base de la comisaría · El apagón | Los golpes tienen menos riesgo de policía |
 
 ## 6. Eventos y cosas que aparecen solas (ya empezado)
 

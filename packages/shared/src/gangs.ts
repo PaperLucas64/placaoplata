@@ -1,4 +1,4 @@
-/* Las cuatro pandillas de Maires, la policía (amenaza para todos) y la casa.
+/* Las cuatro pandillas de Buenos Aires, la policía (amenaza para todos) y la casa.
    Pertenecés a una pandilla cuando tiene la mitad o más de tu afinidad (todo lo que hiciste pesa igual). */
 import { HISTORIA } from "./historia.js";
 import type { Gang, Job, Mission } from "./types.js";
@@ -16,7 +16,7 @@ export const GANGS: Record<Gang, GangInfo> = {
   barra:     { name: "La Barra", boss: "El Tano Lucero", color: "#6cc070", hood: "la cancha",
                perk: "+10% de fuerza en las peleas", say: "El barrio se banca con el cuerpo, pibe." },
   amarillos: { name: "Los Amarillos", boss: "Rita \"Taxi\" Quiroga", color: "#f2c94c", hood: "las remiserías",
-               perk: "Tu nivel de búsqueda sube 30% menos", say: "Conozco cada calle de Maires. Y cada salida." }
+               perk: "Tu nivel de búsqueda sube 30% menos", say: "Conozco cada calle de Buenos Aires. Y cada salida." }
 };
 
 /* Rango por respeto (igual para todas las pandillas) */

@@ -2,17 +2,17 @@
 
 - Barrios de la Ciudad: datos abiertos del Gobierno de la Ciudad de Buenos Aires (licencia CC BY 2.5 AR).
 - Florida (Vicente López): límite de OpenStreetMap (ODbL), vía Overpass.
-Sale packages/shared/data/barrios.json: GeoJSON con los barrios del juego (con su nombre de Maires) y el resto, para dibujar.
+Sale packages/shared/data/barrios.json: GeoJSON con los barrios del juego (con su nombre de Buenos Aires) y el resto, para dibujar.
 """
 import json, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from build import fetch, overpass, simplify, ROOT  # mismas utilidades y caché que los recorridos
 
 CABA = "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-educacion/barrios/barrios.geojson"
-# barrio real -> barrio de Maires
-GAME = {"La Boca": "La Bocota", "Puerto Madero": "Puerto Mareo", "San Telmo": "San Telmón", "Palermo": "Palermo Soja",
-        "Villa Crespo": "Villa Crespa", "Barracas": "Barrancas", "Balvanera": "Once y Medio", "Mataderos": "Mataderos",
-        "Recoleta": "Reloquita", "Liniers": "Liniers Sur", "Nueva Pompeya": "Pompeya Chica"}
+# barrio real -> barrio de Buenos Aires
+GAME = {"La Boca": "La Boca", "Puerto Madero": "Puerto Madero", "San Telmo": "San Telmo", "Palermo": "Palermo",
+        "Villa Crespo": "Villa Crespo", "Barracas": "Barrancas", "Balvanera": "Balvanera", "Mataderos": "Mataderos",
+        "Recoleta": "Recoleta", "Liniers": "Liniers", "Nueva Pompeya": "Nueva Pompeya"}
 
 def rings_of(geom):
     polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
@@ -44,7 +44,7 @@ def main():
             if abs(w[-1][0] - end[0]) + abs(w[-1][1] - end[1]) < abs(w[0][0] - end[0]) + abs(w[0][1] - end[1]): w = w[::-1]
             ring += w
         r = simplify(ring + [ring[0]], 0.012)
-        feats.append({"type": "Feature", "properties": {"name": "Florida Vieja", "game": True},
+        feats.append({"type": "Feature", "properties": {"name": "Florida", "game": True},
                       "geometry": {"type": "MultiPolygon", "coordinates": [[[[round(p[1], 5), round(p[0], 5)] for p in r]]]}})
     except Exception as e:
         print("sin Florida:", e)

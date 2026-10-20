@@ -148,7 +148,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
         /* fin del tutorial: se abre la ciudad (golpes, encargos, misiones de pandilla, la calle y tu casa) */
         s.tutDone = true; s.tAttack = now; s.tHeat = now;
         for (const k of ["calle", "casa", "negocios", "amigos", "ranking"] as const) if (!s.tabs.includes(k)) s.tabs.push(k);
-        log(s, now, "Las cuatro pandillas de Maires ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
+        log(s, now, "Las cuatro pandillas de Buenos Aires ya saben quién sos. Marga te deja la llave de una pieza de pensión: tu casa.", "gold");
       }
       return {};
     }
@@ -162,7 +162,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (isGolpe(j.id) && a.at && spot?.job !== j.id) return fail("Eso no se hace ahí."); // antes de cobrar
       s.energy -= j.cost;
       if (!isGolpe(j.id)) { resolveJob(s, j, now, rng); return {}; }   // los laburos honestos, al instante
-      startSalida(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? ctx.place ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
+      startRetiro(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? ctx.place ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
       return {};
     }
 
@@ -173,7 +173,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.energy < ENCARGO_COST) return fail("No te alcanza la energía.");
       if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return fail("Estás muy golpeado. Pasá por la clínica.");
       s.energy -= ENCARGO_COST;
-      startSalida(s, "encargo", a.gang, `${e.name} para ${GANGS[a.gang].name}`, HOME_BARRIO[a.gang], ctx);
+      startRetiro(s, "encargo", a.gang, `${e.name} para ${GANGS[a.gang].name}`, HOME_BARRIO[a.gang], ctx);
       return {};
     }
 
@@ -291,7 +291,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (b.kind === "mision") { abandonMission(s, now); return {}; }
       if (b.kind === "vuelta") return fail("Ya estás volviendo a casa.");
       s.busy = null;
-      if (b.kind === "salida") { log(s, now, "Te volviste antes de hacerlo. La energía no vuelve.", "bad"); startReturn(s, b.trip?.mode ?? "pie", b.place, now, rng, false, undefined, undefined, { share: 0.5 }); return {}; }
+      if (b.kind === "salida") { log(s, now, "Te volviste antes de hacerlo. La energía no vuelve.", "bad"); startReturn(s, b.trip?.mode ?? "pie", b.place, now, rng, false, undefined); return {}; }
       if (b.kind === "caza") log(s, now, `Dejaste de buscar a ${b.targetName} y volviste a casa.`);
       else if (b.kind === "gym") log(s, now, "Cortaste el entrenamiento. La plata no se devuelve.", "bad");
       else {
@@ -491,7 +491,7 @@ export function golpePlace(s: PlayerState, rng: Rng) {
   return pick(rng, near);
 }
 /* salís: caminando si es cerca, si no lo más barato. El viaje de las salidas es más corto que el de las misiones. */
-function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, name: string, place: string, ctx: Ctx) {
+function startRetiro(s: PlayerState, what: "golpe" | "encargo", ref: string, name: string, place: string, ctx: Ctx) {
   const { now, rng } = ctx;
   const street = onTheWayHome(s);
   const from = ctx.from;
@@ -499,12 +499,12 @@ function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, nam
   const home = homePlace(s);
   const r = from ? { calle: from.km, pie: from.km } : !street ? routeTo(home, place) : undefined;
   let mode: TravelMode | undefined;
-  /* caminando si es cerca y te da la energía (el camino de las salidas es la mitad: cansa la mitad) */
-  const walkHalf = (k: TravelMode) => Math.round(walkEnergy(s, k, place, from) / 2);
-  if (r) mode = (r.pie ?? 99) <= 3 && s.energy >= walkHalf("pie") ? "pie" : defaultMode(s, place, from);
-  const go = r && mode ? Math.max(1, Math.round(tripMins(s, mode, place, from) / 2)) * 60_000 : 0;
-  if (go && mode) s.gold = Math.max(0, s.gold - Math.round(tripCost(s, mode, place, from) / 2));
-  if (go && mode) s.energy = Math.max(0, s.energy - walkHalf(mode));
+  /* caminando si es cerca y te da la energía. El viaje dura lo real (antes las salidas iban a mitad de tiempo). */
+  const walk = (k: TravelMode) => walkEnergy(s, k, place, from);
+  if (r) mode = (r.pie ?? 99) <= 3 && s.energy >= walk("pie") ? "pie" : defaultMode(s, place, from);
+  const go = r && mode ? tripMins(s, mode, place, from) * 60_000 : 0;
+  if (go && mode) s.gold = Math.max(0, s.gold - Math.round(tripCost(s, mode, place, from) / 2)); // la ida (la vuelta no se cobra)
+  if (go && mode) s.energy = Math.max(0, s.energy - walk(mode));
   const work = SALIDA_WORK[what] * 60_000;
   s.busy = { kind: "salida", what, ref, place, since: now, until: now + go + work,
     trip: go && mode ? { mode, place, go, back: 0, ev: 0, from: home, ...(from?.path ? { path: from.path } : {}) } : null };
@@ -526,7 +526,7 @@ export function salidaCatchUp(s: PlayerState, { now, rng }: { now: number; rng: 
     if (b.what === "golpe") { const j = jobList(s).find(x => x.id === b.ref); if (j) resolveJob(s, j, b.until, rng, b.place); }
     else resolveEncargo(s, b.ref as Gang, b.until, rng);
     const label = b.what === "golpe" ? jobList(s).find(x => x.id === b.ref)?.name ?? "un golpe" : `un encargo para ${GANGS[b.ref as Gang].name}`;
-    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng, false, label, undefined, { share: 0.5 });
+    startReturn(s, b.trip?.mode ?? "pie", b.place, b.until, rng, false, label);
     const v = s.busy as PlayerState["busy"];
     if (v?.kind === "vuelta" && now >= v.until) { s.busy = null; log(s, v.until, "Llegaste a casa."); }
   }
@@ -597,7 +597,7 @@ export function checkDuel(s: PlayerState, i: number): string | null {
   const t = s.targets[i];
   /* la lista pudo armarse antes de la protección: se vuelve a mirar al pelear */
   if (t.kind === "player" && (s.lvl < NEWBIE_LVL || t.lvl < NEWBIE_LVL))
-    return s.lvl < NEWBIE_LVL ? `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores.` : `${t.name} recién llega a Maires: no se lo toca.`;
+    return s.lvl < NEWBIE_LVL ? `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores.` : `${t.name} recién llega a Buenos Aires: no se lo toca.`;
   return null;
 }
 
@@ -611,7 +611,7 @@ export function canAmbush(att: PlayerState, def: PlayerState, now: number): stri
   if (att.busy) return `${busyText(att)} Para salir a buscar a alguien tenés que estar libre.`;
   if (!att.tutDone) return "Todavía no conocés la calle.";
   if (att.lvl < NEWBIE_LVL) return `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores: primero aprendé con los de la calle.`;
-  if (def.lvl < NEWBIE_LVL) return `${def.name} recién llega a Maires: hasta el nivel ${NEWBIE_LVL} no se lo toca.`;
+  if (def.lvl < NEWBIE_LVL) return `${def.name} recién llega a Buenos Aires: hasta el nivel ${NEWBIE_LVL} no se lo toca.`;
   if (att.energy < DUEL_COST) return "No te alcanza la energía.";
   if (att.hp < maxHp(att) * MIN_HP_TO_FIGHT) return "Estás muy golpeado para salir a pelear.";
   const b = def.busy;

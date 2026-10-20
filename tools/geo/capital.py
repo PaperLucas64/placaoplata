@@ -1,4 +1,4 @@
-"""El mapa de Maires: Capital, del sur de la autopista 25 de Mayo y la Perito Moreno hacia el norte, hasta la General Paz
+"""El mapa de Buenos Aires: Capital, del sur de la autopista 25 de Mayo y la Perito Moreno hacia el norte, hasta la General Paz
 y el río (con la Reserva y Aeroparque). Los barrios oficiales de la Ciudad con su nombre de parodia.
 
     python tools/geo/capital.py
@@ -13,20 +13,20 @@ sys.path.insert(0, os.path.dirname(__file__))
 from build import fetch, simplify, ROOT
 
 CABA = "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-educacion/barrios/barrios.geojson"
-# barrio real -> nombre en Maires (los que quedan adentro de los límites)
+# barrio real -> nombre en Buenos Aires (los que quedan adentro de los límites)
 GAME = {
-    "Agronomia": "Agromanía", "Almagro": "Almagrito", "Balvanera": "Once y Medio", "Belgrano": "Belgranito",
-    "Caballito": "Caballote", "Chacarita": "Chacarota", "Coghlan": "Coglán", "Colegiales": "Colegas",
-    "Flores": "Floreros", "Floresta": "Florestita", "Liniers": "Liniers Sur", "Monserrat": "Mosecraft",
-    "Monte Castro": "Monte Castrito", "Nuñez": "Ñuñez", "Palermo": "Palermo Soja", "Parque Chas": "Parque Chau",
-    "Paternal": "La Paterna", "Puerto Madero": "Puerto Mareo", "Recoleta": "Reloquita", "Retiro": "Salida",
-    "Saavedra": "Saavedrita", "San Nicolas": "San Nicolasito", "Velez Sarsfield": "Vélez Sarsfeel",
-    "Versalles": "Versalles Chico", "Villa Crespo": "Villa Crespa", "Villa Del Parque": "Villa del Charque",
-    "Villa Devoto": "Villa Devota", "Villa Gral. Mitre": "Villa Mitrecito", "Villa Luro": "Villa Lurio",
-    "Villa Ortuzar": "Villa Ortuzán", "Villa Pueyrredon": "Villa Puerredón", "Villa Real": "Villa Realeza",
-    "Villa Santa Rita": "Villa Santa Rata", "Villa Urquiza": "Villa Urquisa"
+    "Agronomia": "Agronomía", "Almagro": "Almagro", "Balvanera": "Balvanera", "Belgrano": "Belgrano",
+    "Caballito": "Caballito", "Chacarita": "Chacarita", "Coghlan": "Coghlan", "Colegiales": "Colegiales",
+    "Flores": "Flores", "Floresta": "Floresta", "Liniers": "Liniers", "Monserrat": "Monserrat",
+    "Monte Castro": "Monte Castro", "Nuñez": "Núñez", "Palermo": "Palermo", "Parque Chas": "Parque Chas",
+    "Paternal": "La Paternal", "Puerto Madero": "Puerto Madero", "Recoleta": "Recoleta", "Retiro": "Retiro",
+    "Saavedra": "Saavedra", "San Nicolas": "San Nicolás", "Velez Sarsfield": "Vélez Sarsfield",
+    "Versalles": "Versalles", "Villa Crespo": "Villa Crespo", "Villa Del Parque": "Villa del Parque",
+    "Villa Devoto": "Villa Devoto", "Villa Gral. Mitre": "Villa General Mitre", "Villa Luro": "Villa Luro",
+    "Villa Ortuzar": "Villa Ortúzar", "Villa Pueyrredon": "Villa Pueyrredón", "Villa Real": "Villa Real",
+    "Villa Santa Rita": "Villa Santa Rita", "Villa Urquiza": "Villa Urquiza"
 }
-DEFAULT_HOME = "Almagrito"
+DEFAULT_HOME = "Almagro"
 
 def centroid(ring):
     """centro de un polígono (fórmula del área); ring en [lng, lat]"""

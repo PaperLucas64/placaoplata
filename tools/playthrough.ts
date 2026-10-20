@@ -37,7 +37,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
   const rng = seeded(seed);
   let now = 0, spent = 0;
   const s = newPlayer("Bot", now);
-  s.home.spawn = "Almagrito"; // siempre el mismo barrio, para que la medición no dependa del azar
+  s.home.spawn = "Almagro"; // siempre el mismo barrio, para que la medición no dependa del azar
   const run: Run = { gang, finalShare: 0, lvlAt: { 1: 0 }, rankAt: {}, events: {}, fights: {}, goldIn: {}, goldOut: {}, final: null!, statsAtLvl: {}, hoursAt: {}, gymHours: 0 };
   const fight = (k: string, won: boolean) => { const f = (run.fights[k] ??= { w: 0, n: 0 }); f.n++; if (won) f.w++; };
   const avgCombat = () => COMBAT.reduce((a, k) => a + s.stats[k], 0) / COMBAT.length;

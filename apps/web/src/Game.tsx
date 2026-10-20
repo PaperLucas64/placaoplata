@@ -317,16 +317,16 @@ function withNewTabs(tabs: TabKey[]): TabKey[] {
 
 /* Noticias locales: lo último que pasó en la ciudad, pasando abajo del mapa (como el diario del SimCity) */
 const AMBIENT = [
-  "Corte de luz en media Floreros: los vecinos sacaron las sillas a la vereda.",
-  "La Municipalidad de Maires promete arreglar los baches «antes del Mundial».",
+  "Corte de luz en media Flores: los vecinos sacaron las sillas a la vereda.",
+  "La Municipalidad de Buenos Aires promete arreglar los baches «antes del Mundial».",
   "Paro sorpresa de colectivos: el Sindicato dice que no sabe nada.",
-  "Se vendió un PH en Villa Crespa a precio de mansión de Reloquita.",
-  "Vieron a La Señora cenando en Puerto Mareo. Nadie se animó a pedirle una foto.",
+  "Se vendió un PH en Villa Crespo a precio de mansión de Recoleta.",
+  "Vieron a La Señora cenando en Puerto Madero. Nadie se animó a pedirle una foto.",
   "Rita «Taxi» Quiroga baja la bajada de bandera. Los remiseros, furiosos.",
   "El Tano Lucero prometió un trapo nuevo para el clásico.",
   "Un perro ocupó la línea Mar del Plata del subte y no se quiere bajar.",
-  "Ola de robos de estéreos en Palermo Soja: los dueños ya no compran estéreos.",
-  "El kiosquero de Mosecraft cumple 40 años detrás del mostrador."
+  "Ola de robos de estéreos en Palermo: los dueños ya no compran estéreos.",
+  "El kiosquero de Monserrat cumple 40 años detrás del mostrador."
 ];
 /* lo último del chat (de la última media hora) también pasa por las noticias */
 const CHAT_IN_NEWS = 5, CHAT_NEWS_MS = 30 * 60_000;

@@ -34,7 +34,7 @@ function useTravelers() {
   }, []);
   return view;
 }
-/* El mapa de Maires, arriba de todo: los barrios con el color de su dueño, tu personaje (si está en la calle),
+/* El mapa de Buenos Aires, arriba de todo: los barrios con el color de su dueño, tu personaje (si está en la calle),
    los demás que andan por ahí y, al tocarlos, salir a buscarlos. */
 export function CityMap(ui: Ui & { filter?: string | null }) {
   const { s, now, act, filter } = ui;
@@ -61,7 +61,7 @@ export function CityMap(ui: Ui & { filter?: string | null }) {
   const km = trip ? (trip.path ? kmOf(trip.path) : tripKm(trip.from ?? GEO_HOME, trip.place, trip.mode)) : 0;
   const status = <Legend s={s} now={now} km={km} />;
   const crowd = <span className="crowd"><span className="live on" /> {online} en línea · {people.length} en la calle</span>;
-  return <section className="city" aria-label="Mapa de Maires">
+  return <section className="city" aria-label="Mapa de Buenos Aires">
     <Suspense fallback={<div className="gps city-map" />}>
       <GpsMap className="city-map" home={trip?.from ?? homePlace(s)} homeAt={!trip?.from || trip.from === homePlace(s) ? homePt(s) : undefined} owners={owners} place={trip?.place} mode={trip?.mode} path={trip?.path}
         at={ph ? { back: ph.phase === "vuelta", f: ph.frac } : null} sprite={b?.kind === "caza" ? undefined : playerSprite(s.avatar)}
@@ -294,7 +294,7 @@ function GangContact({ g, ...ui }: Ui & { g: Gang }) {
 function ambushWhy(s: Ui["s"], t: Traveler): string | null {
   if (s.busy) return "Estás ocupado: para salir a buscar a alguien tenés que estar libre.";
   if (s.lvl < NEWBIE_LVL) return `Hasta el nivel ${NEWBIE_LVL} no peleás con otros jugadores.`;
-  if (t.lvl < NEWBIE_LVL) return "Recién llega a Maires: no se lo toca.";
+  if (t.lvl < NEWBIE_LVL) return "Recién llega a Buenos Aires: no se lo toca.";
   if (t.gang && t.gang === gangOf(s)) return "Es de tu pandilla.";
   if (t.lvl < s.lvl - AMBUSH_LVL_GAP) return "Es muy chico para vos.";
   if (s.energy < DUEL_COST) return "No te alcanza la energía.";
@@ -765,7 +765,7 @@ function Ranking({ s }: Ui) {
   }, [s.respect]);
   const mine = gangOf(s);
   return <>
-    <h2>Maires</h2>
+    <h2>Buenos Aires</h2>
     <p>Cada barrio es de la pandilla con más influencia. La influencia la ganás trabajando para una pandilla (misiones, encargos, golpes y peleas) y se va gastando: pierde la mitad por semana. Cada barrio de tu pandilla te da +{Math.round(TURF_BONUS * 100)}% de plata.</p>
     {mine && map && <p className="result good">{GANGS[mine].name} controla {map.owned[mine]} {map.owned[mine] === 1 ? "barrio" : "barrios"}: +{map.owned[mine] * Math.round(TURF_BONUS * 100)}% de plata para vos.</p>}
     <p className="tag">En el mapa de arriba los barrios tienen el color de su dueño.</p>
@@ -781,7 +781,7 @@ function Ranking({ s }: Ui) {
         </div>;
       })}</div>}
     <h2>Ranking</h2>
-    <p>Quién manda en Maires, de las cuatro pandillas. Se ordena por respeto.</p>
+    <p>Quién manda en Buenos Aires, de las cuatro pandillas. Se ordena por respeto.</p>
     {!rows ? <p className="tag">Cargando…</p> :
       <ol className="ranking">{rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className={r.me ? "me" : ""}>

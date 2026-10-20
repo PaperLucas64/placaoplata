@@ -21,7 +21,7 @@ function veteran(name: string, gang: Gang | null = null): PlayerState {
   const s = newPlayer(name, T0);
   Object.assign(s, { lvl: 6, gold: 500, tut: 6, tutDone: true, stats: { fue: 9, dur: 9, ref: 9, agu: 9, lab: 9 } });
   if (gang) s.aff[gang] = 20;
-  s.c.valija = 1; s.hp = maxHp(s); s.home.spawn = "Almagrito";
+  s.c.valija = 1; s.hp = maxHp(s); s.home.spawn = "Almagro";
   return s;
 }
 
@@ -396,21 +396,21 @@ describe("viajes y GPS", () => {
     applyAction(a, { type: "mstart", id: m.id, mode: "pie" }, ctx());
     applyAction(b, { type: "mstart", id: m.id, mode: "colectivo" }, ctx());
     const ba = a.busy!, bb = b.busy!;
-    expect(ba.kind === "mision" && ba.trip?.place).toBe("Chacarota");
+    expect(ba.kind === "mision" && ba.trip?.place).toBe("Chacarita");
     expect(ba.until - ba.since).toBeGreaterThan(bb.until - bb.since);
-    expect(b.gold).toBe(500 - tripCost(b, "colectivo", "Chacarota"));
+    expect(b.gold).toBe(500 - tripCost(b, "colectivo", "Chacarita"));
     const go = ba.kind === "mision" ? ba.trip!.go : 0;
     missionCatchUp(a, ctx(T0 + go - 1000));
     expect(ba.kind === "mision" && ba.done).toBe(0);              // todavía viajando
     missionCatchUp(a, ctx(T0 + go + 1000));
-    expect(a.log.some(l => l.msg.includes("Llegaste a Chacarota"))).toBe(true);
+    expect(a.log.some(l => l.msg.includes("Llegaste a Chacarita"))).toBe(true);
   });
   it("caminar gasta 1 de energía por km, de ida y de vuelta; en colectivo no", () => {
     const a = veteran("Ana"), b = veteran("Beto");
     const m = MISSIONS.sindicato[0];
-    const walk = walkEnergy(a, "pie", "Chacarota");
+    const walk = walkEnergy(a, "pie", "Chacarita");
     expect(walk).toBeGreaterThan(0);
-    expect(walkEnergy(b, "colectivo", "Chacarota")).toBe(0);
+    expect(walkEnergy(b, "colectivo", "Chacarita")).toBe(0);
     const ea = a.energy, eb = b.energy;
     applyAction(a, { type: "mstart", id: m.id, mode: "pie" }, ctx());
     applyAction(b, { type: "mstart", id: m.id, mode: "colectivo" }, ctx());
@@ -438,22 +438,22 @@ describe("viajes y GPS", () => {
     expect(SIDE_QUESTS.some(q => q.key === m.sideKey)).toBe(true);
   });
   it("más lejos, más tiempo; los Amarillos no pagan el taxi", () => {
-    const s = veteran("Ana"); // vive en Almagrito
-    expect(travelModes(s, "Saavedrita")).toContain("colectivo");
-    expect(tripMins(s, "colectivo", "Saavedrita")).toBeGreaterThan(tripMins(s, "colectivo", "Caballote"));
+    const s = veteran("Ana"); // vive en Almagro
+    expect(travelModes(s, "Saavedra")).toContain("colectivo");
+    expect(tripMins(s, "colectivo", "Saavedra")).toBeGreaterThan(tripMins(s, "colectivo", "Caballito"));
     const y = veteran("Yami", "amarillos");
-    expect(tripCost(y, "taxi", "Chacarota")).toBe(0);
-    expect(tripCost(s, "taxi", "Chacarota")).toBeGreaterThan(0);
+    expect(tripCost(y, "taxi", "Chacarita")).toBe(0);
+    expect(tripCost(s, "taxi", "Chacarita")).toBeGreaterThan(0);
   });
   it("la moto pide nivel 15 y el motor preparado la hace más rápida", () => {
     const s = veteran("Ana"); s.gold = 20000;
     expect(applyAction(s, { type: "vehicle", v: "moto" }, ctx()).error).toMatch(/nivel 15/);
     s.lvl = 15;
     expect(applyAction(s, { type: "vehicle", v: "moto" }, ctx()).error).toBeUndefined();
-    expect(travelModes(s, "Liniers Sur")).toContain("moto");
-    const slow = tripMins(s, "moto", "Saavedrita");
+    expect(travelModes(s, "Liniers")).toContain("moto");
+    const slow = tripMins(s, "moto", "Saavedra");
     applyAction(s, { type: "mod", v: "moto", mod: "motor" }, ctx());
-    expect(tripMins(s, "moto", "Saavedrita")).toBeLessThan(slow);
+    expect(tripMins(s, "moto", "Saavedra")).toBeLessThan(slow);
     expect(applyAction(s, { type: "mod", v: "moto", mod: "polarizado" }, ctx()).error).toBeTruthy(); // la moto no se polariza
   });
 });
@@ -514,7 +514,7 @@ describe("asaltos en el mapa y trabajos largos", () => {
   });
   it("si lo alcanzás, sale a buscarlo y vuelve; si ya volvió a su casa, no hay a quién buscar", () => {
     const att = veteran("Ana", "barra"), def = veteran("Beto", "familia");
-    applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "pie" }, ctx());   // a Puerto Mareo, caminando
+    applyAction(def, { type: "mstart", id: MISSIONS.familia[0].id, mode: "pie" }, ctx());   // a Puerto Madero, caminando
     const b = def.busy!; const trip = { since: b.since, until: b.until, trip: b.kind === "mision" ? b.trip! : undefined! };
     const plan = planChase(att, RUTAS_TEST, trip, T0 + 1000, "pie")!;
     expect(plan).toBeTruthy();
@@ -534,7 +534,7 @@ describe("asaltos en el mapa y trabajos largos", () => {
     const ta = a.busy!, td = d.busy!;
     const on = (b: typeof ta) => ({ since: b.since, until: b.until, trip: b.kind === "mision" ? b.trip! : undefined! });
     expect(firstCrossing(RUTAS_TEST, on(ta), on(td), T0)).not.toBeNull();
-    const r = crossFight(a, d, ctx(T0 + 60_000), "San Telmón");
+    const r = crossFight(a, d, ctx(T0 + 60_000), "San Telmo");
     expect(r.fight).toBeTruthy();
     expect(a.energy).toBe(ENERGY_MAX - missionEnergyOf(MISSIONS.familia[0]));   // cruzarse no gasta energía
   });
@@ -556,7 +556,7 @@ describe("lugares del mapa y eventos", () => {
     const s = veteran("Ana"); s.lvl = 6;
     expect(applyAction(s, { type: "job", id: "celu", at: "desarmadero-tuerca" }, ctx()).error).toMatch(/ahí/);
     expect(applyAction(s, { type: "job", id: "desarme", at: "desarmadero-tuerca" }, ctx()).error).toBeUndefined();
-    expect(s.busy?.kind === "salida" && s.busy.place).toBe("La Paterna");
+    expect(s.busy?.kind === "salida" && s.busy.place).toBe("La Paternal");
   });
   it("Halloween dura del 24 de octubre al 2 de noviembre", () => {
     expect(activeEvents(Date.UTC(2026, 9, 15, 15))).toEqual([]);

@@ -1,4 +1,4 @@
-/* Territorio: los barrios de Maires y la influencia de cada pandilla en ellos.
+/* Territorio: los barrios de Buenos Aires y la influencia de cada pandilla en ellos.
    La influencia la generan los jugadores trabajando para una pandilla y se va gastando (la mitad por semana).
    El barrio es de la pandilla con más influencia. Cada barrio de tu pandilla te da +2% de plata. */
 import { GANG_KEYS } from "./gangs.js";
@@ -8,7 +8,7 @@ import type { Gang, PlayerState } from "./types.js";
 
 export const BARRIOS = Object.keys(GEO_PLACES); // los barrios de Capital (ver tools/geo/capital.py)
 /* el barrio de cada pandilla (ahí suman sus misiones de la historia y sus encargos) */
-export const HOME_BARRIO: Record<Gang, string> = { familia: "Puerto Mareo", sindicato: "Chacarota", barra: "Ñuñez", amarillos: "Once y Medio" };
+export const HOME_BARRIO: Record<Gang, string> = { familia: "Puerto Madero", sindicato: "Chacarita", barra: "Núñez", amarillos: "Balvanera" };
 
 export const TURF_HALF_LIFE = 7 * 24 * 3_600_000; // la influencia pierde la mitad por semana
 export const TURF_MIN = 10;                        // por debajo de esto, el barrio no es de nadie
@@ -17,19 +17,19 @@ export const TURF_BONUS = 0.02;                    // +2% de plata por barrio de
 /* presencia de base de cada pandilla (personajes del juego): para que el mapa no arranque vacío; no se gasta */
 export const TURF_BASE: Record<string, Partial<Record<Gang, number>>> = {
   /* La Familia: el puerto y la plata */
-  "Puerto Mareo": { familia: 30, sindicato: 8 }, "Reloquita": { familia: 15 }, "San Nicolasito": { familia: 12, amarillos: 8 },
-  "Mosecraft": { familia: 12 }, "Belgranito": { familia: 12, barra: 8 }, "Salida": { familia: 10, amarillos: 10 },
+  "Puerto Madero": { familia: 30, sindicato: 8 }, "Recoleta": { familia: 15 }, "San Nicolás": { familia: 12, amarillos: 8 },
+  "Monserrat": { familia: 12 }, "Belgrano": { familia: 12, barra: 8 }, "Retiro": { familia: 10, amarillos: 10 },
   /* El Sindicato: talleres, galpones y vías */
-  "Chacarota": { sindicato: 30, amarillos: 8 }, "La Paterna": { sindicato: 15 }, "Villa Ortuzán": { sindicato: 12 },
-  "Agromanía": { sindicato: 10 }, "Villa Mitrecito": { sindicato: 10 }, "Villa Santa Rata": { sindicato: 10 }, "Villa Urquisa": { sindicato: 8, amarillos: 10 },
+  "Chacarita": { sindicato: 30, amarillos: 8 }, "La Paternal": { sindicato: 15 }, "Villa Ortúzar": { sindicato: 12 },
+  "Agronomía": { sindicato: 10 }, "Villa General Mitre": { sindicato: 10 }, "Villa Santa Rita": { sindicato: 10 }, "Villa Urquiza": { sindicato: 8, amarillos: 10 },
   /* La Barra: los clubes */
-  "Ñuñez": { barra: 30, familia: 8 }, "Villa Crespa": { barra: 12, sindicato: 8 }, "Caballote": { barra: 12, amarillos: 8 },
-  "Floreros": { barra: 12, sindicato: 8 }, "Vélez Sarsfeel": { barra: 15 }, "Villa Lurio": { barra: 10 }, "Saavedrita": { barra: 12 },
-  "Villa Devota": { barra: 10, familia: 8 }, "Villa del Charque": { barra: 10 }, "Monte Castrito": { barra: 8, sindicato: 8 },
+  "Núñez": { barra: 30, familia: 8 }, "Villa Crespo": { barra: 12, sindicato: 8 }, "Caballito": { barra: 12, amarillos: 8 },
+  "Flores": { barra: 12, sindicato: 8 }, "Vélez Sarsfield": { barra: 15 }, "Villa Luro": { barra: 10 }, "Saavedra": { barra: 12 },
+  "Villa Devoto": { barra: 10, familia: 8 }, "Villa del Parque": { barra: 10 }, "Monte Castro": { barra: 8, sindicato: 8 },
   /* Los Amarillos: remiserías y avenidas */
-  "Once y Medio": { amarillos: 30, familia: 8 }, "Almagrito": { amarillos: 15 }, "Palermo Soja": { amarillos: 12, barra: 8 },
-  "Colegas": { amarillos: 12 }, "Coglán": { amarillos: 10 }, "Villa Puerredón": { amarillos: 10 }, "Parque Chau": { amarillos: 8, sindicato: 8 },
-  "Versalles Chico": { amarillos: 8 }, "Florestita": { amarillos: 10 }, "Liniers Sur": { amarillos: 10, sindicato: 12 }, "Villa Realeza": { amarillos: 8 }
+  "Balvanera": { amarillos: 30, familia: 8 }, "Almagro": { amarillos: 15 }, "Palermo": { amarillos: 12, barra: 8 },
+  "Colegiales": { amarillos: 12 }, "Coghlan": { amarillos: 10 }, "Villa Pueyrredón": { amarillos: 10 }, "Parque Chas": { amarillos: 8, sindicato: 8 },
+  "Versalles": { amarillos: 8 }, "Floresta": { amarillos: 10 }, "Liniers": { amarillos: 10, sindicato: 12 }, "Villa Real": { amarillos: 8 }
 };
 
 
