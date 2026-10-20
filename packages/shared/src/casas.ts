@@ -7,7 +7,7 @@ import type { PlayerState } from "./types.js";
 
 export interface HouseType { name: string; lvl: number; price: number; cap: number; help: string }
 export const HOUSE_TYPES: Record<string, HouseType> = {
-  pieza:   { name: "Pieza de pensión",            lvl: 1,  price: 0,      cap: 1, help: "Una pieza en el barrio donde caíste. Marga te la consiguió." },
+  pieza:   { name: "Pieza de pensión",            lvl: 1,  price: 0,      cap: 0, help: "Una pieza en el barrio donde caíste. Se paga por día." },
   depto:   { name: "Departamento de un ambiente", lvl: 6,  price: 4000,   cap: 2, help: "Contrafrente, sexto piso sin ascensor." },
   ph:      { name: "PH con terraza",              lvl: 10, price: 10000,  cap: 3, help: "Un pasillo largo, una terraza y vecinos que no preguntan." },
   casa:    { name: "Casa con patio",              lvl: 15, price: 25000,  cap: 4, help: "Portón para el auto y un sótano que nadie conoce." },
@@ -52,7 +52,20 @@ export function houseById(id?: string): House | undefined {
   const [type, barrio] = (LEGACY[id] ?? id).split("@");
   return HOUSE_TYPES[type] && GEO_PLACES[barrio] ? make(type, barrio) : undefined;
 }
+/* La guarida de cada pandilla: en su barrio, gratis para los suyos. No es una casa: no tiene cama, caja ni obras. */
+const GUARIDA_BARRIO: Record<string, string> = { familia: "Puerto Madero", sindicato: "Chacarita", barra: "Núñez", amarillos: "Balvanera" };
+const GUARIDA_NAME: Record<string, string> = { familia: "La guarida de La Familia", sindicato: "La guarida del Sindicato", barra: "La guarida de La Barra", amarillos: "La guarida de los Amarillos" };
+const guarida = (g: string): House => {
+  const place = GUARIDA_BARRIO[g], [lat, lng] = spotIn(place, `guarida-${g}`);
+  return { name: GUARIDA_NAME[g], lvl: 1, price: 0, cap: 0, help: "Un colchón entre los tuyos. Gratis, pero acá no se planea nada grande.",
+    id: `guarida@${g}`, type: "guarida", place, lat, lng };
+};
+/* dónde dormís: tu casa si tenés; si no, la guarida de tu pandilla (si la elegiste) o la pieza de pensión que se paga por día */
 export const houseOf = (s: Pick<PlayerState, "home">): House =>
-  houseById(s.home?.house) ?? make("pieza", s.home?.spawn && GEO_PLACES[s.home.spawn] ? s.home.spawn : GEO_HOME);
+  houseById(s.home?.house)
+  ?? (s.home?.stay === "guarida" && s.home.guarida && GUARIDA_BARRIO[s.home.guarida] ? guarida(s.home.guarida) : undefined)
+  ?? make("pieza", s.home?.spawn && GEO_PLACES[s.home.spawn] ? s.home.spawn : GEO_HOME);
+/* ¿tenés casa propia? (la cama, la caja fuerte, las obras y los golpes grandes son solo de la casa) */
+export const hasHouse = (s: Pick<PlayerState, "home">) => !!houseById(s.home?.house);
 /* el barrio donde vivís: de ahí salen y ahí vuelven todos tus viajes */
 export const homePlace = (s: Pick<PlayerState, "home">) => houseOf(s).place;

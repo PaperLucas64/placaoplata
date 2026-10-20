@@ -11,7 +11,8 @@ import { arcChapterKey } from "./arcs.js";
 import { hasMod, hasVehicle, MODS, nearestCare, travelModes, tripCost, tripMins, VEHICLES, type FromPoint, type ModKey, type TravelMode } from "./geo.js";
 import { PROPS, propIncome, propOf } from "./negocios.js";
 import { CHASE_NAMES, homePt, nearestPlace, type ChasePlan } from "./route.js";
-import { homePlace, houseById, houseOf, housesIn } from "./casas.js";
+import { hasHouse, homePlace, houseById, houseOf, housesIn } from "./casas.js";
+import { HOUSE_NEEDED, needsHouse, pensionPrice } from "./vivienda.js";
 import { EVENT_MISSIONS } from "./eventos.js";
 import { activeEvents, lugarOf } from "./lugares.js";
 import { routeTo, TRAVEL, tripEvent, walkEnergy } from "./geo.js";
@@ -83,7 +84,7 @@ export const npcTarget = (rng: Rng, mine: Gang | null, lvl: number): Target => {
 const checkChance = (stat: number, diff: number) => clamp(50 + (stat - diff) * 7, 15, 95);
 
 /* Mientras entrenás o estás internado no podés hacer estas cosas */
-const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "reroll", "duel", "scout", "guardia", "heal", "move"]);
+const BLOCKED_WHEN_BUSY = new Set<Action["type"]>(["job", "encargo", "train", "spar", "mstart", "reroll", "duel", "scout", "guardia", "heal", "move", "lodge"]);
 const busyText = (s: PlayerState) =>
   s.busy?.kind === "gym" ? "Estás entrenando en el gimnasio." : s.busy?.kind === "mision" ? "Estás en una misión."
   : s.busy?.kind === "caza" ? `Saliste a buscar a ${s.busy.targetName}.` : s.busy?.kind === "vuelta" ? "Estás volviendo a casa."
@@ -118,6 +119,7 @@ export function validAction(a: unknown): string | null {
     case "vehicle": return x.v === "moto" || x.v === "auto" ? null : "Vehículo inválido.";
     case "mod": return (x.v === "moto" || x.v === "auto") && own(MODS, x.mod) ? null : "Arreglo inválido.";
     case "build": return own(HOME, x.part) ? null : "Parte inválida.";
+    case "lodge": return x.where === "pension" || x.where === "guarida" ? null : "Lugar inválido.";
     case "deposit": case "withdraw": return Number.isFinite(x.amount) && (x.amount as number) > 0 ? null : "Monto inválido.";
     case "chase": return Number.isInteger(x.id) && ["pie", "taxi", "moto", "auto"].includes(x.mode as string) ? null : "Inválido.";
     default: return "Acción desconocida.";
@@ -160,9 +162,10 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.energy < j.cost) return fail("No te alcanza la energía.");
       const spot = a.at ? lugarOf(a.at) : undefined;
       if (isGolpe(j.id) && a.at && spot?.job !== j.id) return fail("Eso no se hace ahí."); // antes de cobrar
+      if (isGolpe(j.id) && needsHouse(j) && !hasHouse(s)) return fail(HOUSE_NEEDED);
       s.energy -= j.cost;
       if (!isGolpe(j.id)) { resolveJob(s, j, now, rng); return {}; }   // los laburos honestos, al instante
-      startRetiro(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? ctx.place ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
+      startSalida(s, "golpe", j.id, spot ? `${j.name} en ${spot.name}` : j.name, spot?.barrio ?? ctx.place ?? golpePlace(s, rng), ctx); // en ese lugar, o en un barrio cercano
       return {};
     }
 
@@ -173,7 +176,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       if (s.energy < ENCARGO_COST) return fail("No te alcanza la energía.");
       if (s.hp < maxHp(s) * MIN_HP_TO_FIGHT) return fail("Estás muy golpeado. Pasá por la clínica.");
       s.energy -= ENCARGO_COST;
-      startRetiro(s, "encargo", a.gang, `${e.name} para ${GANGS[a.gang].name}`, HOME_BARRIO[a.gang], ctx);
+      startSalida(s, "encargo", a.gang, `${e.name} para ${GANGS[a.gang].name}`, HOME_BARRIO[a.gang], ctx);
       return {};
     }
 
@@ -359,7 +362,7 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
 
     /* ---------- la casa ---------- */
     case "build": {
-      if (!s.tutDone) return fail("Todavía no tenés casa.");
+      if (!s.tutDone || !hasHouse(s)) return fail("Las obras se hacen en una casa propia. En la pensión o la guarida no se toca nada.");
       if (!(a.part in HOME)) return fail("Eso no se puede mejorar.");
       if (s.home.obra) return fail("Ya hay una obra en tu casa. Esperá a que termine.");
       const lv = nextLevel(s, a.part);
@@ -386,9 +389,31 @@ export function applyAction(s: PlayerState, a: Action, ctx: Ctx): ActionResult {
       return {};
     }
 
+    /* sin casa propia: dormir en la pensión (se paga por día) o en la guarida de tu pandilla (gratis) */
+    case "lodge": {
+      if (!s.tutDone) return fail("Durante el tutorial dormís donde te consiguió Marga.");
+      if (hasHouse(s)) return fail("Tenés casa propia: dormís ahí.");
+      const h = s.home;
+      if (a.where === "guarida") {
+        const g = gangOf(s);
+        if (!g) return fail("La guarida es para los de una pandilla. Todavía andás suelto.");
+        if (h.stay === "guarida") return fail("Ya dormís en la guarida.");
+        h.stay = "guarida"; h.guarida = g;
+        log(s, now, `Te mudaste a la guarida de ${GANGS[g].name}, en ${houseOf(s).place}. Gratis, pero ahí no se planean golpes grandes.`, "gold");
+        return {};
+      }
+      if (h.stay !== "guarida" && h.stay !== "calle") return fail("Ya dormís en la pensión.");
+      const price = pensionPrice({ home: { ...h, stay: "pension" } });
+      if (s.gold < price) return fail(`La pensión sale ${money(price)} por día y no te alcanza.`);
+      h.stay = "pension"; s.gold -= price; h.paidUntil = now + 24 * 3_600_000;
+      log(s, now, `Volviste a la pensión, en ${houseOf(s).place} (−${money(price)} por hoy).`);
+      return {};
+    }
+
     case "deposit": {
       const room = safeCap(s) - s.home.safe;
       const n = Math.floor(Math.min(a.amount, s.gold, room));
+      if (!hasHouse(s)) return fail("La caja fuerte está en tu casa propia. En la pensión o la guarida no hay dónde guardar.");
       if (!safeCap(s)) return fail("Todavía no tenés caja fuerte.");
       if (n <= 0) return fail(room <= 0 ? "La caja fuerte está llena." : "No tenés plata encima.");
       s.gold -= n; s.home.safe += n;
@@ -491,7 +516,7 @@ export function golpePlace(s: PlayerState, rng: Rng) {
   return pick(rng, near);
 }
 /* salís: caminando si es cerca, si no lo más barato. El viaje de las salidas es más corto que el de las misiones. */
-function startRetiro(s: PlayerState, what: "golpe" | "encargo", ref: string, name: string, place: string, ctx: Ctx) {
+function startSalida(s: PlayerState, what: "golpe" | "encargo", ref: string, name: string, place: string, ctx: Ctx) {
   const { now, rng } = ctx;
   const street = onTheWayHome(s);
   const from = ctx.from;

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   activeEvents, lugarOf, lugarOpen, canAmbush, onStreet, attackVal, defenseVal, eff, gearBonus, playerFighter, crossFight, finishBusy, firstCrossing, missionEnergy as missionEnergyOf, planChase, startChase, type Rutas, ARC_MISSIONS, arcMissionId, findMission, PROPS, propIncome, travelModes, tripCost, tripMins,
   ambushCatchUp, applyAction, canStart, ENERGY_EVERY, ENERGY_MAX, energyMax, gangOf, guardiaTime, HOME, maxHp, MISSIONS, newPlayer, pvp,
-  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, walkEnergy, SIDE_QUESTS, jobOdds, stepChance, unlocksAt, nextUnlock, respectToNext, GOLPES, JOBS, type Gang, type PlayerState, type Rng
+  BARRIOS, buchholz, coopMission, roundAt, roundsIn, seasonName, seasonOf, swissPairs, decayed, missionCatchUp, ownerOf, TURF_HALF_LIFE, turfMult, missionMins, newBoard, RANK_AT, regen, resolveCoopStep, safeCap, streetMission, teamFighter, VALIJA, trainCost, trainTime, upgradeState, walkEnergy, SIDE_QUESTS, jobOdds, stepChance, unlocksAt, nextUnlock, respectToNext, GOLPES, JOBS, PENSION_GRACE_DAYS, pensionPrice, lodgingOf, houseOf, needsHouse, type Gang, type PlayerState, type Rng
 } from "../src/index.js";
 
 /* azar repetible para que los tests den siempre lo mismo */
@@ -118,7 +118,7 @@ describe("pandillas", () => {
 
 describe("casa", () => {
   it("las obras cuestan plata, llevan tiempo y no te bloquean", () => {
-    const s = veteran("Ana"); s.gold = 5000;
+    const s = veteran("Ana"); s.gold = 5000; s.home.house = "depto@Almagro"; // las obras se hacen en una casa propia
     applyAction(s, { type: "build", part: "cama" }, ctx());
     expect(s.gold).toBe(5000 - HOME.cama.levels[1].cost);
     expect(applyAction(s, { type: "job", id: "bici" }, ctx(T0 + 1000)).error).toBeUndefined();
@@ -128,7 +128,7 @@ describe("casa", () => {
     expect(energyMax(s)).toBe(ENERGY_MAX + 5);
   });
   it("la caja fuerte tiene tope y protege la plata", () => {
-    const s = veteran("Ana"); s.gold = 1000; s.home.caja = 1;
+    const s = veteran("Ana"); s.gold = 1000; s.home.caja = 1; s.home.house = "depto@Almagro";
     applyAction(s, { type: "deposit", amount: 1000 }, ctx());
     expect(s.home.safe).toBe(safeCap(s));
     expect(s.gold).toBe(1000 - safeCap(s));
@@ -599,5 +599,43 @@ describe("propuestas de Tomi", () => {
     expect(unlocksAt(10).some(u => u.kind === "casa")).toBe(true);    // el PH
     expect(nextUnlock(13)?.lvl).toBe(14);                            // del 13 se salta al 14
     expect(respectToNext(0)).toBe(50);
+  });
+});
+
+describe("vivienda", () => {
+  const DAY = 24 * 3_600_000;
+  it("la pensión se cobra por día después de los días que paga Marga; sin plata, a la calle", () => {
+    const s = veteran("Ana"); s.gold = 100;
+    regen(s, T0);                                     // Marga paga los primeros días
+    expect(s.home.paidUntil).toBe(T0 + PENSION_GRACE_DAYS * DAY);
+    const price = pensionPrice(s);
+    regen(s, T0 + PENSION_GRACE_DAYS * DAY + 1000);   // se cumplieron: se cobra un día
+    expect(s.gold).toBe(100 - price);
+    s.gold = 0;
+    regen(s, T0 + (PENSION_GRACE_DAYS + 1) * DAY + 1000);
+    expect(lodgingOf(s)).toBe("calle");
+    s.gold = 200;                                      // con plata, vuelve y paga solo el día de hoy
+    regen(s, T0 + (PENSION_GRACE_DAYS + 5) * DAY);
+    expect(lodgingOf(s)).toBe("pension");
+    expect(s.gold).toBe(200 - price);
+  });
+  it("la guarida es gratis y solo para los de una pandilla", () => {
+    const loose = veteran("Ana");
+    expect(applyAction(loose, { type: "lodge", where: "guarida" }, ctx()).error).toMatch(/suelto/);
+    const s = veteran("Beto", "familia"); s.gold = 100;
+    expect(applyAction(s, { type: "lodge", where: "guarida" }, ctx()).error).toBeUndefined();
+    expect(houseOf(s).place).toBe("Puerto Madero");
+    regen(s, T0 + 10 * DAY);
+    expect(s.gold).toBe(100);                          // no se cobra
+  });
+  it("sin casa propia no hay golpes grandes, ni cama, ni caja fuerte", () => {
+    const s = veteran("Ana"); s.lvl = 20; s.energy = 40; s.home.cama = 2; s.home.caja = 2;
+    const big = GOLPES.find(j => needsHouse(j))!;
+    expect(applyAction(s, { type: "job", id: big.id }, ctx()).error).toMatch(/casa propia/);
+    expect(energyMax(s)).toBe(ENERGY_MAX);
+    expect(safeCap(s)).toBe(0);
+    s.home.house = "depto@Almagro";
+    expect(energyMax(s)).toBe(ENERGY_MAX + 10);
+    expect(applyAction(s, { type: "job", id: big.id }, ctx()).error).toBeUndefined();
   });
 });

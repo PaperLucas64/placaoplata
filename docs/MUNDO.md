@@ -116,10 +116,10 @@ cosas para hacer cerca de donde está. Las ciudades son de la pandilla que más 
 
 Cada una se puede jugar sola. Antes de pasar a la siguiente se mide con el bot y se prueba.
 
-1. **Nombres reales y tiempo real en Capital.**
+1. **Nombres reales y tiempo real en Capital.** ✅ Hecha (20/10/2026).
    - Maires pasa a Buenos Aires y los barrios a su nombre real, en el mapa, en los textos y en las partidas guardadas.
    - Los viajes duran lo real (fuera la compresión de `TRAVEL_SCALE`). El bot mide el ritmo nuevo.
-2. **Vivienda nueva.**
+2. **Vivienda nueva.** ✅ Hecha (20/10/2026): pensión por día según el barrio ($20, $30 o $45; Marga paga el tutorial y 3 días más), guarida gratis en el barrio de tu pandilla, y la casa propia como la única con cama, caja fuerte, obras y golpes grandes (los de riesgo alto). Sin plata para la pensión, a la calle con la energía a la mitad de velocidad; los días en la calle no se cobran.
    - La pensión gratis pasa a hostel que se paga por día; la guarida de la pandilla; la casa con lo que solo ella da (golpes grandes).
    - Una casa por ciudad (por ahora, la única ciudad es Buenos Aires).
 3. **Tu personaje en un lugar, varias misiones y misiones por cercanía.**
@@ -133,8 +133,8 @@ Cada una se puede jugar sola. Antes de pasar a la siguiente se mide con el bot y
 
 ## A decidir (lo que queda)
 
-1. **Si no podés pagar el hostel** y no tenés guarida: ¿dormís en la calle (menos energía, riesgo de robo) o quedás debiendo?
-2. **Qué golpes piden casa propia** (propuesta: los de riesgo alto y los que dejan botín).
+1. ~~Si no podés pagar el hostel~~ Resuelto en la etapa 2: dormís en la calle (energía a la mitad de velocidad). El riesgo de robo quedó para más adelante.
+2. ~~Qué golpes piden casa propia~~ Resuelto en la etapa 2: los de riesgo alto (contrabando en el puerto, asalto a una financiera, robar una joyería).
 3. **Pandillas locales:** ¿las cuatro de Capital con presencia en el interior, o pandillas propias de cada región?
 4. **Los hospitales con nombre de persona** (hoy «Hospital Ramos Mejido» y otros): con nombres reales para todo, ¿van con su nombre de verdad
    (los hospitales públicos llevan nombres de personas) o con uno genérico del barrio («Hospital de Balvanera»)? La regla de oro dice

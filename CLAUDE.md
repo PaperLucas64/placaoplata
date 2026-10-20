@@ -91,7 +91,7 @@ Para el detalle, ver el GDD.
   - Tablón con una misión «Urgente» temporal.
   - Encuentros raros que aparecen un rato.
   - Golpes en locales de cada barrio y tiendas por rubro.
-  - 10 pensiones de arranque.
+  - Dónde dormís (`packages/shared/src/vivienda.ts`): pensión por día (las 10 de arranque), guarida gratis de tu pandilla o casa propia (cama, caja fuerte, obras y golpes grandes). Sin plata para la pensión, a la calle.
   - Negocios: Vamo se compra después del final de Rita.
   - Noticias locales abajo del mapa.
   - 18 vecinos-bot con nicks de usuario (`apps/server/src/bots.ts`). Se apagan con `BOTS=0`.

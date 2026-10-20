@@ -3,7 +3,7 @@
    cada uno tiene su horario (se despierta y se acuesta a una hora de Argentina) y su forma de jugar.
    De noche salen a un trabajo largo. Se apagan con BOTS=0. */
 import {
-  ARC_MISSIONS, itemOf, itemPower, canStart, housesIn, houseOf, homePlace, BARRIOS, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
+  ARC_MISSIONS, hasHouse, lodgingOf, needsHouse, itemOf, itemPower, canStart, housesIn, houseOf, homePlace, BARRIOS, chaseModes, COOP_ENERGY, defaultMode, ENCARGO_COST, forSale, gangOf, gearVal, HOME, itemLocked, jobList,
   lawyerCost, maxHp, meetsReq, MISSIONS, missionEnergy, missionPlace, needsTrip, newPlayer, nextLevel, pick, planChase, PROPS,
   propIncome, SHOP, trainCost, travelModes, type Action, type Gang, type Mission, type PlayerState, type StatKey, type TravelMode
 } from "@pop/shared";
@@ -104,7 +104,7 @@ function decide(s: PlayerState, b: BotDef): Action | null {
   const low = (["fue", "dur", "ref", "agu", "lab"] as StatKey[]).sort((x, y) => s.stats[x] - s.stats[y])[0];
   if (s.gold >= trainCost(s.stats[low]) + 30 && rng() < 0.6) return { type: "train", stat: low };
   if (s.energy >= ENCARGO_COST && rng() < 0.4) return { type: "encargo", gang: mine };
-  const job = jobList(s).filter(j => j.lvl <= s.lvl && j.cost <= s.energy)
+  const job = jobList(s).filter(j => j.lvl <= s.lvl && j.cost <= s.energy && (hasHouse(s) || !needsHouse(j)))
     .sort((x, y) => (y.gold[0] + y.gold[1]) / y.cost - (x.gold[0] + x.gold[1]) / x.cost)[0];
   if (job) return { type: "job", id: job.id };
   return null;
@@ -150,6 +150,8 @@ export function makeBots(db: Db, game: Game, ring: { join: (playerId: number) =>
       break;
     }
     await ring.join(id).catch(() => {});      // se anota en el torneo del mes (si ya está, no pasa nada)
+    /* sin casa propia, duerme gratis en la guarida de su pandilla (como haría cualquiera) */
+    if (!s.busy && !hasHouse(s) && gangOf(s) && lodgingOf(s) !== "guarida") await game.act(userId, { type: "lodge", where: "guarida" }).catch(() => {});
     if (!up) { const a = bedtime(s); if (a) await game.act(userId, a); return; }
     /* a veces sale a buscar a alguien que anda por la calle */
     if (!s.busy && rng() < b.aggro * 0.3) {

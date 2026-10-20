@@ -3,7 +3,8 @@ import {
   CLINIC_PER_HP, ENERGY_EVERY, ENERGY_MAX, GUARDIA_FULL, HEAL_EVERY, HEAT_EVERY, LOG_SIZE, TRAIN_MAX, TRAIN_MIN, TRAIN_PER_POINT
 } from "./config.js";
 import { GEO_PLACES } from "./geo-data.js";
-import { PENSIONES } from "./casas.js";
+import { hasHouse, PENSIONES } from "./casas.js";
+import { energySlow, lodgingCatchUp } from "./vivienda.js";
 import { ATTACK_SLOTS, JOBS, OLD_ITEMS, OLD_SLOT, SHOP, SLOTS, STAT_NAMES } from "./data.js";
 import {
   BED_ENERGY, BED_HEAL, CLOSET_SLOTS, GANG_KEYS, GANG_MIN_POINTS, GANG_THRESHOLD, GANGS, GOLPES, HOME, RANK_AT, RANK_NAMES, SAFE_CAP
@@ -65,8 +66,10 @@ export function gangOf(s: Pick<PlayerState, "aff">): Gang | null {
 export const gangName = (g: Gang | null) => (g ? GANGS[g].name : "Suelto");
 
 /* ---------- casa ---------- */
-export const energyMax = (s: Pick<PlayerState, "home">) => ENERGY_MAX + BED_ENERGY[s.home?.cama ?? 0];
-export const safeCap = (s: Pick<PlayerState, "home">) => SAFE_CAP[s.home?.caja ?? 0];
+/* la cama y la caja fuerte solo andan en una casa propia (en la pensión o la guarida, lo que construiste queda guardado) */
+const bedLvl = (s: Pick<PlayerState, "home">) => (hasHouse(s) ? s.home?.cama ?? 0 : 0);
+export const energyMax = (s: Pick<PlayerState, "home">) => ENERGY_MAX + BED_ENERGY[bedLvl(s)];
+export const safeCap = (s: Pick<PlayerState, "home">) => (hasHouse(s) ? SAFE_CAP[s.home?.caja ?? 0] : 0);
 export const closetSlots = (s: Pick<PlayerState, "home">) => CLOSET_SLOTS[s.home?.armario ?? 0];
 export const nextLevel = (s: PlayerState, part: keyof typeof HOME) => HOME[part].levels[s.home[part] + 1];
 export const newHome = (): Home => ({ cama: 0, caja: 0, armario: 0, safe: 0, closet: [], obra: null });
@@ -197,15 +200,16 @@ export function finishBusy(s: PlayerState, now: number) {
 /* Energía, vida y calor se recargan solos con el paso del tiempo (sin cron: se calcula al leer) */
 export function regen(s: PlayerState, now: number) {
   finishBusy(s, now);
-  const em = energyMax(s);
+  lodgingCatchUp(s, now); // la pensión se cobra por día (y si no te alcanza, dormís en la calle)
+  const em = energyMax(s), every = ENERGY_EVERY * (energySlow(s) ? 2 : 1);
   if (s.energy < em) {
-    const g = Math.floor((now - s.tEnergy) / ENERGY_EVERY);
-    if (g > 0) { s.energy = Math.min(em, s.energy + g); s.tEnergy += g * ENERGY_EVERY; }
+    const g = Math.floor((now - s.tEnergy) / every);
+    if (g > 0) { s.energy = Math.min(em, s.energy + g); s.tEnergy += g * every; }
   } else s.tEnergy = now;
   const mh = maxHp(s);
   if (s.hp < mh) {
     const h = Math.floor((now - s.tHeal) / HEAL_EVERY);
-    const per = Math.ceil(mh * 0.02 * (1 + BED_HEAL[s.home?.cama ?? 0]));
+    const per = Math.ceil(mh * 0.02 * (1 + BED_HEAL[bedLvl(s)]));
     if (h > 0) { s.hp = Math.min(mh, s.hp + h * per); s.tHeal += h * HEAL_EVERY; }
   } else s.tHeal = now;
   if (s.heat > 0) {

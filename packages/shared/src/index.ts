@@ -18,3 +18,4 @@ export * from "./eventos.js";
 export * from "./barrios.js";
 export * from "./historia.js";
 export * from "./progreso.js";
+export * from "./vivienda.js";

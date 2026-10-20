@@ -66,6 +66,10 @@ export interface Home {
   obra: { part: "cama" | "caja" | "armario"; since: number; until: number } | null; // mejora en construcción
   house?: string;      // qué casa tenés (si no está, la pieza de pensión)
   spawn?: string;      // el barrio donde naciste (ahí está tu pieza de pensión)
+  /* sin casa propia: dónde dormís. «calle» si no te alcanzó para la pensión (la energía vuelve a la mitad de velocidad) */
+  stay?: "pension" | "guarida" | "calle";
+  guarida?: string;    // la pandilla de la guarida donde dormís
+  paidUntil?: number;  // la pensión está paga hasta acá
 }
 
 export interface PlayerState {
@@ -143,6 +147,7 @@ export type Action =
   | { type: "lawyer" }
   | { type: "build"; part: "cama" | "caja" | "armario" }
   | { type: "move"; id: string }        // mudarte a otra casa
+  | { type: "lodge"; where: "pension" | "guarida" } // sin casa: dormir en la pensión o en la guarida de tu pandilla
   | { type: "deposit"; amount: number }
   | { type: "withdraw"; amount: number }
   | { type: "scout" }

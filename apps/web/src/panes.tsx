@@ -5,7 +5,7 @@ import {
   SCOUT_COST, SHOP, STAT_HELP, STAT_NAMES, trainCost, VALIJA, BED_ENERGY, type Job, type Mission, type StatKey, type TabKey,
   ARCS, arcChapterKey, arcMissionId, arcOpen, clientOf, hasMod, hasVehicle, missionPlace, missionStepAt, MODS, modCost, needsTrip,
   POLICE_LVL, POV_COLOR, POV_NAME, POVS, PROP_CAP_HOURS, propIncome, PROPS, TRAVEL, TRAVEL_RISK, travelModes, tripCost, tripKm, tripMins,
-  tripPhase, walkEnergy, jobOdds, missionOdds, NEWBIE_LVL, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
+  tripPhase, walkEnergy, jobOdds, missionOdds, NEWBIE_LVL, lodgingOf, pensionPrice, needsHouse, HOUSE_NEEDED, hasHouse, isGolpe, VEHICLES, BARRIOS, TIER_NAME, tierOf, housesIn, allStory, LUGARES, KIND_COLOR, KIND_NAME, lugarOpen, lugarOf, careLugar, HOSPITALS, CLINICS, GEO_PLACES,
   EVENT_MISSIONS, activeEvents, EVENTS, propOf, type Lugar, eff, gearBonus, itemPower, GEO_HOME, SLOTS, SLOT_NAMES, ATTACK_SLOTS, attackVal, defenseVal, bagSize, SELL_RATE, type Slot, returnTrip, kmOf, kmBetween, placePt, homePt, carePlan, onTheWayHome, type FromPoint, homePlace, houseOf, type ModKey, type TravelMode, type Vehicle, AMBUSH_LVL_GAP, ZONE_NAMES, CHASE_NAMES, durTxt, type ShopKind, spotIn, missionPt
 } from "@pop/shared";
 import type { Pin } from "./gps/GpsMap";
@@ -85,8 +85,8 @@ function allLugares(s: Ui["s"]): Lugar[] {
   const care = [...HOSPITALS.map(h => ({ ...h, care: "guardia" as const })), ...CLINICS.map(h => ({ ...h, care: "clinica" as const }))]
     .map(h => { const [lat, lng] = near(h.place, h.name); return careLugar(h.name, h.place, h.care, lat, lng); });
   const home = houseOf(s);
-  const casa: Lugar = { id: "casa", name: `Tu casa: ${home.name}`, kind: "casa", icon: "casa", barrio: homePlace(s), lat: home.lat, lng: home.lng,
-    help: "Tu guarida: de acá salen y acá vuelven tus viajes. Mejoras, equipo y mudanzas." };
+  const casa: Lugar = { id: "casa", name: `Dormís en: ${home.name}`, kind: "casa", icon: "casa", barrio: homePlace(s), lat: home.lat, lng: home.lng,
+    help: "Pensión, guarida o casa propia, tu equipo y las casas para comprar." };
   /* lo que tiene cada barrio: inmobiliaria, kiosco y estaciones de subte (se ven de muy cerca) */
   const local: Lugar[] = BARRIOS.flatMap(b => {
     const [la1, ln1] = near(b, `inmo-${b}`), [la2, ln2] = near(b, `kiosco-${b}`);
@@ -187,8 +187,9 @@ export function PlacePanel(ui: Ui) {
       <div><h3>{job.name}<span className={`risk r${job.risk}`}>riesgo {riskTxt[job.risk]}</span></h3>
         <div className="meta num">{money(job.gold[0])}–{money(job.gold[1])} · {job.xp[0]}–{job.xp[1]} XP{job.resp ? ` · +${job.resp} respeto` : ""}{job.heat ? ` · +${job.heat} de búsqueda` : ""} · {job.cost} energía{s.lvl < job.lvl ? ` · desde nivel ${job.lvl}` : ""}</div>
         <JobOdds s={s} j={job} />
+        {golpe && needsHouse(job) && !hasHouse(s) && <div className="lock">{HOUSE_NEEDED}</div>}
         {golpe && <div className="meta">Salís hasta acá, lo hacés y volvés a casa.</div>}</div>
-      <div className="act"><button className="primary" disabled={pane.busy || s.energy < job.cost || s.lvl < job.lvl}
+      <div className="act"><button className="primary" disabled={pane.busy || s.energy < job.cost || s.lvl < job.lvl || (golpe && needsHouse(job) && !hasHouse(s))}
         onClick={() => act(golpe ? { type: "job", id: job.id, at: l.id } : { type: "job", id: job.id })}>{golpe ? "Ir a robar" : "Trabajar"}</button></div>
     </div></div>}
     {l.kind === "evento" && <>
@@ -339,8 +340,9 @@ function Jobs({ s, act, busy }: Ui) {
     <div className="item" key={j.id}>
       <div><h3>{j.name}<span className={`risk r${j.risk}`}>riesgo {riskTxt[j.risk]}</span></h3>
         <div className="meta num">{money(j.gold[0])}–{money(j.gold[1])} · {j.xp[0]}–{j.xp[1]} XP{j.resp ? ` · +${j.resp} respeto` : ""}{j.heat ? ` · +${j.heat} de búsqueda` : ""} · {j.cost} energía{s.lvl < j.lvl ? ` · desde nivel ${j.lvl}` : ""}</div>
-        <JobOdds s={s} j={j} /></div>
-      <div className="act"><button disabled={busy || s.energy < j.cost || s.lvl < j.lvl} onClick={() => act({ type: "job", id: j.id })}>{label}</button></div>
+        <JobOdds s={s} j={j} />
+        {isGolpe(j.id) && needsHouse(j) && !hasHouse(s) && <div className="lock">{HOUSE_NEEDED}</div>}</div>
+      <div className="act"><button disabled={busy || s.energy < j.cost || s.lvl < j.lvl || (isGolpe(j.id) && needsHouse(j) && !hasHouse(s))} onClick={() => act({ type: "job", id: j.id })}>{label}</button></div>
     </div>);
   return <>
     <h2>Trabajos</h2>
@@ -528,7 +530,8 @@ function Legend({ s, now, km }: { s: Ui["s"]; now: number; km: number }) {
   const b = s.busy;
   const left = b ? minTxt(b.until - now) : "";
   const who = (name: string, color: string) => <span className="lg-who" style={{ color, borderColor: color }}>{name}</span>;
-  if (!b) return <>Estás en tu {houseOf(s).name.replace(/^./, c => c.toLowerCase())}, en {homePlace(s)}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>;
+  if (!b) { const n = houseOf(s).name.replace(/^./, c => c.toLowerCase());
+    return <>Estás en {/^(la|el|los|las) /.test(n) ? n : `tu ${n}`}, en {homePlace(s)}{lodgingOf(s) === "calle" ? " (dormís en la calle: la energía vuelve a la mitad de velocidad)" : ""}. Tocá un barrio o un lugar, o probá «Cosas que hacer».</>; }
   if (b.kind === "mision") {
     const m = findMission(s, b.id);
     if (!m) return <>En una misión · {left}</>;
@@ -798,11 +801,36 @@ function House({ s, act, busy, now }: Ui) {
   const [amount, setAmount] = useState("");
   const o = s.home.obra;
   const n = Math.max(0, Math.floor(Number(amount) || 0));
+  const kind = lodgingOf(s), own = kind === "casa", g = gangOf(s);
+  const price = pensionPrice({ home: { ...s.home, stay: "pension" } }), paid = s.home.paidUntil;
   return <>
-    <h2>Tu casa: {houseOf(s).name} en {homePlace(s)}</h2>
-    <p>Tu guarida: de acá salen y acá vuelven todos tus viajes. Cada mejora cuesta plata y lleva un tiempo de obra; mientras tanto podés seguir haciendo tu vida. Una obra por vez. En una casa chica no entra todo: para mejorar más, mudate.</p>
+    <p>De acá salen y acá vuelven todos tus viajes ({homePlace(s)}).</p>
+    {/* las tres formas de dormir, con lo que da cada una */}
+    <div className="lodging">
+      <div className={`lodge ${kind === "pension" || kind === "calle" ? "on" : ""}`}>
+        <b>Pensión</b><span className="num">{money(price)} por día</span>
+        <span className="tag">Para cualquiera. Sin caja fuerte ni obras.</span>
+        {kind === "calle" ? <span className="lock">No te alcanzó: dormís en la calle y la energía vuelve a la mitad de velocidad. Se paga sola apenas tengas {money(price)}.</span>
+          : kind === "pension" ? <span className="tag num">{!s.tutDone ? "La paga Marga mientras aprendés." : paid ? `Paga ${paid - now >= 48 * 3_600_000 ? `por ${Math.floor((paid - now) / 86_400_000)} días más` : `por ${durTxt(Math.max(0, paid - now) / 60_000)} más`}.` : ""}</span>
+          : !own && <button disabled={busy || !!s.busy || s.gold < price} onClick={() => act({ type: "lodge", where: "pension" })}>Volver a la pensión</button>}
+      </div>
+      <div className={`lodge ${kind === "guarida" ? "on" : ""}`}>
+        <b>Guarida de tu pandilla</b><span className="num">Gratis</span>
+        <span className="tag">Para los de una pandilla, en su barrio. Sin caja fuerte, obras ni golpes grandes.</span>
+        {kind !== "guarida" && !own && s.tutDone && (g
+          ? <button disabled={busy || !!s.busy} onClick={() => act({ type: "lodge", where: "guarida" })}>Dormir en la guarida de {GANGS[g].name}</button>
+          : <span className="tag">Todavía andás suelto.</span>)}
+      </div>
+      <div className={`lodge ${own ? "on" : ""}`}>
+        <b>Casa propia</b><span className="num">Cara, una por ciudad</span>
+        <span className="tag">La única con cama que da energía, caja fuerte, obras y golpes grandes.</span>
+        {!own && <span className="tag">Las de este barrio están abajo, en «Mudarte».</span>}
+      </div>
+    </div>
+    {!own && <p className="tag">Las mejoras de la cama, la caja y el armario se hacen y se usan en una casa propia. Lo que ya construiste queda guardado para cuando tengas una.</p>}
+    {own && <p>Cada mejora cuesta plata y lleva un tiempo de obra; mientras tanto podés seguir haciendo tu vida. Una obra por vez. En una casa chica no entra todo: para mejorar más, mudate.</p>}
     {o && <p className="result good">Obra en curso: {HOME[o.part].levels[s.home[o.part] + 1].name} · faltan {minTxt(o.until - now)}.</p>}
-    <div className="list">{(Object.keys(HOME) as (keyof typeof HOME)[]).map(part => {
+    {own && <div className="list">{(Object.keys(HOME) as (keyof typeof HOME)[]).map(part => {
       const h = HOME[part], lv = s.home[part], next = nextLevel(s, part), roof = lv + 1 > houseOf(s).cap;
       return <div className="item" key={part}>
         <div><h3>{h.title}: {h.levels[lv].name}</h3><div className="meta">{h.help}
@@ -814,13 +842,16 @@ function House({ s, act, busy, now }: Ui) {
           : roof ? <span className="tag">no entra en tu casa</span>
           : <button disabled={busy || !!o || s.gold < next.cost} onClick={() => act({ type: "build", part })}>Mejorar</button>}</div>
       </div>;
-    })}</div>
+    })}</div>}
 
-    <h3>Mudarte</h3>
+    <h3>{own ? "Mudarte" : "Comprarte una casa"}</h3>
     <p>Más cerca de donde trabajás, viajes más cortos. Las casas más grandes dejan mejorar más.</p>
     <HouseList {...{ s, act, busy } as Ui} b={homePlace(s)} />
     <p className="tag">Para ver las casas de otro barrio, tocalo en el mapa.</p>
 
+    {/* sin casa, la plata que quedó guardada se puede sacar (pero no guardar más) */}
+    {!own && s.home.safe > 0 && <p className="row-actions">Te quedaron {money(s.home.safe)} en la caja de antes.
+      <button disabled={busy} onClick={() => act({ type: "withdraw", amount: s.home.safe })}>Sacarlos</button></p>}
     {safeCap(s) > 0 && <>
       <h3>Caja fuerte</h3>
       <p>Tenés {money(s.home.safe)} guardados de {money(safeCap(s))}. Lo que está acá no te lo roban en la calle ni te lo sacan en una fianza.</p>

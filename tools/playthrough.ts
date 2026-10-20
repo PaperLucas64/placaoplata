@@ -8,7 +8,7 @@ import {
   affShare, ambushCatchUp, applyAction, boardCatchUp, canStart, energyMax, ENERGY_EVERY, gangOf, gearVal, healCost, HOME, itemLocked,
   meetsReq, missionCatchUp, salidaCatchUp, itemOf, itemPower, type Slot, PROPS, propIncome, missionEnergy, missionReq, nextMissionEvent,
   jobList, maxHp, MISSIONS, newPlayer, nextLevel, npcTarget, rankOf, regen, SHOP, TARGETS, trainCost, TUT, VALIJA,
-  type Action, type Gang, type Rng, type StatKey
+  hasHouse, needsHouse, lodgingOf, type Action, type Gang, type Rng, type StatKey
 } from "@pop/shared";
 
 const seeded = (seed: number): Rng => () => {
@@ -92,6 +92,8 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
     if (s.tabs.includes("guardia") && !s.seenTab.guardia) { act({ type: "seen", tab: "guardia" }); continue; }
     if (gangOf(s) === gang && run.events.pandilla === undefined) { mark("pandilla"); run.hoursAt.pandilla = now / 3_600_000; }
     if (s.tutDone && s.heat >= 60 && act({ type: "lawyer" }, "abogado")) continue;
+    /* sin casa: apenas es de una pandilla, duerme gratis en su guarida */
+    if (s.tutDone && !hasHouse(s) && gangOf(s) && lodgingOf(s) !== "guarida" && act({ type: "lodge", where: "guarida" }, "vivienda")) continue;
     /* al volver, saca la plata de la caja fuerte para gastarla */
     if (s.home.safe > 0) act({ type: "withdraw", amount: s.home.safe });
 
@@ -153,7 +155,7 @@ export function play(gang: Gang, seed: number, maxEnergy = 8000): Run {
     }
 
     /* trabajar: el que más paga por energía */
-    const job = jobList(s).filter(j => j.lvl <= s.lvl && j.cost <= s.energy).sort((a, b) => (b.gold[0] + b.gold[1]) / b.cost - (a.gold[0] + a.gold[1]) / a.cost)[0];
+    const job = jobList(s).filter(j => j.lvl <= s.lvl && j.cost <= s.energy && (hasHouse(s) || !needsHouse(j))).sort((a, b) => (b.gold[0] + b.gold[1]) / b.cost - (a.gold[0] + a.gold[1]) / a.cost)[0];
     if (job && act({ type: "job", id: job.id }, "trabajo")) continue;
 
     /* fin de la sesión: guarda lo que puede en la caja fuerte y vuelve con la energía llena */
