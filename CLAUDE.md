@@ -15,8 +15,10 @@ Lo que hay que saber para trabajar en este repo. El detalle está en `README.md`
   prende el servidor en http://localhost:3100 con la base local en `.data/juego` y solo escucha en esa compu (no queda online).
   - Lo de antes, que dejó de andar: el servidor de Render (`render.yaml`, `api.cinectomia.com`) no responde desde el 30/10,
     probablemente por haber agotado el plan gratis (los vecinos-bot lo tenían despierto todo el día); la base de Neon, igual.
-    La pantalla en https://cinectomia.com/juego sigue publicada por FTP con GitHub Actions (`.github/workflows/publicar-pantalla.yml`),
-    pero sin servidor no anda.
+    La pantalla en https://cinectomia.com/juego quedó publicada (la última versión subida), pero sin servidor no anda.
+  - **La publicación automática está apagada** (30/10, a pedido de Lucas): el workflow «Publicar pantalla»
+    (`.github/workflows/publicar-pantalla.yml`) quedó desactivado en GitHub, así que un push a `main` ya no publica nada.
+    Para volver a prenderlo: `gh workflow enable "Publicar pantalla" --repo PaperLucas64/placaoplata`.
   - Se evaluó publicarlo gratis en Cloudflare (`pruebas.mauspi.com/malandro`): un túnel desde la compu de Lucas (descartado: no quiere
     el servidor en su compu abierto a internet) o reescribir el servidor para Workers (trabajo grande, para más adelante).
     El servidor ya acepta vivir en una carpeta (`BASE_PATH`), la base local en producción (`PGLITE=1`, `DATA_DIR`) y escuchar solo en la compu (`HOST`).
