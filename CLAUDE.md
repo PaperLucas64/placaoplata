@@ -11,10 +11,15 @@ Lo que hay que saber para trabajar en este repo. El detalle está en `README.md`
   - Tomi hizo la auditoría de `docs/AUDITORIA.md`.
   - Cuando un commit sale de algo que hizo él, se agrega `Co-Authored-By: Tomi <freue.tomas@hotmail.com>`.
 - **Idioma:** todo el juego y las respuestas al usuario van en **español rioplatense**: vos, «tenés», «andá». Sin jerga de programador en los textos del juego.
-- **Online:**
-  - Pantalla en https://cinectomia.com/juego, publicada por FTP con GitHub Actions (`.github/workflows/publicar-pantalla.yml`) en cada push a `main` que toque `apps/web` o `packages/shared`.
-  - Servidor en Render: `render.yaml`, autoDeploy, dominio `api.cinectomia.com`.
-  - Base Postgres en Neon.
+- **Offline por ahora (decisión de Lucas, 30/10/2026).** Se juega solo en su compu con `jugar.cmd` (doble clic): arma la pantalla,
+  prende el servidor en http://localhost:3100 con la base local en `.data/juego` y solo escucha en esa compu (no queda online).
+  - Lo de antes, que dejó de andar: el servidor de Render (`render.yaml`, `api.cinectomia.com`) no responde desde el 30/10,
+    probablemente por haber agotado el plan gratis (los vecinos-bot lo tenían despierto todo el día); la base de Neon, igual.
+    La pantalla en https://cinectomia.com/juego sigue publicada por FTP con GitHub Actions (`.github/workflows/publicar-pantalla.yml`),
+    pero sin servidor no anda.
+  - Se evaluó publicarlo gratis en Cloudflare (`pruebas.mauspi.com/malandro`): un túnel desde la compu de Lucas (descartado: no quiere
+    el servidor en su compu abierto a internet) o reescribir el servidor para Workers (trabajo grande, para más adelante).
+    El servidor ya acepta vivir en una carpeta (`BASE_PATH`), la base local en producción (`PGLITE=1`, `DATA_DIR`) y escuchar solo en la compu (`HOST`).
 
 ## Estructura y comandos
 

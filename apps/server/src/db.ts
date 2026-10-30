@@ -20,7 +20,8 @@ export async function openDb(): Promise<Db> {
 
 async function openPglite(): Promise<Db> {
   const { PGlite } = await import("@electric-sql/pglite");
-  const dir = resolve(here, "../../../.data/pg");
+  /* DATA_DIR: otra carpeta para la base (la del juego publicado no se mezcla con la de las pruebas de desarrollo) */
+  const dir = process.env.DATA_DIR ? resolve(process.env.DATA_DIR) : resolve(here, "../../../.data/pg");
   mkdirSync(dir, { recursive: true });
   const pg = await PGlite.create(dir);
   return {

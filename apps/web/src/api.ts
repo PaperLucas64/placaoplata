@@ -68,8 +68,9 @@ export const api = {
 export function connectLive(onMsg: (m: any) => void, onStatus: (up: boolean) => void) {
   let ws: WebSocket | null = null, stop = false, retry = 1000;
   const open = () => {
-    const base = new URL(API || location.origin);
-    ws = new WebSocket(`${base.protocol === "https:" ? "wss" : "ws"}://${base.host}/api/ws`);
+    /* el servidor puede vivir en otro sitio (VITE_API_URL completo) o en una carpeta del mismo (p. ej. «/malandro») */
+    const base = new URL(API || "/", location.origin);
+    ws = new WebSocket(`${base.protocol === "https:" ? "wss" : "ws"}://${base.host}${base.pathname.replace(/\/$/, "")}/api/ws`);
     ws.onopen = () => { retry = 1000; onStatus(true); };
     ws.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch {} };
     ws.onclose = () => { onStatus(false); if (!stop) setTimeout(open, retry = Math.min(retry * 2, 30000)); };

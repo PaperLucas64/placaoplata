@@ -10,7 +10,13 @@ La policía persigue a todos (calor, detenciones). Tenés tu **casa** (cama, caj
 
 Diseño completo en [docs/GDD.md](docs/GDD.md).
 
-## Cómo correrlo en tu compu
+## Jugar en tu compu
+
+Doble clic en **`jugar.cmd`**: arma el juego, lo prende y abre http://localhost:3100 en el navegador. Solo se puede entrar desde esa
+compu (no queda online). La partida se guarda en `.data/juego`. Para apagarlo, cerrá la ventana negra.
+La primera vez hace falta [Node.js](https://nodejs.org) 22 o más nuevo y correr `npm install` en esta carpeta.
+
+## Cómo correrlo para programar
 
 Necesitás [Node.js](https://nodejs.org) 22 o más nuevo. No hace falta instalar ninguna base de datos.
 

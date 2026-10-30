@@ -22,10 +22,23 @@ const PROD = process.env.NODE_ENV === "production";
 /* en desarrollo siempre 3000 (Vite apunta ahí); en producción, el puerto que da el hosting */
 const PORT = Number(process.env.API_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3000);
 
-if (PROD && !process.env.DATABASE_URL) throw new Error("En producción hace falta DATABASE_URL (Postgres).");
+/* En producción hace falta un Postgres de verdad, salvo que se pida la base local a propósito (PGLITE=1):
+   así corre en la compu de Lucas, publicado con un túnel de Cloudflare (ver docs/PUBLICAR.md). */
+if (PROD && !process.env.DATABASE_URL && process.env.PGLITE !== "1") throw new Error("En producción hace falta DATABASE_URL (Postgres) o PGLITE=1.");
 const db = await openDb();
-/* trustProxy: en Render el pedido llega a través de su proxy; así req.ip es la del jugador (límite de intentos de login) */
-const app = Fastify({ logger: { level: PROD ? "info" : "warn" }, trustProxy: PROD });
+/* BASE_PATH: si el juego vive en una carpeta del sitio (p. ej. pruebas.mauspi.com/malandro), se le saca al pedido antes de buscar la ruta */
+const BASE = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
+/* trustProxy: el pedido llega a través de un proxy (Render o Cloudflare); así req.ip es la del jugador (límite de intentos de login) */
+const app = Fastify({
+  logger: { level: PROD ? "info" : "warn" }, trustProxy: PROD,
+  rewriteUrl: req => {
+    const u = req.url ?? "/";
+    if (!BASE) return u;
+    if (u === BASE) return "/__carpeta"; // sin la barra final: se redirige, para que la pantalla encuentre sus archivos
+    return u.startsWith(BASE + "/") || u.startsWith(BASE + "?") ? u.slice(BASE.length) || "/" : u;
+  }
+});
+if (BASE) app.get("/__carpeta", (_req, reply) => { reply.redirect(BASE + "/", 301); });
 await app.register(cookie);
 /* si la pantalla vive en otro sitio (p. ej. cinectomia.com/juego), WEB_ORIGIN la habilita: "https://cinectomia.com" */
 if (process.env.WEB_ORIGIN) await app.register(cors, { origin: process.env.WEB_ORIGIN.split(","), credentials: true });
@@ -253,7 +266,8 @@ if (!PROD) app.post("/api/dev/ring-round", async (req, reply) => {
   return ring.playNextNow();
 });
 
-await app.listen({ port: PORT, host: "0.0.0.0" });
+/* HOST=127.0.0.1: solo se puede entrar desde esta misma compu (jugar.cmd); si no, desde cualquier lado (hosting) */
+await app.listen({ port: PORT, host: process.env.HOST ?? "0.0.0.0" });
 console.log(`Malandro escuchando en http://localhost:${PORT}`);
 
 /* Cierre ordenado: termina las peticiones en curso y cierra la base sin dejarla a medio escribir.
